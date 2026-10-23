@@ -1,0 +1,53 @@
+{
+    "paths" : {
+        "homebrew"  : "/opt/homebrew",
+        "httpdConf" : "/opt/homebrew/etc/httpd/httpd.conf",
+        "vhosts"    : "/opt/homebrew/etc/httpd/extra/httpd-vhosts.conf",
+        "phpIni"    : "/opt/homebrew/etc/php/{php}/conf.d/99-local-dev.ini",
+        "mysqlData" : "/opt/homebrew/var/mysql",
+        "apacheLog" : "/opt/homebrew/var/log/httpd/error_log",
+        "accessLog" : "/opt/homebrew/var/log/httpd/access_log",
+        "redisLog"  : "/opt/homebrew/var/log/redis.log"
+    },
+
+    "browser"    : "Google Chrome",
+    "editor"     : "Visual Studio Code",
+    "phpMyAdmin" : "http://localhost/phpmyadmin",
+
+    "projects" : [
+        {
+            "name"    : "Framework",
+            "servers" : [
+                {
+                    "id"      : "docs",
+                    "name"    : "Framework Docs",
+                    "dir"     : "~/GitHub/Framework",
+                    "command" : "./framework",
+                    "args"    : [ "docs", "--port=2000" ]
+                },
+                {
+                    "id"      : "tool",
+                    "name"    : "Tool",
+                    "dir"     : "~/GitHub/Tool",
+                    "command" : "npm",
+                    "args"    : [ "start" ]
+                }
+            ]
+        },
+        {
+            "name" : "Blog",
+            "dir"  : "~/Projects/Blog/blog-app"
+        },
+        {
+            "name" : "Clinic",
+            "dir"  : "~/Projects/Clinic/clinic-admin"
+        },
+        {
+            "name"      : "Shop",
+            "dir"       : "~/Projects/Shop",
+            "worktrees" : true,
+            "mainApp"   : "desktop",
+            "nestedApp" : "web"
+        }
+    ]
+}
