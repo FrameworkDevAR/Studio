@@ -22,6 +22,24 @@ function onClick(event) {
 
     if (target.dataset.copy !== undefined) {
         copyLogEntry(target);
+    } else if (target.dataset.npmUpdate) {
+        updatePackages([ target.dataset.npmUpdate ]);
+    } else if (target.dataset.npmOpen !== undefined) {
+        openNpmDialog();
+    } else if (target.dataset.closeNpm !== undefined) {
+        /** @type {HTMLDialogElement} */ (document.getElementById("npm-dialog")).close();
+    } else if (target.dataset.npmInstall) {
+        installNpm(target.dataset.npmInstall);
+    } else if (target.dataset.npmUninstall) {
+        uninstallPackage(target.dataset.npmUninstall);
+    } else if (target.dataset.npmUpdateAll !== undefined) {
+        // While an update runs, the button opens its progress again.
+        if (updateJob && (updateJob.state === "waiting" || updateJob.state === "running")) {
+            showUpdateProgress();
+        } else {
+            confirmUpdateAll();
+        }
+
     } else if (target.dataset.logBottom !== undefined) {
         scrollLogToBottom();
     } else if (target.dataset.appStart !== undefined || target.dataset.appStop !== undefined) {

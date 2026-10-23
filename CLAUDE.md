@@ -1,10 +1,10 @@
 # Studio
 
-A local control panel for the Homebrew dev stack (Apache, MariaDB, PHP, Redis), and
+A local control panel for the Homebrew dev stack (Apache, MariaDB, PHP, Node.js, Redis), and
 the apps and servers of each project. See the README.
 
 - `backend/` is the server: `server.js` answers the page and the api, and each other file
-  covers one part (`apache.js`, `php.js`, `services.js`, `databases.js`, `apps.js`,
+  covers one part (`apache.js`, `php.js`, `node.js`, `services.js`, `databases.js`, `apps.js`,
   `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share.
 - `backend/paths.js` holds the stack's paths, with their defaults, for the server and the
   plugin both.

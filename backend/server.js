@@ -11,6 +11,7 @@ const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } =
 const { readDatabases }                                                     = require("./databases");
 const { readModules, readListen, readVhosts, setModule, reloadApache }      = require("./apache");
 const { readPhp, setPhpSetting, phpIniFile }                                = require("./php");
+const { readNode, updatePackages, installPackage, uninstallPackage, searchPackages, readJob } = require("./node");
 const { readApps, startApp, stopApp, startGroup, startServer, stopServer } = require("./apps");
 const { readLogSizes, readLog, clearLog }                                   = require("./logs");
 const { readConfigFile, saveConfig, openFile }                              = require("./config");
@@ -61,6 +62,12 @@ async function handle(request, response) {
         }
         if (url.pathname === "/api/log" && request.method === "GET") {
             return send(response, 200, readLog(url.searchParams.get("name"), Number(url.searchParams.get("lines")) || 200));
+        }
+        if (url.pathname === "/api/npm-search" && request.method === "GET") {
+            return send(response, 200, await searchPackages(url.searchParams.get("q")));
+        }
+        if (url.pathname === "/api/npm-job" && request.method === "GET") {
+            return send(response, 200, readJob(url.searchParams.get("id")));
         }
         if (url.pathname === "/api/action" && request.method === "POST") {
             if (request.headers["x-studio"] !== "1") {
@@ -145,9 +152,10 @@ function readBody(request) {
 
 /** Everything the page shows, gathered in parallel. */
 async function readState() {
-    const [ services, php, databases, { apps, servers, branches }, disk ] = await Promise.all([
+    const [ services, php, node, databases, { apps, servers, branches }, disk ] = await Promise.all([
         readServices(),
         readPhp(),
+        readNode(),
         readDatabases(),
         readApps(),
         readDisk(),
@@ -156,6 +164,7 @@ async function readState() {
     return {
         services,
         php,
+        node,
         databases,
         apps,
         servers,
@@ -196,6 +205,9 @@ async function runAction(body) {
     case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);
     case "app-stop":      return body.id ? stopServer(body.id) : stopApp(body.dir);
     case "group-start":   return startGroup(body.group);
+    case "npm-update":    return updatePackages(body.name);
+    case "npm-install":   return installPackage(body.name);
+    case "npm-uninstall": return uninstallPackage(body.name);
     default:              throw new Error(`Unknown action ${body.action}`);
     }
 }

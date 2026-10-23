@@ -704,6 +704,8 @@ input:focus, select:focus { outline: 3px solid color-mix(in srgb, var(--accent) 
 .select:hover::after, .select:focus-within::after { background: var(--accent); }
 select option { background: var(--panel); color: var(--text); }
 
+.panel.problem { color: var(--red); background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.panel.problem code { color: inherit; }
 /*
  * A list of packages or extensions, in columns read top to bottom, so the
  * alphabetical order runs down each one. A line never splits across two.
@@ -717,10 +719,64 @@ select option { background: var(--panel); color: var(--text); }
 .pkg { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 2px; border-bottom: 1px solid var(--border); break-inside: avoid; font-size: 13px; }
 .pkg-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
 .pkg-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+/*
+ * The packages are a table in two columns: name, size, version and buttons
+ * each in a track of its own, so they line up from row to row.
+ */
+#node-globals .pkg-list { columns: 2 440px; column-gap: 40px; }
+#node-globals .pkg { display: grid; grid-template-columns: minmax(0, 1fr) 64px 132px 56px; gap: 12px; }
+.pkg-size { text-align: right; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+#node-globals .pkg-version { margin-left: 0; text-align: right; }
+/* Update and remove keep their own places, so a row without one still lines up. */
+.pkg-actions { display: grid; grid-template-columns: 24px 24px; gap: 8px; }
+.pkg-actions .update { grid-column: 1; }
+.pkg-actions .remove { grid-column: 2; }
 .pkg-scope { color: var(--muted); }
 a.pkg-text:hover { color: var(--accent); text-decoration: none; }
 a.pkg-text:hover .pkg-scope { color: inherit; }
 .pkg.end { border-bottom-color: transparent; }
+#node-filter { flex: none; width: 240px; }
+.pkg-none { padding: 24px 2px; color: var(--muted); }
+.pkg-latest { margin-left: 6px; color: var(--amber); font-weight: 600; }
+.pkg.outdated .pkg-version { color: var(--text); }
+#node-outdated b { margin-right: 8px; color: var(--amber); font-size: 13px; font-weight: 600; }
+/* Its count and button sit in the status's own row, one gap between all three. */
+#node-outdated { display: contents; }
+/* A package to pick in the update dialog: the whole row toggles its box. */
+.pkg.pick { cursor: pointer; }
+/*
+ * The boxes are drawn here rather than left to the system: rounded, with a
+ * drawn tick, and a bar when only some of the list is picked.
+ */
+.pkg.pick input {
+    appearance: none;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin: 0 6px 0 0;
+    padding: 0;
+    border-radius: 6px;
+    border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+    background: color-mix(in srgb, var(--muted) 10%, transparent);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+.pkg.pick:hover input { border-color: var(--accent); }
+.pkg.pick input:checked, .pkg.pick input:indeterminate { background: var(--accent); border-color: var(--accent); }
+.pkg.pick input::after { content: ""; display: none; }
+.pkg.pick input:checked::after { display: block; width: 5px; height: 9px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; rotate: 45deg; }
+.pkg.pick input:indeterminate::after { display: block; width: 8px; height: 2px; border-radius: 1px; background: var(--on-accent); }
+.pkg.pick input:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 2px; }
+.pkg.pick.all { border-bottom-width: 2px; }
+.pkg.pick.all .pkg-text { color: var(--muted); font-family: inherit; font-weight: 600; }
+.pkg .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
+.pkg .icon-btn svg { width: 13px; height: 13px; }
+.pkg .icon-btn.update:hover { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 50%, var(--border)); background: var(--amber-bg); }
+.pkg .icon-btn.remove:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, var(--border)); background: var(--red-bg); }
+.pkg .icon-btn.busy svg { animation: rise 1s ease-in-out infinite; }
+@keyframes rise { 0%, 100% { translate: 0 2px; } 50% { translate: 0 -2px; } }
 .pkg-version { margin-left: auto; flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .tag.amber { color: var(--amber); background: var(--amber-bg); border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
 
@@ -908,6 +964,66 @@ main:has(section.logs-view.active) { padding-bottom: 24px; }
 }
 .editor[open] { display: flex; flex-direction: column; animation: fade .18s ease-out; }
 .editor::backdrop { background: color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter: blur(3px); }
+/*
+ * The install dialog, dressed as npm's site: its red stripe on top, its logo,
+ * a wide search, and each package as npm lists one -- name, description,
+ * keywords, then who published what and when.
+ */
+.editor.npm { width: min(860px, calc(100vw - 48px)); height: min(720px, calc(100vh - 48px)); }
+.npm-head { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+/* npm's wordmark keeps its own red; the rest of the dialog wears Studio's accent. */
+.npm-logo { flex: none; width: 64px; height: 25px; }
+.npm-logo-box  { fill: #cb3837; }
+.npm-logo-text { fill: #fff; }
+.npm-search { flex: 1; display: flex; align-items: center; gap: 0; border-radius: 10px; background: var(--input); border: 1px solid var(--border); overflow: hidden; }
+.npm-search:focus-within { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
+.npm-search svg { flex: none; width: 16px; height: 16px; margin-left: 12px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; }
+.npm-search input { flex: 1; border: 0; background: transparent; padding: 11px 12px; font-size: 14px; }
+.npm-search input:focus { outline: none; box-shadow: none; }
+.npm-search button { align-self: stretch; border-radius: 0; padding: 0 20px; background: var(--accent); color: var(--on-accent); font-weight: 600; transition: background .12s; }
+.npm-search button:hover { filter: none; background: color-mix(in srgb, var(--accent) 82%, var(--strong)); }
+.npm-list { flex: 1; min-height: 0; overflow: auto; padding: 0 18px; }
+.npm-empty { padding: 60px 20px; text-align: center; color: var(--muted); }
+.npm-item { display: flex; align-items: flex-start; gap: 20px; padding: 18px 2px; border-bottom: 1px solid var(--border); }
+.npm-item:last-child { border-bottom: 0; }
+.npm-item-body { flex: 1; min-width: 0; }
+.npm-name { font-size: 17px; font-weight: 700; color: var(--strong); }
+a.npm-name:hover { color: var(--accent); text-decoration: underline; }
+.npm-item p { margin: 4px 0 8px; color: var(--text); font-size: 13.5px; line-height: 1.5; }
+.npm-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.npm-keywords span { padding: 1px 8px; border-radius: 5px; font-size: 12px; color: var(--muted); background: var(--code-bg); }
+.npm-meta { font-size: 12.5px; color: var(--muted); }
+.npm-meta b { color: var(--text); font-weight: 600; }
+.npm-meta .sep { margin: 0 7px; font-style: normal; opacity: .6; }
+.npm-actions { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-top: 2px; }
+.npm-here { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.npm-here b { color: var(--green); font-weight: 600; }
+.npm-buttons { display: flex; gap: 8px; }
+
+/*
+ * A package of an update, as it goes: a faint ring while it waits, a loader
+ * while npm works on it, then a tick, or a cross when it failed.
+ */
+.pkg.step { gap: 12px; }
+.step-mark { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; }
+.step.waiting .step-mark { border: 2px solid var(--border); }
+.step.running .step-mark { border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+.step.done .step-mark    { background: var(--green); }
+.step.done .step-mark::after { content: ""; width: 4px; height: 8px; margin-top: -2px; border: solid var(--bg); border-width: 0 2px 2px 0; rotate: 45deg; }
+.step.failed .step-mark  { background: var(--red); color: var(--bg); font: 700 11px/1 -apple-system, system-ui, sans-serif; }
+.step.failed .step-mark::after { content: "✕"; }
+.step.waiting .pkg-text { color: var(--muted); }
+.step.done .pkg-version { color: var(--green); font-weight: 600; }
+.step.failed .pkg-text  { color: var(--red); }
+@keyframes spin { to { rotate: 360deg; } }
+.editor-status.progress { display: flex; align-items: center; gap: 12px; }
+.progress-bar { flex: none; width: 120px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.progress-bar i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width .3s; }
+.editor-status.progress.ok  { color: var(--green); font-weight: 600; }
+.editor-status.progress.ok .progress-bar i  { background: var(--green); }
+.editor-status.progress.bad { color: var(--red); font-family: inherit; font-size: 12.5px; }
+.editor-status.progress.bad .progress-bar i { background: var(--red); }
+
 /* A dialog that asks first, as tall as what it lists. */
 .editor.confirm { width: min(520px, calc(100vw - 48px)); height: fit-content; max-height: min(640px, calc(100vh - 48px)); }
 .editor.confirm form { display: flex; flex-direction: column; min-height: 0; max-height: inherit; }
@@ -921,6 +1037,7 @@ main:has(section.logs-view.active) { padding-bottom: 24px; }
 .editor.confirm:has(#ask-body[hidden]) .editor-foot { border-top: 0; }
 .confirm-list { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px; }
 .confirm-list .pkg:last-child { border-bottom-color: transparent; }
+.tag.red { color: var(--red); background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .editor-head, .editor-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; }
 .editor-head { border-bottom: 1px solid var(--border); }
 .editor-head h2 { font-size: 18px; margin-bottom: 2px; }

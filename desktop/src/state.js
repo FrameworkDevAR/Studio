@@ -6,12 +6,13 @@
 "use strict";
 
 const REFRESH_MS = 5000;
-const VIEWS      = [ "overview", "services", "sites", "php", "apache", "databases", "logs" ];
+const VIEWS      = [ "overview", "services", "sites", "php", "node", "apache", "databases", "logs" ];
 const TITLES     = {
     overview  : "Overview",
     services  : "Services",
     sites     : "Sites",
     php       : "PHP",
+    node      : "Node.js",
     apache    : "Apache",
     databases : "Databases",
     logs      : "Logs",
@@ -44,6 +45,8 @@ const SETTING_HINTS = {
 };
 
 let state        = null;
+// Global packages being updated, by name, so a redraw keeps their buttons busy.
+let updating     = new Set();
 // Apps asked to start, by folder, until their process shows up.
 let starting     = new Map();
 let moduleFilter = "all";

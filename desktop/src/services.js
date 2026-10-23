@@ -3,7 +3,7 @@
 // The Services page.
 
 function renderServices() {
-    const { services, php, phpmyadmin } = state;
+    const { services, php, node, phpmyadmin } = state;
     const cards = Object.entries(services).map(([ formula, service ]) => {
         const info = SERVICE_INFO[formula];
         return serviceCard({
@@ -36,6 +36,16 @@ function renderServices() {
         running : services.httpd.running && services.mariadb.running,
         text    : "Served by Apache at /phpmyadmin on every site. Needs MariaDB too.",
         actions : `<a class="button ghost small" href="${phpmyadmin.url}" target="_blank" rel="noopener">Open</a>`,
+    }));
+    // Node.js is not a service either: nothing runs until an app starts it.
+    cards.push(serviceCard({
+        logo    : "node",
+        name    : "Node.js",
+        version : node.version,
+        running : Boolean(node.version) && !node.broken,
+        status  : node.broken ? "Does not start" : node.version ? "Installed" : "Not installed",
+        text    : "Runs the apps' servers and npm. It is not a service, so there is nothing to start.",
+        actions : `<a class="button ghost small" href="/node">Packages</a>`,
     }));
     document.getElementById("service-cards").innerHTML = cards.join("");
 }

@@ -98,6 +98,7 @@ function bytes(value) {
 
 /** What a list's tags mean, shown on hover. */
 const TAG_TIPS = {
+    linked : "Linked with npm link: it points to a folder of yours, so changes there show at once",
     pecl   : "Built with pecl for this PHP version: install it again after a minor upgrade",
 };
 

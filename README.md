@@ -1,9 +1,10 @@
 # Studio
 
 A control panel for the local development stack, that runs in the browser: Apache,
-MariaDB, PHP and Redis from Homebrew, and the apps and servers of each project. It
-shows what is running, starts and stops it, changes the PHP settings and the Apache
-modules, lists the databases and reads the logs, and everything stays on the machine.
+MariaDB, PHP, Node.js and Redis from Homebrew, and the apps and servers of each
+project. It shows what is running, starts and stops it, changes the PHP settings and
+the Apache modules, lists the databases and Node's global packages, and reads the
+logs, and everything stays on the machine.
 
 ## Running it
 
@@ -84,7 +85,8 @@ Folders may start with `~`.
 ## What it uses
 
 - **Homebrew** for Apache (`httpd`), PHP, MariaDB and Redis, started with
-  `brew services run`, so none of them comes up at login.
+  `brew services run`, so none of them comes up at login, and for Node.js (`node`),
+  whose npm lists the global packages.
 - **Simple Icons** for the logos on the Services page, which are CC0.
 - **The SwiftBar plugin** for the apps: Studio asks it with `swiftbar.10s.js json`, so
   both list the same apps, found the same way, by their processes.

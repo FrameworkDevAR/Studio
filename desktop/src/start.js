@@ -10,10 +10,23 @@ window.addEventListener("scroll", () => {
 document.getElementById("log").addEventListener("scroll", showLogBottom, { passive : true });
 const columnWatch = new ResizeObserver((entries) => entries.forEach((entry) => markColumnEnds(entry.target)));
 columnWatch.observe(document.getElementById("php-extensions").parentElement);
+columnWatch.observe(document.getElementById("node-globals"));
 // A click outside the dialog, on its backdrop, is a Cancel.
 document.getElementById("ask").addEventListener("click", (event) => {
     if (event.target === event.currentTarget) {
         /** @type {HTMLDialogElement} */ (event.currentTarget).close("cancel");
+    }
+});
+document.getElementById("node-filter").addEventListener("input", renderNode);
+document.getElementById("npm-search").addEventListener("input", () => searchNpm());
+// Enter searches at once, or installs a package named with its version.
+document.getElementById("npm-search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const text = /** @type {HTMLInputElement} */ (document.querySelector("#npm-search input")).value.trim();
+    if (/.@/.test(text)) {
+        installNpm(text);
+    } else {
+        searchNpm(true);
     }
 });
 document.getElementById("module-search").addEventListener("input", renderModules);

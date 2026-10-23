@@ -8,6 +8,7 @@ function render() {
     renderServices();
     renderSites();
     renderPhp();
+    renderNode();
     renderModules();
     renderDatabases();
     renderLogMeta();
@@ -15,7 +16,7 @@ function render() {
 
 /** The status under the title, the counts by each link, and the disk meter. */
 function renderSidebar() {
-    const { services, disk, php, modules, databases } = state;
+    const { services, disk, php, node, modules, databases } = state;
     const apps = allApps();
     const health = stackHealth();
     const labels = { on : "All running", mid : "Partly running", off : "Stopped" };
@@ -25,6 +26,7 @@ function renderSidebar() {
     setBadge("services",  `${running}/${Object.keys(services).length}`, running === Object.keys(services).length ? "ok" : "");
     setBadge("sites",     `${apps.filter((app) => app.running).length}/${apps.length}`);
     setBadge("php",       php.version || "");
+    setBadge("node",      node.broken ? "broken" : node.version, node.broken ? "bad" : "");
     setBadge("apache",    String(modules.filter((module) => module.enabled).length));
     setBadge("databases", databases.available ? String(databases.list.length) : "off", databases.available ? "" : "bad");
 
@@ -58,7 +60,7 @@ function renderStartButtons(health) {
 }
 
 function renderOverview() {
-    const { services, databases, disk, php } = state;
+    const { services, databases, disk, php, node } = state;
     const apps = allApps();
     const stopped = Object.values(services).filter((service) => !service.running && service.name !== "Redis");
     const appsUp  = apps.filter((app) => app.running).length;
@@ -88,6 +90,7 @@ function renderOverview() {
         serviceTile("httpd", "orange"),
         serviceTile("mariadb", "teal"),
         tile("php", "PHP", esc(php.version || "—"), `${php.extensions.length} extensions`, false, "blue"),
+        tile("node", "Node.js", esc(node.version || "—"), node.npm ? `npm ${esc(node.npm)}` : "Not installed", Boolean(node.broken), "green"),
         tile("sites", "Apps", `${appsUp}<small>/${apps.length}</small>`, "running", false, "cyan"),
         tile("databases", "Databases", databases.available ? String(databases.list.length) : "—", databases.available ? bytes(total) : "MariaDB is stopped", !databases.available, "magenta"),
         tile("overview", "Disk", bytes(disk.free).replace(" ", "<small> ") + "</small>", `free · logs ${bytes(Object.values(state.logs).reduce((sum, log) => sum + log.size + log.archived, 0))}`, disk.free < 5 * 2 ** 30, "yellow"),
