@@ -7,6 +7,15 @@ window.addEventListener("popstate", route);
 window.addEventListener("scroll", () => {
     document.body.classList.toggle("scrolled", window.scrollY > 4);
 }, { passive : true });
+document.getElementById("log").addEventListener("scroll", showLogBottom, { passive : true });
+const columnWatch = new ResizeObserver((entries) => entries.forEach((entry) => markColumnEnds(entry.target)));
+columnWatch.observe(document.getElementById("php-extensions").parentElement);
+// A click outside the dialog, on its backdrop, is a Cancel.
+document.getElementById("ask").addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) {
+        /** @type {HTMLDialogElement} */ (event.currentTarget).close("cancel");
+    }
+});
 document.getElementById("module-search").addEventListener("input", renderModules);
 let searchTimer = null;
 document.getElementById("log-search").addEventListener("input", () => {

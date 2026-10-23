@@ -19,9 +19,9 @@ const TITLES     = {
 
 /** How each service card looks and what it says. */
 const SERVICE_INFO = {
-    httpd   : { mark : "A", color : "var(--red)", text : (state) => `Serves every site, with PHP inside. Ports ${state.listen.join(", ")}.` },
-    mariadb : { mark : "M", color : "var(--cyan)", text : (state) => `The database server, on port 3306. Data in ${state.files.mysqlData}.` },
-    redis   : { mark : "R", color : "var(--orange)", text : () => "Cache server on port 6379. Not part of Start all." },
+    httpd   : { text : (state) => `Serves every site, with PHP inside. Ports ${state.listen.join(", ")}.` },
+    mariadb : { text : (state) => `The database server, on port 3306. Data in ${state.files.mysqlData}.` },
+    redis   : { text : () => "Cache server on port 6379. Not part of Start all." },
 };
 
 const SETTING_GROUPS = [

@@ -68,6 +68,13 @@ async function startAll() {
     return { message : "Apache and MariaDB started" };
 }
 
+/** Apache and MariaDB again, when both are already running. */
+async function restartAll() {
+    await serviceAction("httpd", "restart");
+    await serviceAction("mariadb", "restart");
+    return { message : "Apache and MariaDB restarted" };
+}
+
 /** Everything, Redis too, as stop all in the SwiftBar menu. */
 async function stopAll() {
     for (const formula of [ "redis", "httpd", "mariadb" ]) {
@@ -81,5 +88,6 @@ module.exports = {
     readDisk,
     serviceAction,
     startAll,
+    restartAll,
     stopAll,
 };

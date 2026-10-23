@@ -26,13 +26,24 @@ function renderModules() {
     `).join("") || `<div class="empty">No modules match.</div>`;
 }
 
-/** Asks first before turning off a module the sites use. */
-function toggleModule(event, input) {
+/**
+ * Asks first before turning off a module the sites use. The switch stays on
+ * while the dialog is open, and turns off only once it is confirmed.
+ */
+async function toggleModule(event, input) {
     const enabled = input.checked;
-    if (!enabled && input.dataset.used === "true" &&
-        !confirm(`Apache's config or your sites use ${input.dataset.module}. Turning it off will likely break them with a 500. Turn it off anyway?`)) {
+    if (!enabled && input.dataset.used === "true") {
         event.preventDefault();
-        return;
+        const sure = await ask({
+            title  : `Turn off ${input.dataset.module}?`,
+            text   : "Apache's config or your sites use it. Turning it off will likely break them with a 500.",
+            ok     : "Turn it off",
+            danger : true,
+        });
+        if (!sure) {
+            return;
+        }
+        input.checked = false;
     }
     act({ action : "module", name : input.dataset.module, enabled }, input);
 }

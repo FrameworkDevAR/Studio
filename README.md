@@ -85,6 +85,7 @@ Folders may start with `~`.
 
 - **Homebrew** for Apache (`httpd`), PHP, MariaDB and Redis, started with
   `brew services run`, so none of them comes up at login.
+- **Simple Icons** for the logos on the Services page, which are CC0.
 - **The SwiftBar plugin** for the apps: Studio asks it with `swiftbar.10s.js json`, so
   both list the same apps, found the same way, by their processes.
 - **MariaDB** as the user running Studio, which Homebrew's MariaDB lets in through its

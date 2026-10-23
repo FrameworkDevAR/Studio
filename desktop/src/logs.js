@@ -41,6 +41,18 @@ async function loadLog(jumpToEnd = false) {
     if (atEnd) {
         box.scrollTop = box.scrollHeight;
     }
+    showLogBottom();
+}
+
+/** The Latest button, shown while the log is scrolled up from its end. */
+function showLogBottom() {
+    const box = document.getElementById("log");
+    document.getElementById("log-bottom").hidden = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
+}
+
+function scrollLogToBottom() {
+    const box = document.getElementById("log");
+    box.scrollTo({ top : box.scrollHeight, behavior : "smooth" });
 }
 
 /**
@@ -122,7 +134,13 @@ function renderLogMeta() {
 async function clearLog(name, button) {
     const log   = state.logs[name];
     const label = { apache : "the Apache + PHP log", access : "the requests log", mariadb : "the MariaDB log", redis : "the Redis log" }[name];
-    if (!confirm(`Clear ${label}? This deletes ${bytes(log.size + log.archived)} of history, including its rotated copies.`)) {
+    const sure  = await ask({
+        title  : `Clear ${label}?`,
+        text   : `This deletes ${bytes(log.size + log.archived)} of history, including its rotated copies.`,
+        ok     : "Clear",
+        danger : true,
+    });
+    if (!sure) {
         return;
     }
     await act({ action : "clear-log", name }, button);
@@ -235,6 +253,7 @@ function readPhpError(entry) {
 
     entry.tone   = tone;
     entry.label  = label;
+    entry.copy   = entry.raw.replace(found[2], lines.join("\n"));
     entry.frames = lines.filter((line) => /^#\d+ /.test(line));
     entry.thrown = lines.find((line) => /^\s*thrown in /.test(line))?.trim() || "";
 
@@ -287,6 +306,7 @@ function renderRequest(entry) {
     ].filter(Boolean).join(`<i class="sep">·</i>`);
     return `
         <div class="entry request tone-${entry.tone}">
+            ${copyButton(entry)}
             <time>${esc(entry.time)}</time>
             <span class="lvl">${esc(entry.label)}</span>
             <div class="req-line">
@@ -299,12 +319,42 @@ function renderRequest(entry) {
     `;
 }
 
+const COPY_ICONS = {
+    copy : `<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>`,
+    done : `<path d="M5 12.5l4.5 4.5L19 7"/>`,
+};
+
+function copyButton(entry) {
+    return `
+        <button class="icon-btn copy" title="Copy" aria-label="Copy" data-copy="${esc(entry.copy || entry.raw)}">
+            <svg viewBox="0 0 24 24">${COPY_ICONS.copy}</svg>
+        </button>
+    `;
+}
+
+/** Puts an entry on the clipboard, and shows a tick on its button for a moment. */
+async function copyLogEntry(button) {
+    try {
+        await navigator.clipboard.writeText(button.dataset.copy);
+    } catch {
+        toast("Could not copy", true);
+        return;
+    }
+    button.classList.add("done");
+    button.querySelector("svg").innerHTML = COPY_ICONS.done;
+    clearTimeout(Number(button.dataset.timer));
+    button.dataset.timer = String(setTimeout(() => {
+        button.classList.remove("done");
+        button.querySelector("svg").innerHTML = COPY_ICONS.copy;
+    }, 1500));
+}
+
 function renderLogEntry(entry, index) {
     if (entry.request) {
         return renderRequest(entry);
     }
     if (entry.tone === "plain" && !entry.time) {
-        return `<div class="entry plain"><div class="entry-body"><div class="msg">${formatLogText(entry.message)}</div></div></div>`;
+        return `<div class="entry plain">${copyButton(entry)}<div class="entry-body"><div class="msg">${formatLogText(entry.message)}</div></div></div>`;
     }
     const meta = [
         entry.location ? `<span class="where">${formatLogText(entry.location)}</span>` : "",
@@ -327,6 +377,7 @@ function renderLogEntry(entry, index) {
 
     return `
         <div class="entry tone-${entry.tone}">
+            ${copyButton(entry)}
             <time>${esc(entry.time)}</time>
             <span class="lvl">${esc(entry.label)}</span>
             <div class="entry-body">

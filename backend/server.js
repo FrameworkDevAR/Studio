@@ -7,7 +7,7 @@ const http = require("http");
 const path = require("path");
 
 const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, versionOf }       = require("./system");
-const { readServices, readDisk, serviceAction, startAll, stopAll }          = require("./services");
+const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
 const { readDatabases }                                                     = require("./databases");
 const { readModules, readListen, readVhosts, setModule, reloadApache }      = require("./apache");
 const { readPhp, setPhpSetting, phpIniFile }                                = require("./php");
@@ -183,18 +183,19 @@ async function readState() {
 /** Performs one change asked for by the page. */
 async function runAction(body) {
     switch (body.action) {
-    case "service":     return serviceAction(body.service, body.op);
-    case "start-all":   return startAll();
-    case "stop-all":    return stopAll();
-    case "php-setting": return setPhpSetting(body.key, String(body.value ?? "").trim());
-    case "module":      return setModule(body.name, Boolean(body.enabled));
-    case "reload":      return reloadApache();
-    case "open-file":   return openFile(body.file);
-    case "save-config": return saveConfig(body.text);
-    case "clear-log":   return clearLog(body.name);
-    case "app-start":   return body.id ? startServer(body.id) : startApp(body.dir);
-    case "app-stop":    return body.id ? stopServer(body.id) : stopApp(body.dir);
-    case "group-start": return startGroup(body.group);
-    default:            throw new Error(`Unknown action ${body.action}`);
+    case "service":       return serviceAction(body.service, body.op);
+    case "start-all":     return startAll();
+    case "restart-all":   return restartAll();
+    case "stop-all":      return stopAll();
+    case "php-setting":   return setPhpSetting(body.key, String(body.value ?? "").trim());
+    case "module":        return setModule(body.name, Boolean(body.enabled));
+    case "reload":        return reloadApache();
+    case "open-file":     return openFile(body.file);
+    case "save-config":   return saveConfig(body.text);
+    case "clear-log":     return clearLog(body.name);
+    case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);
+    case "app-stop":      return body.id ? stopServer(body.id) : stopApp(body.dir);
+    case "group-start":   return startGroup(body.group);
+    default:              throw new Error(`Unknown action ${body.action}`);
     }
 }

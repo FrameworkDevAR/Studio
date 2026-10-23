@@ -46,6 +46,17 @@ function stackHealth() {
     return httpd.running && mariadb.running ? "on" : httpd.running || mariadb.running ? "mid" : "off";
 }
 
+/** Start all becomes Restart all once Apache and MariaDB are both up. */
+function renderStartButtons(health) {
+    const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll(`[data-action="start-all"], [data-action="restart-all"]`));
+    for (const button of buttons) {
+        const restart = health === "on";
+        button.dataset.action = restart ? "restart-all" : "start-all";
+        button.textContent    = restart ? "Restart Apache + MariaDB" : "Start Apache + MariaDB";
+        button.title          = restart ? "Restarts Apache and MariaDB, not Redis or the apps" : "Starts Apache and MariaDB, not Redis or the apps";
+    }
+}
+
 function renderOverview() {
     const { services, databases, disk, php } = state;
     const apps = allApps();
@@ -65,6 +76,7 @@ function renderOverview() {
     const pill   = { on : "Healthy", mid : "Partly up", off : "Stopped" }[health];
     document.getElementById("hero-title").innerHTML = `${esc(title)}<span class="status-pill ${health}"><i class="dot ${health}"></i>${pill}</span>`;
     document.getElementById("hero-text").textContent  = text;
+    renderStartButtons(health);
 
     const total = databases.list.reduce((sum, db) => sum + db.size, 0);
     const serviceTile = (formula, tone) => {

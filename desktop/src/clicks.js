@@ -20,7 +20,11 @@ function onClick(event) {
         return;
     }
 
-    if (target.dataset.appStart !== undefined || target.dataset.appStop !== undefined) {
+    if (target.dataset.copy !== undefined) {
+        copyLogEntry(target);
+    } else if (target.dataset.logBottom !== undefined) {
+        scrollLogToBottom();
+    } else if (target.dataset.appStart !== undefined || target.dataset.appStop !== undefined) {
         const which  = target.dataset.appId ? { id : target.dataset.appId } : { dir : target.dataset.appDir };
         const action = target.dataset.appStart !== undefined ? "app-start" : "app-stop";
         if (action === "app-start") {
@@ -45,15 +49,20 @@ function onClick(event) {
         navigate(target.dataset.siteTab === "apache" ? "/sites/apache" : "/sites");
     } else if (target.dataset.service) {
         const { service, op } = target.dataset;
-        if (op === "stop" && !confirm(`Stop ${state.services[service].name}?`)) {
-            return;
+        const name = state.services[service].name;
+        if (op === "stop") {
+            ask({ title : `Stop ${name}?`, ok : "Stop", danger : true }).then((sure) => sure && act({ action : "service", service, op }, target));
+        } else {
+            act({ action : "service", service, op }, target);
         }
-        act({ action : "service", service, op }, target);
     } else if (target.dataset.action) {
-        if (target.dataset.action === "stop-all" && !confirm("Stop Apache, MariaDB and Redis?")) {
-            return;
+        const action = target.dataset.action;
+        if (action === "stop-all") {
+            ask({ title : "Stop the services?", text : "Apache, MariaDB and Redis all stop, and the sites with them.", ok : "Stop all", danger : true })
+                .then((sure) => sure && act({ action }, target));
+        } else {
+            act({ action }, target);
         }
-        act({ action : target.dataset.action }, target);
     } else if (target.dataset.editConfig !== undefined) {
         openConfigEditor();
     } else if (target.dataset.closeConfig !== undefined) {

@@ -15,11 +15,12 @@ function renderDatabases() {
     const largest = Math.max(1, ...databases.list.map((db) => db.size));
     document.getElementById("db-total").textContent = `${databases.list.length} · ${bytes(total)}`;
     document.getElementById("db-table").innerHTML = `
-        <thead><tr><th>Database</th><th class="num">Tables</th><th class="num">Size</th><th></th></tr></thead>
+        <thead><tr><th>Database</th><th>User</th><th class="num">Tables</th><th class="num">Size</th><th></th></tr></thead>
         <tbody>
             ${databases.list.map((db) => `
                 <tr>
                     <td class="mono"><strong>${esc(db.name)}</strong></td>
+                    <td class="mono">${db.users.length ? db.users.map(esc).join(", ") : `<span class="muted">—</span>`}</td>
                     <td class="num">${db.tables}</td>
                     <td class="num">
                         <div class="size-bar">

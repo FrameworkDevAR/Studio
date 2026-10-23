@@ -62,9 +62,9 @@ async function openConfigEditor() {
     text.scrollTop = 0;
 }
 
-function closeConfigEditor() {
+async function closeConfigEditor() {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("config-text"));
-    if (text.value !== configSaved && !confirm("Close without saving the changes?")) {
+    if (text.value !== configSaved && !await ask({ title : "Close without saving?", text : "The changes to the config are lost.", ok : "Close", danger : true })) {
         return;
     }
     /** @type {HTMLDialogElement} */ (document.getElementById("config-editor")).close();

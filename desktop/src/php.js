@@ -42,8 +42,9 @@ function renderPhp() {
     document.getElementById("ext-count").textContent = String(php.extensions.length);
     document.getElementById("php-extensions").innerHTML = php.extensions.map((name) => {
         const pecl = php.pecl.includes(name.toLowerCase());
-        return `<span class="chip ${pecl ? "pecl" : ""}" ${pecl ? `title="Built with pecl"` : ""}>${esc(name)}</span>`;
+        return packageRow({ name, tag : pecl ? "pecl" : "" });
     }).join("");
+    markColumnEnds(document.getElementById("php-extensions").parentElement);
 }
 
 function settingRow(setting) {
