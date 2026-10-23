@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Studio">
+  <!-- The Framework logo's shape, in Studio's violet: a dark tile, a fine border and a serif letter. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#241d3b"/>
+      <stop offset="1" stop-color="#110d1e"/>
+    </linearGradient>
+    <linearGradient id="letter" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c7a9ff"/>
+      <stop offset="1" stop-color="#9d7cd8"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="94" height="94" rx="26" fill="url(#tile)"/>
+  <rect x="3.75" y="3.75" width="92.5" height="92.5" rx="25.25" fill="none" stroke="#bb9af7" stroke-opacity=".35" stroke-width="1.5"/>
+  <text x="50" y="53" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, 'Times New Roman', 'Noto Serif', serif"
+        font-size="66" font-weight="700" fill="url(#letter)">S</text>
+</svg>

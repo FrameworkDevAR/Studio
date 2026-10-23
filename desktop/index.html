@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Studio</title>
+    <link rel="icon" href="/favicon.svg">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="/favicon.svg" alt="">
+            <div>
+                <strong>Studio</strong>
+                <span id="brand-status" class="muted">Loading…</span>
+            </div>
+        </div>
+
+        <nav id="nav">
+            <a href="/overview" data-view="overview">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                <span>Overview</span>
+            </a>
+            <div class="nav-label">Stack</div>
+            <a href="/services" data-view="services">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+                <span>Services</span><em id="badge-services"></em>
+            </a>
+            <a href="/php" data-view="php">
+                <svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg>
+                <span>PHP</span><em id="badge-php"></em>
+            </a>
+            <a href="/apache" data-view="apache">
+                <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                <span>Apache</span><em id="badge-apache"></em>
+            </a>
+            <a href="/databases" data-view="databases">
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                <span>Databases</span><em id="badge-databases"></em>
+            </a>
+            <div class="nav-label">Work</div>
+            <a href="/sites" data-view="sites">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>
+                <span>Sites</span><em id="badge-sites"></em>
+            </a>
+            <a href="/logs" data-view="logs">
+                <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+                <span>Logs</span><em id="badge-logs"></em>
+            </a>
+        </nav>
+
+        <div class="disk" id="disk">
+            <div class="disk-head"><span>Disk</span><span id="disk-text">—</span></div>
+            <div class="meter"><div id="disk-used"></div></div>
+        </div>
+    </aside>
+
+    <main>
+        <!-- ------------------------------------------------------ overview -->
+        <section data-view="overview">
+            <header class="page-head">
+                <div>
+                    <h1 id="hero-title">Overview</h1>
+                    <p id="hero-text" class="muted"></p>
+                </div>
+                <div class="actions">
+                    <button data-action="start-all" title="Starts Apache and MariaDB, not Redis or the apps">Start Apache + MariaDB</button>
+                    <button data-action="stop-all" class="ghost" title="Stops Apache, MariaDB and Redis">Stop services</button>
+                </div>
+            </header>
+
+            <div id="tiles" class="tiles"></div>
+
+            <div class="grid-2">
+                <div class="panel">
+                    <div class="panel-head">
+                        <h2>Recent errors</h2>
+                        <a href="/logs">Open logs →</a>
+                    </div>
+                    <div id="recent-errors" class="recent"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h2>Shortcuts</h2></div>
+                    <div class="shortcuts">
+                        <a id="shortcut-pma" class="shortcut tone-yellow" target="_blank" rel="noopener">
+                            <span class="icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+                            <div><strong>phpMyAdmin</strong><span>Browse the databases</span></div>
+                        </a>
+                        <button class="shortcut tone-cyan" data-open-file="vhosts">
+                            <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></span>
+                            <div><strong>Edit vhosts</strong><span>Add or change a site</span></div>
+                        </button>
+                        <button class="shortcut tone-magenta" data-open-file="phpIni">
+                            <span class="icon"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
+                            <div><strong>Edit PHP overrides</strong><span id="php-ini-name"></span></div>
+                        </button>
+                        <button class="shortcut tone-teal" data-open-file="httpdConf">
+                            <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
+                            <div><strong>Edit httpd.conf</strong><span>Apache's main config</span></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ------------------------------------------------------ services -->
+        <section data-view="services">
+            <header class="page-head">
+                <div>
+                    <h1>Services</h1>
+                    <p class="muted">They start only when asked, never at login. Start all brings up Apache and MariaDB; Redis starts on its own.</p>
+                </div>
+                <div class="actions">
+                    <button data-action="start-all" title="Starts Apache and MariaDB, not Redis or the apps">Start Apache + MariaDB</button>
+                    <button data-action="stop-all" class="ghost" title="Stops Apache, MariaDB and Redis">Stop services</button>
+                </div>
+            </header>
+            <div id="service-cards" class="service-grid"></div>
+        </section>
+
+        <!-- --------------------------------------------------------- sites -->
+        <section data-view="sites">
+            <header class="page-head">
+                <div>
+                    <h1>Sites</h1>
+                    <p class="muted" id="sites-text"></p>
+                </div>
+                <div class="actions">
+                    <button class="ghost" id="edit-config" data-edit-config title="The projects and servers listed here">Edit config</button>
+                    <button data-open-file="vhosts" class="ghost" id="edit-vhosts">Edit vhosts</button>
+                    <div class="segmented" id="site-tabs">
+                        <button data-site-tab="apps">Apps <em id="tab-apps-count"></em></button>
+                        <button data-site-tab="apache">Apache <em id="tab-apache-count"></em></button>
+                    </div>
+                </div>
+            </header>
+            <div id="apps-pane"></div>
+            <div id="apache-pane"><div class="panel flush"><table id="vhost-table" class="fixed"></table></div></div>
+        </section>
+
+        <!-- ----------------------------------------------------------- php -->
+        <section data-view="php">
+            <header class="page-head">
+                <div>
+                    <h1>PHP <span id="php-version" class="muted"></span></h1>
+                    <p class="muted">Saved to <code id="php-ini-file"></code>, which loads after php.ini and wins over it. Apache reloads after each save.</p>
+                </div>
+                <div class="actions">
+                    <button data-open-file="phpIni" class="ghost">Edit overrides file</button>
+                </div>
+            </header>
+            <div id="php-settings" class="setting-groups"></div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h2>Extensions <span id="ext-count" class="muted"></span></h2>
+                </div>
+                <p class="hint"><span class="chip pecl">pecl</span> extensions were built for this PHP version. After a <code>brew upgrade</code> to a new minor version (such as 8.6), run <code>pecl install &lt;name&gt;</code> again for each one.</p>
+                <div id="php-extensions" class="chips"></div>
+            </div>
+        </section>
+
+        <!-- -------------------------------------------------------- apache -->
+        <section data-view="apache">
+            <header class="page-head">
+                <div>
+                    <h1>Apache modules <span id="module-count" class="muted"></span></h1>
+                    <p class="muted">Each change is checked with <code>apachectl configtest</code> and undone if Apache rejects it. <span class="tag">used</span> means Apache's config, the vhosts or the sites' <code>.htaccess</code> files need it.</p>
+                </div>
+                <div class="actions">
+                    <button data-action="reload" class="ghost">Reload Apache</button>
+                    <button data-open-file="httpdConf" class="ghost">Edit httpd.conf</button>
+                </div>
+            </header>
+            <div class="panel">
+                <div class="filters">
+                    <input id="module-search" type="search" placeholder="Filter modules…">
+                    <div class="segmented" id="module-filter">
+                        <button data-filter="all" class="active">All</button>
+                        <button data-filter="on">On</button>
+                        <button data-filter="off">Off</button>
+                    </div>
+                </div>
+                <div id="modules" class="modules"></div>
+            </div>
+        </section>
+
+        <!-- ----------------------------------------------------- databases -->
+        <section data-view="databases">
+            <header class="page-head">
+                <div>
+                    <h1>Databases <span id="db-total" class="muted"></span></h1>
+                    <p class="muted">MariaDB on port 3306. Sizes include indexes and refresh every 30 seconds.</p>
+                </div>
+                <div class="actions">
+                    <a id="phpmyadmin-link" class="button ghost" target="_blank" rel="noopener">Open phpMyAdmin</a>
+                </div>
+            </header>
+            <div class="panel flush"><table id="db-table"></table></div>
+        </section>
+
+        <!-- ---------------------------------------------------------- logs -->
+        <section data-view="logs" class="logs-view">
+            <header class="page-head">
+                <div>
+                    <h1>Logs</h1>
+                </div>
+                <div class="actions">
+                    <div class="segmented" id="log-tabs">
+                        <button data-log="apache" class="active">Apache + PHP</button>
+                        <button data-log="access">Requests</button>
+                        <button data-log="mariadb">MariaDB</button>
+                        <button data-log="redis">Redis</button>
+                    </div>
+                    <button id="log-errors" class="toggle danger-tone" aria-pressed="false" title="Show only errors and warnings">
+                        <svg viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                        Errors only
+                    </button>
+                    <button id="log-follow" class="toggle" aria-pressed="true" title="Keep loading new lines and stay at the end">
+                        <svg viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
+                        Follow
+                    </button>
+                </div>
+                <div class="page-meta log-meta">
+                    <p id="log-file" class="muted"></p>
+                    <label class="search">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                        <input id="log-search" type="search" placeholder="Search this log…" spellcheck="false" autocomplete="off">
+                        <span id="log-matches"></span>
+                    </label>
+                </div>
+            </header>
+            <div id="log" class="log"></div>
+        </section>
+    </main>
+
+    <!-- The config's editor: the file's text, checked as it is typed. -->
+    <dialog id="config-editor" class="editor">
+        <header class="editor-head">
+            <div>
+                <h2>config.json</h2>
+                <code id="config-path"></code>
+            </div>
+            <div class="actions">
+                <button class="ghost small" data-open-file="config">Open in VS Code</button>
+                <button class="icon-btn" data-close-config title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+        </header>
+        <div class="editor-body">
+            <pre id="config-lines" class="editor-lines" aria-hidden="true"></pre>
+            <div class="editor-code">
+                <pre id="config-paint" class="editor-paint" aria-hidden="true"></pre>
+                <textarea id="config-text" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+            </div>
+        </div>
+        <footer class="editor-foot">
+            <span id="config-status" class="editor-status"></span>
+            <div class="actions">
+                <button class="ghost" data-close-config>Cancel</button>
+                <button id="config-save" data-save-config>Save <kbd>⌘S</kbd></button>
+            </div>
+        </footer>
+    </dialog>
+
+    <div id="toasts"></div>
+    <script src="/src/state.js"></script>
+    <script src="/src/helpers.js"></script>
+    <script src="/src/routes.js"></script>
+    <script src="/src/api.js"></script>
+    <script src="/src/overview.js"></script>
+    <script src="/src/services.js"></script>
+    <script src="/src/sites.js"></script>
+    <script src="/src/php.js"></script>
+    <script src="/src/apache.js"></script>
+    <script src="/src/databases.js"></script>
+    <script src="/src/logs.js"></script>
+    <script src="/src/editor.js"></script>
+    <script src="/src/clicks.js"></script>
+    <script src="/src/start.js"></script>
+</body>
+</html>

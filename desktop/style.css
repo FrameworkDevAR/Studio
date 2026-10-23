@@ -1,0 +1,933 @@
+/*
+ * Tokyo Night: the Night palette in dark mode, and the Day palette in light
+ * mode with Tokyo Night Light's darker text. Panels sit a step above the page
+ * (Storm's bg in dark mode) and fields a step below it, so each layer reads
+ * apart. The names after the colors are the theme's own.
+ */
+:root {
+    --icon-light : 42%;     /* the lightness of a color read off a favicon */
+    --bg        : #e1e2e7;   /* Day bg */
+    --sidebar   : #d5d6dd;
+    --panel     : #f4f4f7;
+    --field     : #ffffff;
+    --border    : #b4b8cc;
+    --hover     : #e6e7ee;
+    --text      : #343b58;   /* Light fg */
+    --strong    : #1f2335;
+    --muted     : #565f89;   /* comment, from Night */
+    --accent    : #2e7de9;   /* Day blue */
+    --accent-bg : #d3e1f8;
+    --on-accent : #ffffff;
+    --green     : #387068;   /* Day teal-green, darker for text */
+    --green-bg  : #d5ebe4;
+    --red       : #c8204f;
+    --red-bg    : #f8d9e1;
+    --amber     : #8f5e15;   /* Light yellow */
+    --amber-bg  : #f1e3c6;
+    --cyan      : #007197;   /* Day cyan */
+    --magenta   : #9854f1;   /* Day magenta */
+    --orange    : #b15c00;   /* Day orange */
+    --teal      : #118c74;   /* Day teal */
+    --code-bg   : #e4e5ec;
+    --shadow    : 0 1px 2px rgba(31, 35, 53, .08), 0 3px 12px rgba(31, 35, 53, .06);
+    --radius    : 18px;
+    color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --icon-light : 70%;
+        --bg        : #1a1b26;   /* bg */
+        --sidebar   : #16161e;   /* bg_dark */
+        --panel     : #24283b;   /* Storm bg */
+        --field     : #16161e;   /* bg_dark */
+        --border    : #3b4261;   /* fg_gutter */
+        --hover     : #2f3549;
+        --text      : #c0caf5;   /* fg */
+        --strong    : #e1e6ff;
+        --muted     : #a9b1d6;   /* fg_dark */
+        --accent    : #7aa2f7;   /* blue */
+        --accent-bg : #2e3c64;
+        --on-accent : #16161e;
+        --green     : #9ece6a;   /* green */
+        --green-bg  : #2c3a2a;
+        --red       : #f7768e;   /* red */
+        --red-bg    : #452a37;
+        --amber     : #e0af68;   /* yellow */
+        --amber-bg  : #45392a;
+        --cyan      : #7dcfff;   /* cyan */
+        --magenta   : #bb9af7;   /* magenta */
+        --orange    : #ff9e64;   /* orange */
+        --teal      : #1abc9c;   /* teal */
+        --code-bg   : #1a1b26;   /* bg */
+        --shadow    : 0 1px 2px rgba(0, 0, 0, .25);
+    }
+}
+
+/*
+ * Noto Serif, the titles' font, as on the Framework site. Bundled rather than
+ * fetched from Google, so it works offline: one variable file holds every
+ * weight, for Latin text.
+ */
+@font-face {
+    font-family: "Noto Serif";
+    src: url("fonts/noto-serif-latin.woff2") format("woff2");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+:root { --serif: "Noto Serif", Georgia, "Times New Roman", serif; }
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+code, pre, .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+code { background: color-mix(in srgb, var(--accent) 14%, transparent); padding: 1px 6px; border-radius: 6px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { color: var(--strong); font-family: var(--serif); font-size: 27px; font-weight: 400; letter-spacing: -.01em; margin: 0 0 4px; }
+h2 { color: var(--strong); font-family: var(--serif); font-size: 16px; font-weight: 500; margin: 0; }
+p { margin: 0; }
+.muted { color: var(--muted); font-weight: 400; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+
+
+/* ---------------------------------------------------------------- sidebar */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 236px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 18px 12px;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 12px; padding: 2px 8px 6px; }
+.brand img { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 14px color-mix(in srgb, #bb9af7 22%, transparent); }
+.brand strong { display: block; font-family: var(--serif); font-size: 23px; font-weight: 400; line-height: 1.15; letter-spacing: -.01em; color: var(--strong); }
+.brand span { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+.nav-label { margin: 26px 10px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    color: var(--text);
+    font-weight: 500;
+}
+nav a:hover { background: var(--hover); text-decoration: none; }
+nav a.active { background: var(--accent-bg); color: var(--accent); }
+nav svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+nav span { flex: 1; }
+nav em { font-style: normal; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+nav em.bad { color: var(--red); font-weight: 600; }
+nav em.ok  { color: var(--green); }
+
+.disk { padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); font-size: 12px; }
+.disk-head { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--muted); }
+.disk-head span:last-child { color: var(--text); font-weight: 600; }
+.disk.low .disk-head span:last-child { color: var(--red); }
+.meter { height: 6px; border-radius: 3px; background: var(--code-bg); overflow: hidden; }
+.meter div { height: 100%; border-radius: 3px; background: var(--accent); transition: width .4s; }
+.disk.low .meter div { background: var(--red); }
+
+
+/* ------------------------------------------------------------------ pages */
+
+main { --gutter: 40px; --top: 32px; margin-left: 236px; padding: var(--top) var(--gutter) 80px; max-width: 1276px; }
+section[data-view] { display: none; animation: fade .18s ease-out; }
+section[data-view].active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } }
+
+/*
+ * The title row stays at the top while the page scrolls. It reaches over the
+ * page's padding, so nothing shows beside or above it, and a gradient below
+ * it fades the content out as it slides underneath.
+ */
+.page-head {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin: calc(-1 * var(--top)) calc(-1 * var(--gutter)) 12px;
+    padding: var(--top) var(--gutter) 12px;
+    background: var(--bg);
+}
+.page-head::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    height: 32px;
+    background: linear-gradient(var(--bg), transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+}
+/* Only once the page scrolled: at the top it would cover the first row. */
+body.scrolled .page-head::after { opacity: 1; }
+.page-head p { max-width: 640px; font-size: 13.5px; }
+/* The title side gives way first, so the controls stay on one row. */
+.page-head > div:first-child { flex: 1; min-width: 0; }
+.page-head > .actions { flex: none; flex-wrap: nowrap; }
+/* The line under the Logs title: the file on the left, the search on the right. */
+.log-meta { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.log-meta p { min-width: 0; }
+.search {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    width: 300px;
+}
+.search svg { position: absolute; left: 10px; width: 15px; height: 15px; fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; pointer-events: none; }
+.search input { padding-left: 32px; padding-right: 86px; }
+.search input::-webkit-search-cancel-button { cursor: pointer; }
+#log-matches { position: absolute; right: 30px; font-size: 11.5px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.log mark { padding: 0 1px; border-radius: 3px; color: var(--bg); background: var(--amber); }
+
+/* A line of the header that takes a row of its own, under the title and the
+   controls, so it runs the full width instead of wrapping beside them. */
+.page-head { flex-wrap: wrap; }
+.page-head > .page-meta { flex-basis: 100%; margin-top: -14px; max-width: none; }
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+}
+.panel.flush { padding: 0; overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.panel-head a { font-size: 13px; }
+.grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+
+
+/* ---------------------------------------------------------------- buttons */
+
+button, .button {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .12s, filter .12s;
+}
+button:hover, .button:hover { filter: brightness(1.08); text-decoration: none; }
+button.ghost, .button.ghost { background: var(--panel); color: var(--text); border-color: var(--border); }
+button.ghost:hover, .button.ghost:hover { background: var(--hover); filter: none; }
+button.danger { background: var(--panel); color: var(--red); border-color: var(--border); }
+button.danger:hover { background: var(--red-bg); filter: none; }
+button:disabled { opacity: .5; cursor: progress; }
+button.small, .button.small { padding: 3px 10px; font-size: 12.5px; }
+
+/*
+ * Pill tabs. The highlight behind the active tab is one thumb that slides
+ * between them, placed by the script; until it is placed the active tab
+ * paints its own background, so there is never a moment without one.
+ */
+.segmented { position: relative; display: inline-flex; padding: 2px; border: 1px solid var(--border); border-radius: 12px; background: var(--code-bg); }
+.segmented button { position: relative; z-index: 1; border: 0; border-radius: 10px; background: transparent; color: var(--muted); padding: 4px 12px; transition: color .2s; }
+.segmented button:hover { filter: none; color: var(--text); }
+.segmented button.active { color: var(--text); }
+.segmented:not(.has-thumb) button.active { background: var(--panel); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.seg-thumb {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    border-radius: 10px;
+    background: var(--panel);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12), inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+    pointer-events: none;
+}
+.segmented.ready .seg-thumb { transition: transform .32s cubic-bezier(.3, .8, .25, 1.15), width .32s cubic-bezier(.3, .8, .25, 1); }
+@media (prefers-reduced-motion: reduce) {
+    .segmented.ready .seg-thumb { transition: none; }
+}
+/* The line under the Logs title: the file, its size and Clear. */
+#log-file { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+#log-file b { color: var(--text); font-weight: 600; }
+#log-file .sep { margin: 0 8px; font-style: normal; opacity: .6; }
+/* The Clear beside a log's size: a small red-outlined button with its icon. */
+.clear-btn { margin-left: 10px; gap: 5px; border-color: color-mix(in srgb, var(--red) 40%, var(--border)); }
+.clear-btn svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* An on/off button: muted when off, tinted in its tone when on. */
+.toggle { background: var(--panel); color: var(--muted); border-color: var(--border); }
+.toggle svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.toggle:hover { background: var(--hover); color: var(--text); filter: none; }
+.toggle[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.toggle.danger-tone[aria-pressed="true"] { background: var(--red-bg); color: var(--red); border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+
+
+/* --------------------------------------------------------- status pieces */
+
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; flex: none; }
+.dot.on  { background: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+.dot.off { background: var(--red);   box-shadow: 0 0 0 3px var(--red-bg); }
+.dot.mid { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-bg); }
+
+.badge { display: inline-block; min-width: 38px; text-align: center; padding: 1px 8px; border-radius: 8px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.badge.ok   { color: var(--green); background: var(--green-bg); }
+.badge.bad  { color: var(--red);   background: var(--red-bg); }
+.badge.warn { color: var(--amber); background: var(--amber-bg); }
+.badge.none { color: var(--muted); background: var(--code-bg); }
+a.badge:hover { text-decoration: none; filter: brightness(.96); }
+
+.tag { display: inline-block; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 500; color: var(--muted); background: var(--code-bg); border: 1px solid var(--border); }
+
+
+/* ------------------------------------------------------------- overview */
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
+
+/*
+ * Each tile has a tone, its color in the theme: the icon, the wash in the
+ * corner and the border on hover all come from it. A tile in trouble takes
+ * red instead.
+ */
+.tile {
+    --tone: var(--accent);
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--tone) 16%, transparent), transparent 60%),
+        var(--panel);
+    border: 1px solid color-mix(in srgb, var(--tone) 22%, var(--border));
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    transition: border-color .12s, transform .12s;
+}
+.tile:hover { border-color: var(--tone); text-decoration: none; transform: translateY(-1px); }
+.tile .label { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 9px; }
+.tile .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+.tile .icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tile .value { color: var(--strong); font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin: 10px 0 2px; font-variant-numeric: tabular-nums; }
+.tile .value small { font-size: 15px; color: var(--muted); font-weight: 500; }
+.tile .sub { font-size: 12.5px; color: var(--tone); font-weight: 500; }
+.tile.bad { --tone: var(--red); }
+.tile.bad .value { color: var(--red); }
+
+.tone-green   { --tone: var(--green); }
+.tone-cyan    { --tone: var(--cyan); }
+.tone-magenta { --tone: var(--magenta); }
+.tone-orange  { --tone: var(--orange); }
+.tone-blue    { --tone: var(--accent); }
+.tone-yellow  { --tone: var(--amber); }
+.tone-teal    { --tone: var(--teal); }
+.tone-red     { --tone: var(--red); }
+
+/* The headline's status, beside the title. */
+.status-pill {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 10px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    vertical-align: 4px;
+    letter-spacing: 0;
+}
+.status-pill.on  { color: var(--green); background: var(--green-bg); }
+.status-pill.mid { color: var(--amber); background: var(--amber-bg); }
+.status-pill.off { color: var(--red);   background: var(--red-bg); }
+
+.recent { display: flex; flex-direction: column; gap: 6px; }
+.recent-line { padding: 8px 12px; border-radius: 12px; border-left: 3px solid var(--red); background: color-mix(in srgb, var(--red) 7%, var(--code-bg)); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.45; word-break: break-word; }
+.recent-line.warn { border-left-color: var(--amber); background: color-mix(in srgb, var(--amber) 7%, var(--code-bg)); }
+.recent-line time { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+.recent-line.expandable { cursor: pointer; }
+.recent-line.expandable:hover { background: var(--hover); }
+.recent-line .trace { display: none; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); color: var(--muted); white-space: pre-wrap; }
+.recent-line.open .trace { display: block; }
+.recent-ok { display: flex; align-items: center; gap: 10px; padding: 18px 4px; color: var(--muted); }
+
+.shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.shortcut {
+    --tone: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    color: var(--text);
+    text-align: left;
+    white-space: normal;
+}
+.shortcut .icon {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+.shortcut .icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.shortcut div { display: flex; flex-direction: column; gap: 1px; }
+.shortcut:hover { background: var(--hover); border-color: var(--tone); filter: none; text-decoration: none; }
+.shortcut strong { font-size: 13px; font-weight: 600; }
+.shortcut span { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+
+/* -------------------------------------------------------------- services */
+
+.service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.service { display: flex; gap: 16px; align-items: flex-start; margin: 0; }
+.service-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--on-accent);
+}
+.service-body { flex: 1; min-width: 0; }
+.service-body h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.service-body .version { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+.service-body p { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+.service-state { font-size: 12px; font-weight: 600; }
+.service-state.on  { color: var(--green); }
+.service-state.off { color: var(--red); }
+
+
+/* ----------------------------------------------------------------- tables */
+
+table { width: 100%; border-collapse: collapse; }
+table.fixed { table-layout: fixed; }
+th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; background: var(--code-bg); border-bottom-color: var(--border); }
+th, td { padding: 10px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--hover); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.path { color: var(--muted); font-size: 12.5px; word-break: break-all; }
+td strong { font-weight: 600; }
+.empty { color: var(--muted); padding: 22px 18px; text-align: center; }
+.size-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.size-bar .meter { width: 120px; }
+
+/* ---------------------------------------------------------------- apps */
+
+#apps-pane { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+/*
+ * A project's block: a wash of its color from the corner behind the header,
+ * an accent line along the top, and the header's badge in the same color.
+ */
+.app-block {
+    position: relative;
+    overflow: hidden;
+    grid-column: span var(--span);
+    margin: 0;
+    padding: 18px 20px 20px;
+    border-color: color-mix(in srgb, var(--tone) 22%, var(--border));
+    background:
+        radial-gradient(70% 120px at 0% 0%, color-mix(in srgb, var(--tone) 13%, transparent), transparent),
+        var(--panel);
+}
+.app-block::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--tone), color-mix(in srgb, var(--tone) 0%, transparent) 70%);
+}
+
+.block-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.block-badge {
+    width: 42px;
+    height: 42px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    /* The title font, as the project's name next to it. */
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, transparent);
+}
+/* A project's own favicon, in its badge's tile. */
+.block-badge img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+/* In dark mode the tile is a deep shade of the color, darker than the panel, with a brighter edge. */
+@media (prefers-color-scheme: dark) {
+    .block-badge.icon {
+        background: color-mix(in srgb, var(--tone) 22%, #0b0c12);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 45%, transparent);
+    }
+}
+.block-title { flex: 1; min-width: 0; }
+.block-title h2 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.block-meta { display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 12px; color: var(--muted); }
+.block-meta .sep { margin: 0 -1px; font-size: 20px; font-weight: 700; line-height: 0; opacity: .7; }
+.branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px 1px 6px;
+    border-radius: 7px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+.branch svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+/* The project's host, beside its branch: the Apache site its apps talk to. */
+.host { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.host svg { width: 12px; height: 12px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+a.host:hover { color: var(--tone); text-decoration: none; }
+
+.group-start { gap: 5px; }
+.group-start svg { width: 11px; height: 11px; fill: currentColor; }
+.group-start:hover { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, var(--border)); background: var(--green-bg); }
+
+/* One dot per app, green while it runs, and the count under them. */
+.block-state { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.state-dots { display: flex; gap: 4px; }
+.state-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.state-dots i.on { background: var(--green); box-shadow: 0 0 6px color-mix(in srgb, var(--green) 70%, transparent); }
+.state-dots i.mid { background: var(--amber); animation: pulse 1.1s ease-in-out infinite; }
+.state-text { font-size: 11.5px; color: var(--muted); }
+.state-text.on { color: var(--green); font-weight: 600; }
+/* A block's apps share its width: as many columns as it has apps, up to 4. */
+.app-block .app-cards { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+
+.app-cards { display: grid; gap: 12px; }
+
+/*
+ * One app: its kind's icon, its name and address, and its actions. A running
+ * app lifts off the block in its kind's color; a stopped one stays flat and
+ * grey, and only shows its color on hover.
+ */
+.app-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 12px 12px 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--field);
+    transition: border-color .15s, background .15s, transform .15s;
+}
+.app-card.on {
+    border-color: color-mix(in srgb, var(--tone) 35%, var(--border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 11%, var(--field)), var(--field) 70%);
+}
+.app-card.on:hover { border-color: color-mix(in srgb, var(--tone) 70%, var(--border)); transform: translateY(-1px); }
+.app-card.idle { background: color-mix(in srgb, var(--field) 55%, transparent); }
+.app-card.idle:hover { border-color: color-mix(in srgb, var(--tone) 35%, var(--border)); }
+.app-card.mid { border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
+
+.app-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    /* Monospaced, like the port under the name, to set it apart from the project's badge. */
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 17%, transparent);
+    transition: color .15s, background .15s;
+}
+.app-card.idle .app-icon { color: var(--muted); background: var(--code-bg); }
+.app-card.idle:hover .app-icon { color: var(--tone); background: color-mix(in srgb, var(--tone) 12%, transparent); }
+/* The status dot, on the icon's corner, ringed in the card's color. */
+.app-icon .dot { position: absolute; right: -3px; bottom: -3px; width: 11px; height: 11px; box-shadow: 0 0 0 3px var(--field); }
+.app-card.idle .app-icon .dot { display: none; }
+.app-card.mid .app-icon .dot { animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+.app-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.app-text strong { font-weight: 600; color: var(--strong); }
+.app-card.idle .app-text strong { color: var(--muted); font-weight: 500; }
+.app-text a, .app-text span { font-size: 12px; font-family: "SF Mono", ui-monospace, Menlo, monospace; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-text a { color: var(--tone); }
+.app-text .lock { width: 11px; height: 11px; margin-left: 6px; vertical-align: -1px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.app-card.mid .app-text span { color: var(--amber); font-family: inherit; }
+.app-card.idle .app-text span { opacity: .75; }
+
+.app-actions { display: flex; gap: 6px; }
+
+/* A square button holding just an icon, for the actions on the app cards. */
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .12s, background .12s, border-color .12s;
+}
+.icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn:hover { filter: none; text-decoration: none; }
+.icon-btn.start svg, .icon-btn.stop svg { fill: currentColor; stroke-width: 1.5; }
+.icon-btn.start:hover { color: var(--green); border-color: color-mix(in srgb, var(--green) 50%, var(--border)); background: var(--green-bg); }
+.icon-btn.open:hover  { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: var(--accent-bg); }
+.icon-btn.stop:hover  { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, var(--border)); background: var(--red-bg); }
+.icon-btn:disabled { opacity: .4; }
+
+#site-tabs em { font-style: normal; margin-left: 4px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+.dot.idle { background: var(--border); }
+
+
+/* ----------------------------------------------------------- php settings */
+
+.setting-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; margin-bottom: 18px; }
+.setting-groups .panel { margin: 0; }
+/*
+ * Label on the left, the field flush right. Save only takes room once the
+ * value changed, appearing just left of the field, so the fields always line
+ * up on the right edge.
+ */
+.setting { display: grid; grid-template-columns: 1fr auto 180px; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.setting:last-child { border-bottom: 0; padding-bottom: 0; }
+.setting label { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.setting label small { display: block; font-family: -apple-system, system-ui, sans-serif; color: var(--muted); font-size: 11.5px; margin-top: 1px; }
+.setting button { display: none; }
+.setting.dirty button { display: inline-flex; }
+.setting .field { grid-column: 3; }
+.setting.dirty input, .setting.dirty select { border-color: var(--accent); }
+
+input, select {
+    font: inherit;
+    font-size: 13px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--field);
+    color: var(--strong);
+    min-width: 0;
+    width: 100%;
+    transition: border-color .12s, background .12s;
+}
+input:hover, select:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+input:focus, select:focus { outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+
+/*
+ * The select drops the browser's own control for one matching the inputs.
+ * The chevron is a mask on the wrapper, so it takes the theme's color.
+ */
+.select { position: relative; display: block; }
+.select select { appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer; }
+.select::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    background: var(--muted);
+    pointer-events: none;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+    transition: background .12s;
+}
+.select:hover::after, .select:focus-within::after { background: var(--accent); }
+select option { background: var(--panel); color: var(--text); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 2px 10px; border-radius: 999px; background: var(--code-bg); border: 1px solid var(--border); font-size: 12.5px; }
+.chip.pecl { border-color: color-mix(in srgb, var(--amber) 40%, transparent); color: var(--amber); background: var(--amber-bg); }
+
+
+/* ---------------------------------------------------------- apache modules */
+
+.filters { display: flex; gap: 10px; margin-bottom: 14px; }
+.filters input { max-width: 320px; }
+.modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 2px 18px; }
+.module { display: flex; align-items: center; gap: 10px; padding: 6px 4px; border-radius: 8px; font-size: 13px; }
+.module:hover { background: var(--hover); }
+.module .name { flex: 1; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; }
+.module.off .name { color: var(--muted); }
+
+.switch { position: relative; width: 30px; height: 18px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; border-radius: 9px; background: var(--border); cursor: pointer; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .15s; }
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::after { transform: translateX(12px); }
+.switch input:disabled + span { opacity: .45; cursor: not-allowed; }
+
+
+/* ------------------------------------------------------------------- logs */
+
+/*
+ * The log fills the window under its header and scrolls inside itself, so
+ * Follow can keep it at the newest line. min-height: 0 lets it shrink below
+ * its content, which a flex item otherwise refuses to do.
+ */
+section.logs-view.active { display: flex; flex-direction: column; height: calc(100vh - var(--top) - 24px); }
+
+/*
+ * The Overview fits the window: its two panels take what is left under the
+ * tiles, and the recent errors scroll inside theirs instead of the page. A
+ * window too short for the shortcuts scrolls the page rather than overlap.
+ */
+section[data-view="overview"].active { display: flex; flex-direction: column; height: max(640px, calc(100vh - var(--top) - 24px)); }
+main:has(section[data-view="overview"].active) { padding-bottom: 24px; }
+section[data-view="overview"] .grid-2 { flex: 1; min-height: 0; }
+section[data-view="overview"] .grid-2 > .panel { display: flex; flex-direction: column; min-height: 0; margin: 0; }
+section[data-view="overview"] .recent { flex: 1; min-height: 0; overflow: auto; }
+main:has(section.logs-view.active) { padding-bottom: 24px; }
+.log {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 24px;
+    background: var(--field);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+.log-empty { padding: 40px; text-align: center; color: var(--muted); font-family: -apple-system, system-ui, sans-serif; }
+
+/* A divider when the day changes. */
+.log-day { display: flex; align-items: center; gap: 12px; margin: 18px 4px 10px; color: var(--muted); font: 600 11px/1 -apple-system, system-ui, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+.log-day::before, .log-day::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.log-day:first-child { margin-top: 4px; }
+
+/*
+ * One entry: time, level, then the message with what belongs to it. Errors
+ * and warnings carry their color on the left edge and as a faint wash over
+ * the log's dark background.
+ */
+.entry {
+    --tone: var(--muted);
+    display: grid;
+    grid-template-columns: 62px 78px 1fr;
+    align-items: start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border-left: 3px solid transparent;
+}
+.entry + .entry { margin-top: 8px; }
+.entry:hover { background: var(--hover); }
+.entry.tone-error  { --tone: var(--red);     border-left-color: var(--red);   background: color-mix(in srgb, var(--red) 7%, transparent); }
+.entry.tone-warn   { --tone: var(--amber);   border-left-color: var(--amber); background: color-mix(in srgb, var(--amber) 6%, transparent); }
+.entry.tone-notice { --tone: var(--magenta); }
+.entry.tone-info   { --tone: var(--cyan); }
+.entry.plain { grid-template-columns: 1fr; color: var(--muted); }
+.entry.tone-ok     { --tone: var(--green); }
+
+/* A request: one compact line, its parts in their own colors. */
+.entry.request { align-items: center; padding: 8px 16px; }
+.entry.request + .entry.request { margin-top: 4px; }
+.entry.request .lvl { font-size: 11.5px; min-width: 42px; text-align: center; }
+.req-line { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.method { flex: none; width: 52px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.m-get    { color: var(--accent); }
+.m-post   { color: var(--magenta); }
+.m-put, .m-patch { color: var(--orange); }
+.m-delete { color: var(--red); }
+.m-options, .m-head { color: var(--cyan); }
+.req-path { flex: 1; min-width: 0; color: var(--strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.req-meta { flex: none; font-size: 11.5px; color: var(--muted); }
+.req-meta .sep { margin: 0 6px; font-style: normal; opacity: .6; }
+.req-meta .slowish { color: var(--amber); }
+.req-meta .slow { color: var(--red); font-weight: 600; }
+.entry.tone-error:hover { background: color-mix(in srgb, var(--red) 12%, transparent); }
+.entry.tone-warn:hover  { background: color-mix(in srgb, var(--amber) 11%, transparent); }
+
+.entry time { color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.entry .lvl {
+    justify-self: start;
+    padding: 1px 8px;
+    border-radius: 6px;
+    font: 700 10.5px/1.7 -apple-system, system-ui, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 16%, transparent);
+}
+.entry-body { min-width: 0; }
+.entry .msg { color: var(--strong); white-space: pre-wrap; word-break: break-word; }
+.entry.tone-info .msg, .entry.tone-notice .msg { color: var(--text); }
+.entry .src { margin-right: 8px; padding: 0 6px; border-radius: 5px; font-size: 11px; color: var(--muted); border: 1px solid color-mix(in srgb, var(--muted) 40%, transparent); }
+.entry .code { margin-right: 6px; color: var(--muted); }
+.entry .count { margin-left: 8px; padding: 0 7px; border-radius: 999px; font: 700 11px/1.6 -apple-system, system-ui, sans-serif; color: var(--tone); background: color-mix(in srgb, var(--tone) 16%, transparent); }
+.entry .meta { margin-top: 5px; color: var(--muted); font-size: 11.5px; }
+.entry .meta .sep { margin: 0 7px; font-style: normal; opacity: .6; }
+
+.path { color: var(--muted); }
+.path b { color: var(--accent); font-weight: 600; }
+.path .line { color: var(--amber); font-weight: 600; }
+.quoted { color: var(--magenta); }
+
+.entry details { margin-top: 10px; }
+.entry summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    list-style: none;
+    padding: 2px 10px 2px 8px;
+    border-radius: 7px;
+    font: 600 11.5px/1.7 -apple-system, system-ui, sans-serif;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+.entry summary::-webkit-details-marker { display: none; }
+.entry summary::before { content: "▸"; transition: transform .15s; }
+.entry details[open] summary::before { transform: rotate(90deg); }
+.frames { list-style: none; margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--code-bg); border: 1px solid var(--border); }
+.frames li { display: grid; grid-template-columns: 34px 1fr; gap: 6px; padding: 2px 0; color: var(--text); word-break: break-word; }
+.frame-n { color: var(--muted); text-align: right; }
+.thrown { margin-top: 6px; color: var(--muted); }
+
+
+/* ---------------------------------------------------------- config editor */
+
+.editor {
+    width: min(920px, calc(100vw - 48px));
+    height: min(760px, calc(100vh - 48px));
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+    overflow: hidden;
+}
+.editor[open] { display: flex; flex-direction: column; animation: fade .18s ease-out; }
+.editor::backdrop { background: color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter: blur(3px); }
+.editor-head, .editor-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; }
+.editor-head { border-bottom: 1px solid var(--border); }
+.editor-head h2 { font-size: 18px; margin-bottom: 2px; }
+.editor-head code { font-size: 11.5px; color: var(--muted); }
+.editor-foot { border-top: 1px solid var(--border); }
+
+/* The text and its line numbers, scrolling together. */
+.editor-body { flex: 1; min-height: 0; display: flex; background: var(--field); }
+.editor-lines, .editor-paint, .editor-body textarea {
+    margin: 0;
+    padding: 14px 0;
+    font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+    tab-size: 4;
+}
+.editor-lines { flex: none; width: 52px; padding-right: 12px; overflow: hidden; text-align: right; color: color-mix(in srgb, var(--muted) 60%, transparent); user-select: none; border-right: 1px solid var(--border); }
+/*
+ * The text is typed in a transparent area that shows only the caret and the
+ * selection; under it, the same text is painted in the colors of its parts,
+ * moved along as the area scrolls. As in the JSON project's text view.
+ */
+.editor-code { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.editor-paint, .editor-body textarea { position: absolute; inset: 0; padding-left: 16px; padding-right: 16px; white-space: pre; }
+.editor-paint { color: var(--strong); pointer-events: none; will-change: transform; }
+.editor-body textarea { width: 100%; height: 100%; border: 0; border-radius: 0; resize: none; background: transparent; color: transparent; caret-color: var(--strong); overflow: auto; }
+.editor-body textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.editor-body textarea:focus { outline: none; }
+
+/* The colors of a JSON's parts, from Tokyo Night. */
+.code-key    { color: var(--accent); }
+.code-string { color: var(--green); }
+.code-number { color: var(--orange); }
+.code-word   { color: var(--magenta); }
+.code-mark   { color: var(--muted); }
+
+.editor-status { font-size: 12.5px; color: var(--muted); }
+.editor-status.ok    { color: var(--green); }
+.editor-status.dirty { color: var(--amber); }
+.editor-status.bad   { color: var(--red); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; }
+.editor-foot kbd { margin-left: 6px; font: 600 10.5px/1 -apple-system, system-ui, sans-serif; opacity: .7; }
+
+
+/* ----------------------------------------------------------------- toasts */
+
+#toasts { position: fixed; right: 24px; bottom: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 20; max-width: 440px; }
+.toast {
+    padding: 11px 15px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--green);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .16);
+    font-size: 13px;
+    animation: fade .2s ease-out;
+}
+.toast.error { border-left-color: var(--red); white-space: pre-wrap; }
+
+@media (max-width: 900px) {
+    .sidebar { position: static; width: auto; }
+    main { --gutter: 18px; --top: 24px; margin-left: 0; }
+    .grid-2 { grid-template-columns: 1fr; }
+    section[data-view="overview"].active { height: auto; }
+    #apps-pane { grid-template-columns: 1fr; }
+    .app-block { grid-column: auto; }
+    .app-block .app-cards { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .page-head { flex-direction: column; }
+}
