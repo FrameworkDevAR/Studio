@@ -1,0 +1,14 @@
+{
+    "compilerOptions" : {
+        "checkJs"                    : true,
+        "target"                     : "es2022",
+        "lib"                        : [ "es2022", "dom", "dom.iterable" ],
+        "module"                     : "commonjs",
+        "types"                      : [ "*" ],
+        "noImplicitThis"             : false,
+        "noImplicitAny"              : false,
+        "strictNullChecks"           : false,
+        "useUnknownInCatchVariables" : false
+    },
+    "include" : [ "swiftbar.10s.js", "backend/**/*.js", "desktop/**/*.js" ]
+}
