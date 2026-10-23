@@ -32,13 +32,38 @@ function onClick(event) {
         installNpm(target.dataset.npmInstall);
     } else if (target.dataset.npmUninstall) {
         uninstallPackage(target.dataset.npmUninstall);
-    } else if (target.dataset.npmUpdateAll !== undefined) {
+    } else if (target.dataset.npmUpdateAll !== undefined || target.dataset.peclUpdateAll !== undefined) {
         // While an update runs, the button opens its progress again.
-        if (updateJob && (updateJob.state === "waiting" || updateJob.state === "running")) {
+        const kind = target.dataset.peclUpdateAll !== undefined ? "pecl" : "npm";
+        if (isUpdating(kind)) {
             showUpdateProgress();
         } else {
-            confirmUpdateAll();
+            confirmUpdateAll(kind);
         }
+    } else if (target.dataset.peclUpdate) {
+        updatePackages([ target.dataset.peclUpdate ], "pecl");
+    } else if (target.dataset.peclOpen !== undefined) {
+        openPeclDialog();
+    } else if (target.dataset.closePecl !== undefined) {
+        /** @type {HTMLDialogElement} */ (document.getElementById("pecl-dialog")).close();
+    } else if (target.dataset.peclInstall) {
+        installPecl(target.dataset.peclInstall);
+    } else if (target.dataset.peclRemove) {
+        uninstallExtension(target.dataset.peclRemove);
+    } else if (target.dataset.peclRebuild) {
+        rebuildExtension(target.dataset.peclRebuild);
+    } else if (target.dataset.pickSetting !== undefined) {
+        addSetting();
+    } else if (target.dataset.closePick !== undefined) {
+        /** @type {HTMLDialogElement} */ (document.getElementById("pick")).close();
+    } else if (target.dataset.pickKey) {
+        choosePick(target.dataset.pickKey);
+    } else if (target.dataset.insertSetting !== undefined) {
+        insertSetting();
+    } else if (target.dataset.editPhp !== undefined) {
+        openEditor("php");
+    } else if (target.dataset.unset !== undefined) {
+        toggleUnset(target.closest(".setting"));
 
     } else if (target.dataset.logBottom !== undefined) {
         scrollLogToBottom();
@@ -63,6 +88,8 @@ function onClick(event) {
         }
         renderSites();
         act({ action : "group-start", group }, target);
+    } else if (target.dataset.phpTab) {
+        navigate(target.dataset.phpTab === "extensions" ? "/php/extensions" : "/php");
     } else if (target.dataset.siteTab) {
         navigate(target.dataset.siteTab === "apache" ? "/sites/apache" : "/sites");
     } else if (target.dataset.service) {
@@ -82,15 +109,17 @@ function onClick(event) {
             act({ action }, target);
         }
     } else if (target.dataset.editConfig !== undefined) {
-        openConfigEditor();
-    } else if (target.dataset.closeConfig !== undefined) {
-        closeConfigEditor();
-    } else if (target.dataset.saveConfig !== undefined) {
-        saveConfigEditor();
+        openEditor("config");
+    } else if (target.dataset.closeEditor !== undefined) {
+        closeEditor();
+    } else if (target.dataset.saveEditor !== undefined) {
+        saveEditor();
     } else if (target.dataset.openFile) {
         act({ action : "open-file", file : target.dataset.openFile }, target);
-    } else if (target.dataset.save !== undefined) {
-        saveSetting(target.closest(".setting"));
+    } else if (target.dataset.phpSave !== undefined) {
+        saveSettings();
+    } else if (target.dataset.phpDiscard !== undefined) {
+        discardSettings();
     } else if (target.dataset.module) {
         toggleModule(event, target);
     } else if (target.dataset.filter) {

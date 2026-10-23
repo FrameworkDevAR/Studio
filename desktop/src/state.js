@@ -28,7 +28,8 @@ const SERVICE_INFO = {
 const SETTING_GROUPS = [
     { title : "Limits", keys : [ "memory_limit", "upload_max_filesize", "post_max_size", "max_execution_time", "max_input_time" ] },
     { title : "Errors", keys : [ "display_errors", "log_errors", "error_reporting" ] },
-    { title : "Other",  keys : [ "date.timezone", "xdebug.mode" ] },
+    { title : "Date",   keys : [ "date.timezone" ] },
+    { title : "Xdebug", keys : [ "xdebug.mode" ] },
 ];
 
 const SETTING_HINTS = {

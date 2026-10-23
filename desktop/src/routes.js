@@ -12,6 +12,11 @@ function sitesTab() {
     return location.pathname.split("/")[2] === "apache" ? "apache" : "apps";
 }
 
+/** The tab of the PHP page, from /php/extensions; the overrides otherwise. */
+function phpTab() {
+    return location.pathname.split("/")[2] === "extensions" ? "extensions" : "settings";
+}
+
 /** Goes to a path of the page without reloading it. */
 function navigate(pathname) {
     if (pathname !== location.pathname) {
@@ -37,6 +42,23 @@ function route() {
     }
     if (view === "sites") {
         showSitesTab();
+    }
+    if (view === "php") {
+        showPhpTab();
+    }
+}
+
+function showPhpTab() {
+    const tab = phpTab();
+    for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("#php-tabs button"))) {
+        button.classList.toggle("active", button.dataset.phpTab === tab);
+    }
+    document.getElementById("php-settings-pane").hidden    = tab !== "settings";
+    document.getElementById("php-settings-actions").hidden = tab !== "settings";
+    document.getElementById("php-ext-pane").hidden         = tab !== "extensions";
+    document.getElementById("php-ext-actions").hidden      = tab !== "extensions";
+    if (state) {
+        renderPhpText();
     }
 }
 

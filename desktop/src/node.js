@@ -24,7 +24,7 @@ function renderNode() {
         ? "Checking for updates…"
         : behind
             ? `<b>${behind} outdated</b>
-               <button data-npm-update-all>${updating.size ? "Updating…" : "Update packages"}</button>`
+               <button data-npm-update-all>${isUpdating("npm") ? "Updating…" : "Update packages"}</button>`
             : "All up to date";
     // The filter keeps the packages whose name holds what is typed.
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("node-filter")).value.trim().toLowerCase();
@@ -254,15 +254,44 @@ async function uninstallPackage(name) {
 }
 
 /**
- * Asks before updating every outdated package, in a dialog listing each with
- * the version it goes to, and which of them are major versions.
+ * What can be updated in the update dialog: npm's global packages, or the
+ * extensions pecl installed. Each says what it calls one, the action that
+ * updates some, what of it is installed, and which page to redraw. The busy
+ * keys of the extensions are apart, since a package can share a name.
  */
-async function confirmUpdateAll() {
-    const outdated = state.node.globals.filter((pkg) => pkg.latest);
+const UPDATE_KINDS = {
+    npm : {
+        noun   : "package",
+        action : "npm-update",
+        key    : (name) => name,
+        list   : () => state.node.globals,
+        render : () => renderNode(),
+    },
+    pecl : {
+        noun   : "extension",
+        action : "pecl-update",
+        key    : (name) => `pecl:${name}`,
+        list   : () => state.php.extensions.filter((ext) => ext.pecl).map((ext) => ({ ...ext, name : ext.name.toLowerCase() })),
+        render : () => renderPhp(),
+    },
+};
+
+/** One package or extension, or a count of them: "1 package", "3 extensions". */
+function countOf(count, noun) {
+    return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Asks before updating outdated packages, in a dialog listing each with the
+ * version it goes to, and which of them are major versions, to pick from.
+ */
+async function confirmUpdateAll(kind = "npm") {
+    const { noun } = UPDATE_KINDS[kind];
+    const outdated = UPDATE_KINDS[kind].list().filter((pkg) => pkg.latest);
     const majors   = outdated.filter((pkg) => isMajor(pkg.version, pkg.latest)).length;
     const waiting  = ask({
-        title : "Update packages",
-        text  : `${outdated.length} package${outdated.length === 1 ? " has a newer version" : "s have newer versions"}${majors ? `, ${majors} of them major` : ""}. Pick the ones to update.`,
+        title : `Update ${noun}s`,
+        text  : `${countOf(outdated.length, noun)} ${outdated.length === 1 ? "has a newer version" : "have newer versions"}${majors ? `, ${majors} of them major` : ""}. Pick the ones to update.`,
         body  : `
             <label class="pkg pick all">
                 <input type="checkbox" data-pick-all>
@@ -276,7 +305,7 @@ async function confirmUpdateAll() {
                 </label>
             `).join("")}
         `,
-        note  : majors ? `<span class="tag red">major</span> may change how the package works` : "",
+        note  : majors ? `<span class="tag red">major</span> may change how the ${noun} works` : "",
         ok     : "Update",
         closeX : true,
         stay   : true,
@@ -292,7 +321,7 @@ async function confirmUpdateAll() {
         all.checked       = count === picks.length;
         all.indeterminate = count > 0 && count < picks.length;
         button.disabled   = !count;
-        button.textContent = count ? `Update ${count} package${count === 1 ? "" : "s"}` : "Update";
+        button.textContent = count ? `Update ${countOf(count, noun)}` : "Update";
     };
     box.onchange = (event) => {
         if (event.target === all) {
@@ -306,7 +335,7 @@ async function confirmUpdateAll() {
     box.onchange = null;
     // The same dialog, still open, turns into the update's progress.
     if (names.length) {
-        updatePackages(names);
+        updatePackages(names, kind);
     }
 }
 
@@ -325,24 +354,27 @@ function isMajor(from, to) {
  * what went wrong. Closing the dialog leaves the update going, and the busy
  * Update button opens it again.
  */
-async function updatePackages(names) {
-    const byName = Object.fromEntries(state.node.globals.map((pkg) => [ pkg.name, pkg ]));
+async function updatePackages(names, kind = "npm") {
+    const { noun, action, key, list, render } = UPDATE_KINDS[kind];
+    const byName = Object.fromEntries(list().map((pkg) => [ pkg.name, pkg ]));
     updateJob = {
+        kind,
+        noun,
         state : "waiting",
         items : names.map((name) => ({ name, from : byName[name]?.version || "", to : byName[name]?.latest || "", state : "waiting", error : "" })),
     };
-    names.forEach((name) => updating.add(name));
+    names.forEach((name) => updating.add(key(name)));
     showUpdateProgress();
-    renderNode();
+    render();
     try {
-        await followJob({ action : "npm-update", name : names }, (job) => {
+        await followJob({ action, name : names }, (job) => {
             job.items.forEach((item, index) => Object.assign(updateJob.items[index], { state : item.state, error : item.error }));
             updateJob.state = job.state;
             renderUpdateProgress();
         });
     } finally {
-        names.forEach((name) => updating.delete(name));
-        renderNode();
+        names.forEach((name) => updating.delete(key(name)));
+        render();
     }
 }
 
@@ -351,8 +383,13 @@ async function updatePackages(names) {
 // The last update, which the update dialog shows while it runs and after.
 let updateJob = null;
 
+/** Whether an update of npm's packages, or of pecl's extensions, is running. */
+function isUpdating(kind) {
+    return Boolean(updateJob && updateJob.kind === kind && (updateJob.state === "waiting" || updateJob.state === "running"));
+}
+
 /**
- * Asks npm for some work, then follows it to the end: the server answers at
+ * Asks npm or pecl for some work, then follows it to the end: the server answers at
  * once with a job, which is asked about every moment, each answer handed to
  * onChange. At the end it says how it went and redraws the page.
  */
@@ -372,7 +409,7 @@ async function followJob(body, onChange = null) {
         await new Promise((resolve) => setTimeout(resolve, 600));
         let job;
         try {
-            job = await api(`/api/npm-job?id=${started.job}`);
+            job = await api(`/api/job?id=${started.job}`);
         } catch {
             continue;
         }
@@ -406,11 +443,11 @@ function renderUpdateProgress() {
     const failed  = items.filter((item) => item.state === "failed").length;
     const running = updateJob.state === "waiting" || updateJob.state === "running";
     document.getElementById("ask-title").textContent = running
-        ? `Updating ${items.length === 1 ? items[0].name : `${items.length} packages`}`
+        ? `Updating ${items.length === 1 ? items[0].name : countOf(items.length, updateJob.noun)}`
         : failed ? "Update finished with errors" : "Update finished";
     // The description says what the update does; how far it got is below.
     document.getElementById("ask-text").textContent =
-        `Updates ${items.length === 1 ? "this package" : `these ${items.length} packages`} to the newest version, one at a time.`;
+        `Updates ${items.length === 1 ? `this ${updateJob.noun}` : `these ${countOf(items.length, updateJob.noun)}`} to the newest version, one at a time${updateJob.kind === "pecl" ? ", building each from its source" : ""}.`;
     // The rows and the bar change in place once drawn: drawing them again
     // every moment would restart the loader's turn and the bar's slide.
     const body = document.getElementById("ask-body");
@@ -448,7 +485,7 @@ function renderUpdateProgress() {
     /** @type {HTMLElement} */ (note.querySelector(".progress-bar i")).style.width = `${(finished / items.length) * 100}%`;
     note.querySelector(".progress-text").textContent = running
         ? `${done} of ${items.length} updated · closing this leaves it going`
-        : `${done} updated${failed ? `, ${failed} failed · hover one for npm's error` : ""}`;
+        : `${done} updated${failed ? `, ${failed} failed · hover one for ${updateJob.kind === "pecl" ? "pecl" : "npm"}'s error` : ""}`;
     /** @type {HTMLElement} */ (dialog.querySelector(".editor-foot")).hidden = false;
     document.getElementById("ask-x").hidden      = false;
     document.getElementById("ask-cancel").hidden = true;

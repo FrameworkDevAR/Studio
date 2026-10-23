@@ -35,6 +35,47 @@ function setUpPillTabs() {
     }
 }
 
+/**
+ * Lays a container's panels out as a mosaic: as many columns as fit, each
+ * panel put in the shortest so far, in order, and the last of each column
+ * stretched so they all end on one line. Laid out again as its width changes,
+ * as when its page is shown.
+ */
+const MOSAIC_WIDTH = 300;
+const MOSAIC_GAP   = 18;
+const mosaicSizes  = new ResizeObserver((entries) => entries.forEach((entry) => {
+    const box = /** @type {HTMLElement} */ (entry.target);
+    if (box.offsetWidth && String(box.offsetWidth) !== box.dataset.mosaicWidth) {
+        mosaic(box);
+    }
+}));
+
+function mosaic(box) {
+    const panels = /** @type {HTMLElement[]} */ ([ ...box.querySelectorAll(":scope > .panel, :scope > .mosaic-col > .panel") ]);
+    mosaicSizes.observe(box);
+    if (!box.offsetWidth) {
+        return;
+    }
+    box.dataset.mosaicWidth = String(box.offsetWidth);
+    const count   = Math.max(1, Math.min(panels.length, Math.floor((box.offsetWidth + MOSAIC_GAP) / (MOSAIC_WIDTH + MOSAIC_GAP))));
+    const columns = Array.from({ length : count }, () => Object.assign(document.createElement("div"), { className : "mosaic-col" }));
+    box.querySelectorAll(":scope > .mosaic-col").forEach((column) => column.remove());
+    box.prepend(...columns);
+    // Each panel is measured in a column, all being as wide, before it is placed.
+    panels.forEach((panel) => {
+        panel.classList.remove("fill");
+        columns[0].append(panel);
+    });
+    const heights = panels.map((panel) => panel.offsetHeight);
+    const tall    = columns.map(() => 0);
+    panels.forEach((panel, index) => {
+        const shortest = tall.indexOf(Math.min(...tall));
+        columns[shortest].append(panel);
+        tall[shortest] += heights[index] + MOSAIC_GAP;
+    });
+    columns.forEach((column) => column.lastElementChild?.classList.add("fill"));
+}
+
 /** Whether a toggle button is on. */
 function isPressed(id) {
     return document.getElementById(id).getAttribute("aria-pressed") === "true";
@@ -99,7 +140,8 @@ function bytes(value) {
 /** What a list's tags mean, shown on hover. */
 const TAG_TIPS = {
     linked : "Linked with npm link: it points to a folder of yours, so changes there show at once",
-    pecl   : "Built with pecl for this PHP version: install it again after a minor upgrade",
+    pecl   : "Added with pecl, built from its source for this PHP version. A new minor version, as 8.6, needs it built again",
+    added  : "Added to PHP's extension folder by hand, not with pecl",
 };
 
 /**

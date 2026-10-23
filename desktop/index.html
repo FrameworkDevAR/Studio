@@ -148,19 +148,43 @@
             <header class="page-head">
                 <div>
                     <h1>PHP <span id="php-version" class="muted"></span></h1>
-                    <p class="muted">Saved to <code id="php-ini-file"></code>, which loads after php.ini and wins over it. Apache reloads after each save.</p>
+                    <p class="muted" id="php-text"></p>
                 </div>
                 <div class="actions">
-                    <button data-open-file="phpIni" class="ghost">Edit overrides file</button>
+                    <span id="php-settings-actions" class="actions">
+                        <button class="ghost" data-pick-setting>Add setting</button>
+                        <button class="ghost" data-edit-php>Edit overrides</button>
+                    </span>
+                    <span id="php-ext-actions" class="actions">
+                        <span id="pecl-outdated"></span>
+                        <button class="ghost" data-pecl-open>Install extension</button>
+                    </span>
+                    <div class="segmented" id="php-tabs">
+                        <button data-php-tab="settings">Overrides <em id="tab-overrides-count"></em></button>
+                        <button data-php-tab="extensions">Extensions <em id="ext-count"></em></button>
+                    </div>
                 </div>
             </header>
+            <div id="php-problem" class="panel problem" hidden></div>
+            <div id="php-settings-pane">
             <div id="php-settings" class="setting-groups"></div>
-            <div class="panel">
-                <div class="panel-head">
-                    <h2>Extensions <span id="ext-count" class="muted"></span></h2>
+            <div id="php-changes" class="panel changes" hidden>
+                <div class="changes-text">
+                    <h2 id="php-changes-count"></h2>
+                    <div id="php-changes-list" class="changes-list"></div>
                 </div>
-                <p class="hint"><span class="tag amber">pecl</span> extensions were built for this PHP version. After a <code>brew upgrade</code> to a new minor version (such as 8.6), run <code>pecl install &lt;name&gt;</code> again for each one.</p>
-                <div id="php-extensions" class="pkg-list"></div>
+                <div class="actions">
+                    <button class="ghost" data-php-discard>Discard</button>
+                    <button data-php-save>Save</button>
+                </div>
+            </div>
+            </div>
+            <div id="php-ext-pane" class="panel">
+                <div class="panel-head">
+                    <h2>Extensions <span id="ext-panel-count" class="muted"></span></h2>
+                    <input id="php-ext-filter" type="search" placeholder="Filter extensions…" spellcheck="false" autocomplete="off">
+                </div>
+                <div id="php-extensions"></div>
             </div>
         </section>
 
@@ -265,7 +289,7 @@
         </section>
     </main>
 
-    <!-- The config's editor: the file's text, checked as it is typed. -->
+    <!-- The install dialogs, dressed as the sites they search. -->
     <dialog id="npm-dialog" class="editor npm">
         <header class="npm-head">
             <svg class="npm-logo" viewBox="0 0 18 7" aria-label="npm"><path class="npm-logo-box" d="M0 0h18v6H9v1H5V6H0z"/><path class="npm-logo-text" d="M1 5h2V2h1v3h1V1H1zM6 1v5h2V5h2V1zm2 1h1v2H8zM11 1v4h2V2h1v3h1V2h1v3h1V1z"/></svg>
@@ -277,6 +301,19 @@
             <button class="icon-btn" data-close-npm title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </header>
         <div id="npm-list" class="npm-list"></div>
+    </dialog>
+
+    <dialog id="pecl-dialog" class="editor npm pecl">
+        <header class="npm-head">
+            <span class="pecl-logo" aria-label="PECL"><span class="logo-tile"></span>PECL</span>
+            <form id="pecl-search" class="npm-search">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+                <input name="q" placeholder="Search extensions, as redis or imagick" spellcheck="false" autocomplete="off">
+                <button>Search</button>
+            </form>
+            <button class="icon-btn" data-close-pecl title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </header>
+        <div id="pecl-list" class="npm-list"></div>
     </dialog>
 
     <dialog id="ask" class="editor confirm">
@@ -299,32 +336,56 @@
         </form>
     </dialog>
 
-    <dialog id="config-editor" class="editor">
+    <!-- The file editor: the file's text, checked as it is typed. -->
+    <dialog id="editor" class="editor">
         <header class="editor-head">
             <div>
-                <h2>config.json</h2>
-                <code id="config-path"></code>
+                <h2 id="editor-title"></h2>
+                <code id="editor-path"></code>
             </div>
             <div class="actions">
-                <button class="ghost small" data-open-file="config">Open in VS Code</button>
-                <button class="icon-btn" data-close-config title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                <button class="ghost small" id="editor-insert" data-insert-setting hidden>Insert setting</button>
+                <button class="ghost small" data-editor-open data-open-file="config">Open in VS Code</button>
+                <button class="icon-btn" data-close-editor title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             </div>
         </header>
         <div class="editor-body">
-            <pre id="config-lines" class="editor-lines" aria-hidden="true"></pre>
+            <pre id="editor-lines" class="editor-lines" aria-hidden="true"></pre>
             <div class="editor-code">
-                <pre id="config-paint" class="editor-paint" aria-hidden="true"></pre>
-                <textarea id="config-text" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+                <pre id="editor-paint" class="editor-paint" aria-hidden="true"></pre>
+                <textarea id="editor-text" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
             </div>
         </div>
         <footer class="editor-foot">
-            <span id="config-status" class="editor-status"></span>
+            <span id="editor-status" class="editor-status"></span>
             <div class="actions">
-                <button class="ghost" data-close-config>Cancel</button>
-                <button id="config-save" data-save-config>Save <kbd>⌘S</kbd></button>
+                <button class="ghost" data-close-editor>Cancel</button>
+                <button id="editor-save" data-save-editor>Save <kbd>⌘S</kbd></button>
             </div>
         </footer>
     </dialog>
+
+    <!-- A PHP setting to add: every one PHP knows, to filter, then its value. -->
+    <dialog id="pick" class="editor pick">
+        <header class="editor-head">
+            <div>
+                <h2 id="pick-title">Add a setting</h2>
+                <p class="muted" id="pick-text"></p>
+            </div>
+            <button class="icon-btn" data-close-pick title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </header>
+        <div class="pick-filter">
+            <input id="pick-filter" type="search" placeholder="Filter settings, as upload or xdebug…" spellcheck="false" autocomplete="off">
+        </div>
+        <div id="pick-list" class="pick-list" role="listbox"></div>
+        <form id="pick-form" class="editor-foot pick-foot">
+            <label><code id="pick-key">Pick a setting</code> =</label>
+            <span id="pick-value" class="pick-value-field"></span>
+            <button id="pick-ok" disabled>Add</button>
+            <span id="pick-status" class="editor-status"></span>
+        </form>
+    </dialog>
+
 
     <div id="toasts" popover="manual"></div>
     <script src="/src/state.js"></script>

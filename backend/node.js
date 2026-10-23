@@ -1,12 +1,12 @@
 "use strict";
 
-const { spawn } = require("child_process");
-const fs        = require("fs");
-const path      = require("path");
+const fs   = require("fs");
+const path = require("path");
 
 // Homebrew's Node.js: its version, npm and corepack, and the global packages.
 
 const { PATHS, run, versionOf, readJson } = require("./system");
+const { runJob, spawnLines }              = require("./jobs");
 
 
 
@@ -212,90 +212,37 @@ async function uninstallPackage(name) {
 }
 
 /**
- * Runs npm on the global packages, as a job the page follows: it gets the
- * job's id at once, then asks how it goes until it is done, so the page is
- * free meanwhile. A job is one or more steps, a package each, run in turn,
- * each waiting, running, done or failed. The jobs wait for each other too,
- * since two npm runs changing one folder at once can break it.
+ * Runs npm on the global packages, as a job the page follows, a package a
+ * step. Whatever npm changed, the packages, their sizes and the outdated ones
+ * are asked for again.
  */
-const jobs = new Map();
-let npmRuns  = /** @type {Promise<unknown>} */ (Promise.resolve());
-let jobCount = 0;
 function runNpm(steps, done) {
-    const job = {
-        id      : String(++jobCount),
-        items   : steps.map((step) => ({ name : step.name, state : "waiting", error : "" })),
-        state   : "waiting",
-        message : "",
-    };
-    jobs.set(job.id, job);
-    // The last few are kept, for a page that asks after they finished.
-    for (const id of [ ...jobs.keys() ].slice(0, -20)) {
-        jobs.delete(id);
-    }
-    npmRuns = npmRuns.then(async () => {
-        job.state = "running";
-        for (const [ index, step ] of steps.entries()) {
-            const item  = job.items[index];
+    return runJob("npm", steps, {
+        runStep : async (step) => {
             const lines = [];
-            item.state  = "running";
             const code  = await spawnNpm(step.args, (line) => lines.push(line));
-            item.state  = code === 0 ? "done" : "failed";
-            item.error  = code === 0 ? "" : lines.filter((line) => /ERR!/.test(line)).slice(0, 3).join(" ") || "npm failed";
-        }
-        nodeCache.at = 0;
-        sizes.at     = 0;
-        // Whatever npm changed, the outdated ones are asked for again.
-        outdated.at  = 0;
-        outdated.round++;
-        const worked = job.items.filter((item) => item.state === "done").map((item) => item.name);
-        const failed = job.items.filter((item) => item.state === "failed");
-        job.state    = failed.length ? "failed" : "done";
-        job.message  = [
-            worked.length ? done(worked) : "",
-            failed.length === 1 ? `${failed[0].name} failed: ${failed[0].error}` : failed.length ? `${failed.length} failed` : "",
-        ].filter(Boolean).join(". ");
+            return code === 0 ? "" : lines.filter((line) => /ERR!/.test(line)).slice(0, 3).join(" ") || "npm failed";
+        },
+        after : async () => {
+            nodeCache.at = 0;
+            sizes.at     = 0;
+            outdated.at  = 0;
+            outdated.round++;
+        },
+        done,
     });
-    return { job : job.id };
-}
-
-function readJob(id) {
-    const job = jobs.get(String(id));
-    if (!job) {
-        throw new Error("No such job");
-    }
-    return job;
 }
 
 /**
- * Runs npm and hands on each line it writes, as it writes it, for the error
- * when it fails. Its colors and progress bar are left out, since they are
- * meant for a terminal.
+ * Runs npm and hands on each line it writes. Its colors and progress bar
+ * are left out, since they are meant for a terminal.
  */
 function spawnNpm(args, onLine) {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", "npm"));
-    return new Promise((resolve) => {
-        const child = spawn(NODE, [ cli, ...args, "-g", "--no-fund", "--no-audit", "--no-progress", "--color=false" ], {
-            // Install scripts run node by name, so Homebrew's comes first.
-            env : { ...process.env, PATH : `${PATHS.homebrew}/bin:${process.env.PATH}` },
-        });
-        const timer = setTimeout(() => child.kill(), 10 * 60_000);
-        let rest = "";
-        const take = (chunk) => {
-            const lines = (rest + chunk).split(/\r?\n/);
-            rest = lines.pop();
-            lines.filter((line) => line.trim()).forEach(onLine);
-        };
-        child.stdout.on("data", take);
-        child.stderr.on("data", take);
-        child.on("error", (error) => onLine(error.message));
-        child.on("close", (code) => {
-            clearTimeout(timer);
-            if (rest.trim()) {
-                onLine(rest);
-            }
-            resolve(code);
-        });
+    return spawnLines(NODE, [ cli, ...args, "-g", "--no-fund", "--no-audit", "--no-progress", "--color=false" ], {
+        // Install scripts run node by name, so Homebrew's comes first.
+        env : { ...process.env, PATH : `${PATHS.homebrew}/bin:${process.env.PATH}` },
+        onLine,
     });
 }
 
@@ -369,5 +316,4 @@ module.exports = {
     installPackage,
     uninstallPackage,
     searchPackages,
-    readJob,
 };

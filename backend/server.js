@@ -10,8 +10,9 @@ const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, versionOf }       = re
 const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
 const { readDatabases }                                                     = require("./databases");
 const { readModules, readListen, readVhosts, setModule, reloadApache }      = require("./apache");
-const { readPhp, setPhpSetting, phpIniFile }                                = require("./php");
-const { readNode, updatePackages, installPackage, uninstallPackage, searchPackages, readJob } = require("./node");
+const php                                                                   = require("./php");
+const { readNode, updatePackages, installPackage, uninstallPackage, searchPackages } = require("./node");
+const { readJob }                                                           = require("./jobs");
 const { readApps, startApp, stopApp, startGroup, startServer, stopServer } = require("./apps");
 const { readLogSizes, readLog, clearLog }                                   = require("./logs");
 const { readConfigFile, saveConfig, openFile }                              = require("./config");
@@ -66,7 +67,16 @@ async function handle(request, response) {
         if (url.pathname === "/api/npm-search" && request.method === "GET") {
             return send(response, 200, await searchPackages(url.searchParams.get("q")));
         }
-        if (url.pathname === "/api/npm-job" && request.method === "GET") {
+        if (url.pathname === "/api/pecl-search" && request.method === "GET") {
+            return send(response, 200, await php.searchExtensions(url.searchParams.get("q")));
+        }
+        if (url.pathname === "/api/php-directives" && request.method === "GET") {
+            return send(response, 200, await php.readDirectives());
+        }
+        if (url.pathname === "/api/php-overrides" && request.method === "GET") {
+            return send(response, 200, php.readOverrides());
+        }
+        if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
         }
         if (url.pathname === "/api/action" && request.method === "POST") {
@@ -152,9 +162,9 @@ function readBody(request) {
 
 /** Everything the page shows, gathered in parallel. */
 async function readState() {
-    const [ services, php, node, databases, { apps, servers, branches }, disk ] = await Promise.all([
+    const [ services, phpState, node, databases, { apps, servers, branches }, disk ] = await Promise.all([
         readServices(),
-        readPhp(),
+        php.readPhp(),
         readNode(),
         readDatabases(),
         readApps(),
@@ -163,7 +173,7 @@ async function readState() {
 
     return {
         services,
-        php,
+        php : phpState,
         node,
         databases,
         apps,
@@ -180,7 +190,7 @@ async function readState() {
         files      : {
             httpdConf : HTTPD_CONF,
             vhosts    : VHOSTS,
-            phpIni    : phpIniFile(),
+            phpIni    : php.phpIniFile(),
             mysqlData : MYSQL_DATA,
         },
     };
@@ -196,7 +206,14 @@ async function runAction(body) {
     case "start-all":     return startAll();
     case "restart-all":   return restartAll();
     case "stop-all":      return stopAll();
-    case "php-setting":   return setPhpSetting(body.key, String(body.value ?? "").trim());
+    case "php-setting":   return php.setPhpSetting(String(body.key || ""), String(body.value ?? "").trim());
+    case "php-settings":  return php.setPhpSettings(body.changes);
+    case "php-save":      return php.saveOverrides(body.text);
+    case "php-check":     return php.checkOverrides(body.text);
+    case "pecl-install":  return php.installExtension(body.name);
+    case "pecl-update":   return php.updateExtensions(body.name);
+    case "pecl-rebuild":  return php.reinstallExtension(body.name);
+    case "pecl-remove":   return php.uninstallExtension(body.name);
     case "module":        return setModule(body.name, Boolean(body.enabled));
     case "reload":        return reloadApache();
     case "open-file":     return openFile(body.file);

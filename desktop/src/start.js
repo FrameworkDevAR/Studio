@@ -9,7 +9,7 @@ window.addEventListener("scroll", () => {
 }, { passive : true });
 document.getElementById("log").addEventListener("scroll", showLogBottom, { passive : true });
 const columnWatch = new ResizeObserver((entries) => entries.forEach((entry) => markColumnEnds(entry.target)));
-columnWatch.observe(document.getElementById("php-extensions").parentElement);
+columnWatch.observe(document.getElementById("php-extensions"));
 columnWatch.observe(document.getElementById("node-globals"));
 // A click outside the dialog, on its backdrop, is a Cancel.
 document.getElementById("ask").addEventListener("click", (event) => {
@@ -18,6 +18,7 @@ document.getElementById("ask").addEventListener("click", (event) => {
     }
 });
 document.getElementById("node-filter").addEventListener("input", renderNode);
+document.getElementById("php-ext-filter").addEventListener("input", renderExtensions);
 document.getElementById("npm-search").addEventListener("input", () => searchNpm());
 // Enter searches at once, or installs a package named with its version.
 document.getElementById("npm-search").addEventListener("submit", (event) => {
@@ -29,6 +30,25 @@ document.getElementById("npm-search").addEventListener("submit", (event) => {
         searchNpm(true);
     }
 });
+document.getElementById("pecl-search").addEventListener("input", () => searchPecl());
+document.getElementById("pecl-search").addEventListener("submit", (event) => {
+    event.preventDefault();
+    searchPecl(true);
+});
+document.getElementById("pick-filter").addEventListener("input", () => renderPickList());
+// Enter in the filter picks the first setting it shows.
+document.getElementById("pick-filter").addEventListener("keydown", (event) => {
+    const first = /** @type {HTMLElement} */ (document.querySelector("#pick-list [data-pick-key]"));
+    if (event.key === "Enter" && first) {
+        event.preventDefault();
+        choosePick(first.dataset.pickKey);
+    }
+});
+document.getElementById("pick-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitPick();
+});
+document.getElementById("pick").addEventListener("close", () => finishPick(null));
 document.getElementById("module-search").addEventListener("input", renderModules);
 let searchTimer = null;
 document.getElementById("log-search").addEventListener("input", () => {
