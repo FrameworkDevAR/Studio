@@ -8,8 +8,8 @@
  * with its count, and a control on a hidden page has no size until shown.
  * The first placement does not slide, so the thumb never flies in from 0.
  */
-function setUpPillTabs() {
-    for (const control of document.querySelectorAll(".segmented")) {
+function setUpPillTabs(root = document) {
+    for (const control of root.querySelectorAll(".segmented:not(.has-thumb)")) {
         const thumb = document.createElement("span");
         thumb.className = "seg-thumb";
         control.prepend(thumb);
@@ -228,6 +228,53 @@ function ask({ title, text = "", body = "", note = "", ok = "OK", danger = false
         form.addEventListener("submit", submit);
         dialog.addEventListener("close", close);
     });
+}
+
+/**
+ * Opens the form dialog with its fields, as a new database's. Its button
+ * gives the form to submit, and what that gives is said in a toast once the
+ * dialog closes; what it throws stays in the dialog, by the button, to fix.
+ * ready gets the fields once they are in, for listeners of their own.
+ */
+function formDialog({ title, text = "", body, ok, danger = false, submit, ready = null }) {
+    const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("form"));
+    const form   = /** @type {HTMLFormElement} */ (document.getElementById("form-form"));
+    const button = /** @type {HTMLButtonElement} */ (document.getElementById("form-ok"));
+    const status = document.getElementById("form-status");
+    const fields = document.getElementById("form-body");
+    document.getElementById("form-title").textContent = title;
+    document.getElementById("form-text").textContent  = text;
+    document.getElementById("form-text").hidden       = !text;
+    fields.innerHTML   = body;
+    button.textContent = ok;
+    button.className   = danger ? "danger-fill" : "";
+    button.disabled    = false;
+    status.textContent = "";
+    status.className   = "editor-status";
+    ready?.(fields);
+    setUpPillTabs(fields);
+    form.onsubmit = async (event) => {
+        event.preventDefault();
+        if (button.disabled) {
+            return;
+        }
+        button.disabled    = true;
+        status.textContent = "Saving…";
+        status.className   = "editor-status";
+        try {
+            const result = await submit(form);
+            dialog.close();
+            toast(result.message);
+            await refresh();
+        } catch (error) {
+            status.textContent = error.message;
+            status.className   = "editor-status bad";
+        } finally {
+            button.disabled = false;
+        }
+    };
+    dialog.showModal();
+    /** @type {HTMLElement} */ (fields.querySelector("input:not([readonly]):not([disabled]), select"))?.focus();
 }
 
 function esc(value) {

@@ -4,13 +4,13 @@ A local control panel for the Homebrew dev stack (Apache, MariaDB, PHP, Node.js,
 the apps and servers of each project. See the README.
 
 - `backend/` is the server: `server.js` answers the page and the api, and each other file
-  covers one part (`apache.js`, `php.js`, `node.js`, `services.js`, `databases.js`, `apps.js`,
-  `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share, and
+  covers one part (`apache.js`, `php.js`, `node.js`, `services.js`, `databases.js` with the
+  databases and users, `mariadb.js` with MariaDB's options, `apps.js`, `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share, and
   `jobs.js` running the npm and pecl installs the page follows as they go.
 - `backend/paths.js` holds the stack's paths, with their defaults, for the server and the
   plugin both.
 - `desktop/` is the whole page: `index.html`, `style.css`, and its script in `src/`, a
-  file per page or part. They are plain scripts sharing one scope, loaded in order by
+  file per page or part, as `settings.js`, the settings panels PHP and MariaDB share. They are plain scripts sharing one scope, loaded in order by
   `index.html`, with `state.js` first and `start.js`, which calls into the others, last.
 - `swiftbar.10s.js` is the SwiftBar menu plugin, which SwiftBar runs through a link in
   `~/Documents/SwiftBar/`.

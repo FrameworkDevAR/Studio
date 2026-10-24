@@ -44,16 +44,17 @@ function paintJson(text) {
 }
 
 /**
- * An ini file painted line by line: a comment, a [section], or a setting --
- * its name, the =, and a value that is a text in quotes, a number with its
- * unit, a word PHP knows (On, Off, E_ALL), or anything else.
+ * An ini file painted line by line: a comment, a [section] or a cnf file's
+ * !include, or a setting -- its name, the =, and a value that is a text in
+ * quotes, a number with its unit, a word PHP or MariaDB knows (On, Off,
+ * E_ALL), or anything else.
  */
 function paintIni(text) {
     return text.split("\n").map((line) => {
-        if (/^\s*;/.test(line)) {
+        if (/^\s*[;#]/.test(line)) {
             return `<span class="code-mark">${escapeCode(line)}</span>`;
         }
-        if (/^\s*\[.*\]\s*$/.test(line)) {
+        if (/^\s*\[.*\]\s*$/.test(line) || /^\s*!include/.test(line)) {
             return `<span class="code-word">${escapeCode(line)}</span>`;
         }
         const found = line.match(/^(\s*)([^=;\s][^=;]*?)(\s*=\s*)([^;]*?)(\s*;.*)?$/);
@@ -112,8 +113,9 @@ function paintApache(text) {
  * What the editor can open: where it reads the file, how it paints and checks
  * it, and the action that saves it. config.json is checked here as it is
  * typed. The overrides file is checked by PHP, on the server, a moment after
- * the typing stops; a line that is not a setting is caught at once. Apache's
- * files are checked by httpd, on a copy of its config with the text in place.
+ * the typing stops; a line that is not a setting is caught at once, and
+ * MariaDB's options file the same way, by mariadbd. Apache's files are
+ * checked by httpd, on a copy of its config with the text in place.
  */
 const EDITOR_FILES = {
     config : {
@@ -146,7 +148,24 @@ const EDITOR_FILES = {
             return index === -1 ? "" : `Line ${index + 1} is not a setting: write it as name = value, or start it with ; for a note`;
         },
         server : "php-check",
+        who    : "PHP",
         valid  : "PHP takes it",
+    },
+    mariadb : {
+        title  : "MariaDB options",
+        url    : "/api/mariadb-file",
+        open   : "mysqlCnf",
+        paint  : paintIni,
+        lang   : "ini",
+        mark   : "#",
+        save   : "mariadb-save",
+        check  : (text) => {
+            const index = text.split("\n").findIndex((line) => line.trim() && !/^\s*([#;]|\[.*\]\s*$|!include|[A-Za-z][\w.-]*\s*(=|$))/.test(line));
+            return index === -1 ? "" : `Line ${index + 1} is not an option: write it as name = value, or start it with # for a note`;
+        },
+        server : "mariadb-check",
+        who    : "MariaDB",
+        valid  : "MariaDB takes it",
     },
     httpd : {
         title  : "httpd.conf",
@@ -158,6 +177,7 @@ const EDITOR_FILES = {
         save   : "apache-save",
         check  : () => "",
         server : "apache-check",
+        who    : "Apache",
         body   : { kind : "httpd" },
         valid  : "Apache takes it",
     },
@@ -171,6 +191,7 @@ const EDITOR_FILES = {
         save   : "apache-save",
         check  : () => "",
         server : "apache-check",
+        who    : "Apache",
         body   : { kind : "vhosts" },
         valid  : "Apache takes it",
     },
@@ -207,7 +228,8 @@ async function openEditor(kind) {
     document.getElementById("editor-path").textContent  = data.exists ? data.file : `${data.file} — new${kind === "config" ? ", from the example" : ""}`;
     open.dataset.openFile = file.open;
     open.dataset.openPath = file.body?.file || "";
-    document.getElementById("editor-insert").hidden = kind !== "php";
+    document.getElementById("editor-insert").hidden      = kind !== "php" && kind !== "mariadb";
+    document.getElementById("editor-insert").textContent = kind === "mariadb" ? "Insert option" : "Insert setting";
     updateEditor();
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).showModal();
     text.focus();
@@ -235,7 +257,7 @@ async function saveEditor() {
         editorSaved = text.value;
         toast(result.message);
         /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
-        settingsKey = "";
+        settingsKeys = {};
         await refresh();
     } catch (error) {
         toast(error.message, true);
@@ -278,7 +300,7 @@ function updateEditor() {
     }
     renderMarks();
     status.className   = `editor-status ${error ? "bad" : dirty ? "dirty" : ""}`;
-    status.textContent = error ? error : asking ? `Checking with ${file.server === "php-check" ? "PHP" : "Apache"}…` : dirty ? `${file.valid}, not saved yet` : editorEdited ? "No changes" : "";
+    status.textContent = error ? error : asking ? `Checking with ${file.who}…` : dirty ? `${file.valid}, not saved yet` : editorEdited ? "No changes" : "";
     /** @type {HTMLButtonElement} */ (document.getElementById("editor-save")).disabled = Boolean(error) || asking || !dirty;
 }
 
@@ -527,13 +549,15 @@ function openApacheConfig(path) {
  */
 async function insertSetting() {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
-    const picked = await pickSetting({ inEditor : true, text : text.value });
+    const picked = await pickSetting({ inEditor : true, text : text.value, scope : editorKind === "mariadb" ? "mariadb" : "php" });
     if (!picked) {
         text.focus();
         return;
     }
     const line    = `${picked.key} = ${picked.value}`;
-    const pattern = new RegExp(`^[ \\t]*${picked.key.replace(/\./g, "\\.")}[ \\t]*=.*$`, "m");
+    // MariaDB reads innodb-buffer-pool-size as innodb_buffer_pool_size, so either is its line.
+    const name    = picked.key.replace(/\./g, "\\.").replace(/[_-]/g, "[_-]");
+    const pattern = new RegExp(`^[ \\t]*${name}[ \\t]*(=.*)?$`, "m");
     const found   = text.value.match(pattern);
     let   start;
     if (found) {

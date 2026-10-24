@@ -5,9 +5,9 @@ const path = require("path");
 
 // The config, as the editor on the page reads, checks and saves it.
 
-const { DEFAULTS, TOOLS : TOOL_DEFAULTS, pathsOf, toolsOf }             = require("./paths");
-const { ROOT, CONFIG, PATHS, TOOLS, HTTPD_CONF, VHOSTS, run, readFile } = require("./system");
-const { phpIniFile }                                                    = require("./php");
+const { DEFAULTS, TOOLS : TOOL_DEFAULTS, pathsOf, toolsOf }                        = require("./paths");
+const { ROOT, CONFIG, PATHS, TOOLS, HTTPD_CONF, VHOSTS, MYSQL_CNF, run, readFile } = require("./system");
+const { phpIniFile }                                                               = require("./php");
 
 
 
@@ -118,7 +118,7 @@ function configProblem(config) {
  * every run.
  */
 async function openFile(which, included = "") {
-    const files = { httpdConf : HTTPD_CONF, vhosts : VHOSTS, phpIni : phpIniFile(), config : CONFIG, apacheInclude : included };
+    const files = { httpdConf : HTTPD_CONF, vhosts : VHOSTS, phpIni : phpIniFile(), mysqlCnf : MYSQL_CNF, config : CONFIG, apacheInclude : included };
     if (!files[which]) {
         throw new Error("Unknown file");
     }

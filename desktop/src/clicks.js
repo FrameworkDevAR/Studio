@@ -52,8 +52,8 @@ function onClick(event) {
         uninstallExtension(target.dataset.peclRemove);
     } else if (target.dataset.peclRebuild) {
         rebuildExtension(target.dataset.peclRebuild);
-    } else if (target.dataset.pickSetting !== undefined) {
-        addSetting();
+    } else if (target.dataset.pickSetting) {
+        pickSetting({ scope : target.dataset.pickSetting });
     } else if (target.dataset.closePick !== undefined) {
         /** @type {HTMLDialogElement} */ (document.getElementById("pick")).close();
     } else if (target.dataset.pickKey) {
@@ -68,6 +68,36 @@ function onClick(event) {
         navigate(target.dataset.apacheTab === "configs" ? "/apache/configs" : "/apache");
     } else if (target.dataset.editPhp !== undefined) {
         openEditor("php");
+    } else if (target.dataset.editMariadb !== undefined) {
+        openEditor("mariadb");
+    } else if (target.dataset.dbTab) {
+        navigate(target.dataset.dbTab === "databases" ? "/databases" : `/databases/${target.dataset.dbTab}`);
+    } else if (target.dataset.dbNew !== undefined) {
+        openDatabaseDialog();
+    } else if (target.dataset.dbEdit) {
+        openDatabaseDialog(target.dataset.dbEdit);
+    } else if (target.dataset.dbDrop) {
+        dropDatabase(target.dataset.dbDrop);
+    } else if (target.dataset.userNew !== undefined) {
+        openUserDialog();
+    } else if (target.dataset.userEdit) {
+        openUserDialog(target.dataset.userEdit);
+    } else if (target.dataset.userDrop) {
+        dropUser(target.dataset.userDrop);
+    } else if (target.dataset.userMode) {
+        pickUserMode(target);
+    } else if (target.dataset.access) {
+        pickAccess(target);
+    } else if (target.dataset.preset) {
+        pickPreset(target);
+    } else if (target.dataset.advanced !== undefined) {
+        toggleAdvanced(target);
+    } else if (target.dataset.makePassword !== undefined) {
+        /** @type {HTMLInputElement} */ (target.parentElement.querySelector("input")).value = makePassword();
+    } else if (target.dataset.copyPassword !== undefined) {
+        copyPassword(target);
+    } else if (target.dataset.closeForm !== undefined) {
+        /** @type {HTMLDialogElement} */ (document.getElementById("form")).close();
     } else if (target.dataset.unset !== undefined) {
         toggleUnset(target.closest(".setting"));
 
@@ -122,10 +152,10 @@ function onClick(event) {
         saveEditor();
     } else if (target.dataset.openFile) {
         act({ action : "open-file", file : target.dataset.openFile, path : target.dataset.openPath }, target);
-    } else if (target.dataset.phpSave !== undefined) {
-        saveSettings();
-    } else if (target.dataset.phpDiscard !== undefined) {
-        discardSettings();
+    } else if (target.dataset.saveSettings) {
+        saveSettings(target.dataset.saveSettings);
+    } else if (target.dataset.discardSettings) {
+        discardSettings(target.dataset.discardSettings);
     } else if (target.dataset.module) {
         toggleModule(event, target);
     } else if (target.dataset.include) {

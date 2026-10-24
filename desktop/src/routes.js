@@ -22,6 +22,12 @@ function phpTab() {
     return location.pathname.split("/")[2] === "extensions" ? "extensions" : "settings";
 }
 
+/** The tab of the Databases page, from /databases/users or /databases/options; the databases otherwise. */
+function dbTab() {
+    const tab = location.pathname.split("/")[2];
+    return tab === "users" || tab === "options" ? tab : "databases";
+}
+
 /** Goes to a path of the page without reloading it. */
 function navigate(pathname) {
     if (pathname !== location.pathname) {
@@ -53,6 +59,25 @@ function route() {
     }
     if (view === "apache") {
         showApacheTab();
+    }
+    if (view === "databases") {
+        showDbTab();
+    }
+}
+
+function showDbTab() {
+    const tab = dbTab();
+    for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("#db-tabs button"))) {
+        button.classList.toggle("active", button.dataset.dbTab === tab);
+    }
+    document.getElementById("db-list-pane").hidden      = tab !== "databases";
+    document.getElementById("db-list-actions").hidden   = tab !== "databases";
+    document.getElementById("db-users-pane").hidden     = tab !== "users";
+    document.getElementById("db-user-actions").hidden   = tab !== "users";
+    document.getElementById("db-options-pane").hidden   = tab !== "options";
+    document.getElementById("db-option-actions").hidden = tab !== "options";
+    if (state) {
+        renderDbText();
     }
 }
 

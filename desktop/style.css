@@ -640,7 +640,7 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 .icon-btn.stop:hover  { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, var(--border)); background: var(--red-bg); }
 .icon-btn:disabled { opacity: .4; }
 
-#site-tabs em, #php-tabs em, #apache-tabs em { font-style: normal; margin-left: 4px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#site-tabs em, #php-tabs em, #apache-tabs em, #db-tabs em { font-style: normal; margin-left: 4px; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 [hidden] { display: none !important; }
 .dot.idle { background: var(--border); }
 
@@ -692,6 +692,14 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 .setting.removing .unset { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: var(--accent-bg); }
 .setting.removing .unset:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .setting.dirty input, .setting.dirty select { border-color: var(--accent); }
+/* A long value, as sql_mode's list, gets the row's whole width, under the hint. */
+.setting.wide .setting-hint { grid-column: 1 / 4; }
+.setting.wide .field { grid-row: 3; grid-column: 1 / 4; margin-top: 6px; }
+.field textarea { display: block; width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); color: var(--strong); font: 12px/1.5 "SF Mono", ui-monospace, Menlo, monospace; resize: vertical; word-break: break-all; }
+.field textarea:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.field textarea:focus { outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+.setting.dirty textarea { border-color: var(--accent); }
+.setting.wide .unset { grid-row: 3; margin-top: 6px; }
 
 input, select {
     font: inherit;
@@ -766,7 +774,7 @@ select option { background: var(--panel); color: var(--text); }
 a.pkg-text:hover { color: var(--accent); text-decoration: none; }
 a.pkg-text:hover .pkg-scope { color: inherit; }
 .pkg.end { border-bottom-color: transparent; }
-#node-filter, #php-ext-filter { flex: none; width: 240px; }
+#node-filter, #php-ext-filter, #db-filter, #user-filter { flex: none; width: 240px; }
 .pkg-none { padding: 24px 2px; color: var(--muted); }
 .pkg-latest { margin-left: 6px; color: var(--amber); font-weight: 600; }
 .pkg.outdated .pkg-version { color: var(--text); }
@@ -780,7 +788,7 @@ a.pkg-text:hover .pkg-scope { color: inherit; }
  * The boxes are drawn here rather than left to the system: rounded, with a
  * drawn tick, and a bar when only some of the list is picked.
  */
-.pkg.pick input {
+.pkg.pick input, input.box {
     appearance: none;
     flex: none;
     display: grid;
@@ -795,12 +803,12 @@ a.pkg-text:hover .pkg-scope { color: inherit; }
     cursor: pointer;
     transition: background .12s, border-color .12s;
 }
-.pkg.pick:hover input { border-color: var(--accent); }
-.pkg.pick input:checked, .pkg.pick input:indeterminate { background: var(--accent); border-color: var(--accent); }
-.pkg.pick input::after { content: ""; display: none; }
-.pkg.pick input:checked::after { display: block; width: 5px; height: 9px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; rotate: 45deg; }
+.pkg.pick:hover input, .check:hover input.box { border-color: var(--accent); }
+.pkg.pick input:checked, .pkg.pick input:indeterminate, input.box:checked { background: var(--accent); border-color: var(--accent); }
+.pkg.pick input::after, input.box::after { content: ""; display: none; }
+.pkg.pick input:checked::after, input.box:checked::after { display: block; width: 5px; height: 9px; margin-top: -2px; border: solid var(--on-accent); border-width: 0 2px 2px 0; rotate: 45deg; }
 .pkg.pick input:indeterminate::after { display: block; width: 8px; height: 2px; border-radius: 1px; background: var(--on-accent); }
-.pkg.pick input:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 2px; }
+.pkg.pick input:focus-visible, input.box:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 2px; }
 .pkg.pick.all { border-bottom-width: 2px; }
 .pkg.pick.all .pkg-text { color: var(--muted); font-family: inherit; font-weight: 600; }
 .pkg .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
@@ -840,6 +848,81 @@ a.pkg-text:hover .pkg-scope { color: inherit; }
 .switch input:checked + span::after { transform: translateX(12px); }
 .switch input:disabled + span { opacity: .45; cursor: not-allowed; }
 
+
+/* -------------------------------------------------------------- databases */
+
+/* The databases as cards, as many across as fit. */
+.db-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.db-list .pkg-none { grid-column: 1 / -1; }
+.db-card { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 14px 14px 12px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--field) 55%, transparent); transition: border-color .15s; }
+.db-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.db-card-head { display: flex; align-items: center; gap: 12px; }
+.db-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--field)); }
+.db-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.db-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+/* Only as wide as the name, so the card around it is not a link. */
+.db-name { align-self: flex-start; max-width: 100%; padding: 0; border: 0; border-radius: 0; background: none; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 600; }
+.db-name:hover { color: var(--accent); text-decoration: none; }
+.db-title small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* The buttons show on hover, as they would crowd every card otherwise. */
+.db-actions { flex: none; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
+.db-card:hover .db-actions, .user-row:hover .db-actions, .db-actions:focus-within { opacity: 1; }
+.db-actions .icon-btn { width: 26px; height: 26px; border-radius: 8px; }
+.db-actions .icon-btn svg { width: 13px; height: 13px; }
+.db-actions .icon-btn:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); background: var(--accent-bg); }
+.db-actions .icon-btn.remove:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, var(--border)); background: var(--red-bg); }
+.db-card .meter { height: 4px; }
+.db-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.db-encoding { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.db-encoding .tag { flex: none; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 10.5px; }
+.db-collation { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; }
+.db-people { flex: none; display: flex; gap: 4px; max-width: 50%; overflow: hidden; font-size: 12px; }
+.db-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 1px 8px; border: 0; border-radius: 999px; color: var(--text); background: color-mix(in srgb, var(--muted) 16%, transparent); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 400; }
+button.db-user:hover { filter: none; color: var(--accent); background: var(--accent-bg); }
+.user-facts .db-user { font-family: inherit; font-size: 11.5px; }
+.db-user.none { color: var(--red); background: var(--red-bg); }
+
+/* The users, as cards like the databases': who, where from, what it reaches and may do. */
+.user-badge { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--field)); font-size: 14px; font-weight: 650; }
+.user-card.admin .user-badge { color: var(--muted); background: var(--code-bg); }
+.user-card.admin .db-name { color: var(--muted); }
+.user-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; }
+.user-facts dt { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.user-facts dd { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; }
+
+/* ------------------------------------------------------------ form dialog */
+
+.editor.form { width: min(560px, calc(100vw - 48px)); max-height: min(900px, calc(100vh - 48px)); }
+.form-body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 18px 20px 20px; }
+.form-row { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.form-row > span:first-child { color: var(--muted); font-size: 12px; font-weight: 600; }
+.form-row input[readonly] { color: var(--muted); background: var(--code-bg); cursor: default; }
+.form-row input[readonly]:hover { border-color: var(--border); }
+.form-row .segmented { align-self: flex-start; }
+.form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-pair .wide { grid-column: 1 / -1; }
+.password { display: flex; gap: 6px; }
+.password input { flex: 1; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.password button { flex: none; }
+/* A list of boxes to tick, two across, scrolling when long. */
+.check-list { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 16px; max-height: 220px; overflow: auto; padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); }
+.check { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 5px 2px; font-size: 13px; cursor: pointer; }
+.check > span { min-width: 0; display: flex; flex-direction: column; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.check small { color: var(--muted); font-size: 11.5px; }
+.check:has(input:disabled) { cursor: default; opacity: .7; }
+.form-body > .check { padding: 0; }
+.form-note { color: var(--muted); font-size: 12px; line-height: 1.45; }
+/* A field that must be filled has a red star by its label. */
+.form-row:has(> input:required, .password input:required) > span:first-child::after { content: " *"; color: var(--red); }
+/* The fields a choice shows come in, rather than jump in. */
+[data-mode-pane]:not([hidden]), [data-access-list]:not([hidden]), [data-privileges]:not([hidden]) { animation: fade .2s ease-out; }
+.privilege-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.privilege-head [aria-expanded="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: var(--accent-bg); }
+.privilege-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); }
+.privilege-group { min-width: 0; margin: 0; padding: 0; border: 0; }
+.privilege-group legend { margin-bottom: 2px; padding: 0; color: var(--accent); font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .07em; }
+.privilege-group .check { padding: 3px 0; font-size: 12px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+#ask-body .form-row { padding: 8px 0 10px; }
 
 /* ------------------------------------------------------------------- logs */
 

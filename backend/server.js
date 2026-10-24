@@ -6,9 +6,10 @@ const fs   = require("fs");
 const http = require("http");
 const path = require("path");
 
-const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, versionOf }       = require("./system");
+const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, MYSQL_CNF, versionOf } = require("./system");
 const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
-const { readDatabases }                                                     = require("./databases");
+const db                                                                    = require("./databases");
+const mariadb                                                               = require("./mariadb");
 const { readModules, readListen, readVhosts, setModule, reloadApache, readIncludes, setInclude,
         apacheFile, readApacheFile, checkApacheFile, saveApacheFile }       = require("./apache");
 const php                                                                   = require("./php");
@@ -79,6 +80,15 @@ async function handle(request, response) {
         }
         if (url.pathname === "/api/apache-file" && request.method === "GET") {
             return send(response, 200, readApacheFile(url.searchParams.get("kind"), url.searchParams.get("file")));
+        }
+        if (url.pathname === "/api/charsets" && request.method === "GET") {
+            return send(response, 200, await db.readCharsets());
+        }
+        if (url.pathname === "/api/mariadb-options" && request.method === "GET") {
+            return send(response, 200, await mariadb.readOptionList());
+        }
+        if (url.pathname === "/api/mariadb-file" && request.method === "GET") {
+            return send(response, 200, mariadb.readOptionsFile());
         }
         if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
@@ -166,11 +176,12 @@ function readBody(request) {
 
 /** Everything the page shows, gathered in parallel. */
 async function readState() {
-    const [ services, phpState, node, databases, { apps, servers, branches }, disk ] = await Promise.all([
+    const [ services, phpState, node, databases, options, { apps, servers, branches }, disk ] = await Promise.all([
         readServices(),
         php.readPhp(),
         readNode(),
-        readDatabases(),
+        db.readDatabases(),
+        mariadb.readMariadb(),
         readApps(),
         readDisk(),
     ]);
@@ -180,6 +191,7 @@ async function readState() {
         php : phpState,
         node,
         databases,
+        mariadb : options,
         apps,
         servers,
         branches,
@@ -198,6 +210,7 @@ async function readState() {
             vhosts    : VHOSTS,
             phpIni    : php.phpIniFile(),
             mysqlData : MYSQL_DATA,
+            mysqlCnf  : MYSQL_CNF,
         },
     };
 }
@@ -227,6 +240,15 @@ async function runAction(body) {
     case "apache-include": return setInclude(String(body.file || ""), Boolean(body.enabled));
     // A file Apache includes opens by its path, once it is known to be one.
     case "open-file":     return openFile(body.file, body.file === "apacheInclude" ? apacheFile("include", body.path) : "");
+    case "db-create":     return db.createDatabase(body);
+    case "db-change":     return db.changeDatabase(body);
+    case "db-drop":       return db.dropDatabase(body);
+    case "user-create":   return db.createUser(body);
+    case "user-change":   return db.changeUser(body);
+    case "user-drop":     return db.dropUser(body);
+    case "mariadb-options": return mariadb.setOptions(body.changes);
+    case "mariadb-save":  return mariadb.saveOptionsFile(body.text);
+    case "mariadb-check": return mariadb.checkOptions(body.text);
     case "save-config":   return saveConfig(body.text);
     case "clear-log":     return clearLog(body.name);
     case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);

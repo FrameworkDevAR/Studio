@@ -20,6 +20,8 @@ document.getElementById("ask").addEventListener("click", (event) => {
 });
 document.getElementById("node-filter").addEventListener("input", renderNode);
 document.getElementById("php-ext-filter").addEventListener("input", renderExtensions);
+document.getElementById("db-filter").addEventListener("input", renderDbList);
+document.getElementById("user-filter").addEventListener("input", renderUsers);
 document.getElementById("npm-search").addEventListener("input", () => searchNpm());
 // Enter searches at once, or installs a package named with its version.
 document.getElementById("npm-search").addEventListener("submit", (event) => {

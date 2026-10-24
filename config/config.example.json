@@ -5,6 +5,7 @@
         "vhosts"    : "/opt/homebrew/etc/httpd/extra/httpd-vhosts.conf",
         "phpIni"    : "/opt/homebrew/etc/php/{php}/conf.d/99-local-dev.ini",
         "mysqlData" : "/opt/homebrew/var/mysql",
+        "mysqlCnf"  : "/opt/homebrew/etc/my.cnf.d/local-dev.cnf",
         "apacheLog" : "/opt/homebrew/var/log/httpd/error_log",
         "accessLog" : "/opt/homebrew/var/log/httpd/access_log",
         "redisLog"  : "/opt/homebrew/var/log/redis.log"

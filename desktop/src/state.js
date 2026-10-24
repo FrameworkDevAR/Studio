@@ -43,7 +43,36 @@ const SETTING_HINTS = {
     "error_reporting"     : "Which errors count",
     "date.timezone"       : "Default timezone",
     "xdebug.mode"         : "Off is fastest",
+
+    "max_connections"                : "Clients at once",
+    "wait_timeout"                   : "Seconds an idle client is kept",
+    "max_allowed_packet"             : "Largest query or row, as an import's",
+    "character_set_server"           : "For new databases",
+    "collation_server"               : "How new databases sort and compare",
+    "innodb_buffer_pool_size"        : "Memory for data and indexes",
+    "innodb_log_file_size"           : "Redo log, larger for big writes",
+    "innodb_flush_log_at_trx_commit" : "1 is safest, 2 is faster",
+    "sql_mode"                       : "How strict queries are",
+    "default_storage_engine"         : "For new tables",
+    "group_concat_max_len"           : "Longest GROUP_CONCAT",
+    "slow_query_log"                 : "Log queries slower than the limit",
+    "long_query_time"                : "Seconds a query is slow at",
+    "general_log"                    : "Log every query, for debugging",
+    "tmp_table_size"                 : "In-memory temporary tables",
+    "max_heap_table_size"            : "MEMORY tables, ≥ tmp table size",
+    "sort_buffer_size"               : "Per sort",
+    "join_buffer_size"               : "Per join without an index",
 };
+
+/** MariaDB's options the Options tab shows in groups, as SETTING_GROUPS for PHP. */
+const OPTION_GROUPS = [
+    { title : "Connections", keys : [ "max_connections", "wait_timeout", "max_allowed_packet" ] },
+    { title : "Encoding",    keys : [ "character_set_server", "collation_server" ] },
+    { title : "InnoDB",      keys : [ "innodb_buffer_pool_size", "innodb_log_file_size", "innodb_flush_log_at_trx_commit" ] },
+    { title : "Queries",     keys : [ "sql_mode", "default_storage_engine", "group_concat_max_len" ] },
+    { title : "Logging",     keys : [ "slow_query_log", "long_query_time", "general_log" ] },
+    { title : "Memory",      keys : [ "tmp_table_size", "max_heap_table_size", "sort_buffer_size", "join_buffer_size" ] },
+];
 
 let state        = null;
 // Global packages being updated, by name, so a redraw keeps their buttons busy.
@@ -52,5 +81,7 @@ let updating     = new Set();
 let starting     = new Map();
 let moduleFilter = "all";
 let logName      = "apache";
-let settingsKey  = "";
+// What each settings page was last drawn from, so a refresh that changes nothing skips it.
+/** @type {Record<string, string>} */
+let settingsKeys = {};
 let recentErrors = [];

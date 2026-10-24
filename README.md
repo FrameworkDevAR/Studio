@@ -4,7 +4,7 @@ A control panel for the local development stack, that runs in the browser: Apach
 MariaDB, PHP, Node.js and Redis from Homebrew, and the apps and servers of each
 project. It shows what is running, starts and stops it, changes the PHP settings and
 the Apache modules, installs PHP extensions with pecl and Node's global packages with
-npm, lists the databases, and reads the logs, and everything stays on the machine.
+npm, creates and changes the databases, their users and MariaDB's options, and reads the logs, and everything stays on the machine.
 
 ## Running it
 
@@ -54,6 +54,7 @@ It holds `paths`, where the stack's files are, the apps Studio opens things with
 - `phpIni`: the file holding the PHP settings Studio changes. `{php}` stands for the
   PHP version linked, like `8.5`.
 - `mysqlData`: MariaDB's data folder, where its log is found.
+- `mysqlCnf`: the file holding the MariaDB options Studio changes, read after `my.cnf`.
 - `apacheLog`, `accessLog`, `redisLog`: the other logs.
 
 Then what opens what, each optional:

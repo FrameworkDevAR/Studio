@@ -29,6 +29,7 @@ const HTTPD_CONF = PATHS.httpdConf;
 const VHOSTS     = PATHS.vhosts;
 const PHPMYADMIN = TOOLS.phpMyAdmin;
 const MYSQL_DATA = PATHS.mysqlData;
+const MYSQL_CNF  = PATHS.mysqlCnf;
 const DISK       = "/System/Volumes/Data";
 
 // The SwiftBar plugin, asked for the apps so both list the same ones. It lives
@@ -42,10 +43,14 @@ const PATH = `${path.dirname(process.execPath)}:${PATHS.homebrew}/bin:${PATHS.ho
 
 // ----------------------------------------------------------------- helpers ---
 
-/** Runs a command without a shell. Never throws: ok says how it went. */
-function run(command, args = [], timeout = 15_000) {
+/**
+ * Runs a command without a shell. Never throws: ok says how it went. An input
+ * goes to its stdin, which keeps what it holds, a password say, out of the
+ * process list.
+ */
+function run(command, args = [], timeout = 15_000, input = null) {
     return new Promise((resolve) => {
-        execFile(command, args, {
+        const child = execFile(command, args, {
             encoding  : "utf8",
             timeout,
             maxBuffer : 32 * 1024 * 1024,
@@ -53,6 +58,9 @@ function run(command, args = [], timeout = 15_000) {
         }, (error, stdout, stderr) => {
             resolve({ ok : !error, stdout : stdout || "", stderr : stderr || (error ? error.message : "") });
         });
+        if (input !== null) {
+            child.stdin.end(input);
+        }
     });
 }
 
@@ -125,6 +133,7 @@ module.exports = {
     VHOSTS,
     PHPMYADMIN,
     MYSQL_DATA,
+    MYSQL_CNF,
     DISK,
     SWIFTBAR,
     run,
