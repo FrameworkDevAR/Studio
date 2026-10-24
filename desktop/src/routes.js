@@ -12,6 +12,11 @@ function sitesTab() {
     return location.pathname.split("/")[2] === "apache" ? "apache" : "apps";
 }
 
+/** The tab of the Apache page, from /apache/configs; the modules otherwise. */
+function apacheTab() {
+    return location.pathname.split("/")[2] === "configs" ? "configs" : "modules";
+}
+
 /** The tab of the PHP page, from /php/extensions; the overrides otherwise. */
 function phpTab() {
     return location.pathname.split("/")[2] === "extensions" ? "extensions" : "settings";
@@ -46,6 +51,21 @@ function route() {
     if (view === "php") {
         showPhpTab();
     }
+    if (view === "apache") {
+        showApacheTab();
+    }
+}
+
+function showApacheTab() {
+    const tab = apacheTab();
+    for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("#apache-tabs button"))) {
+        button.classList.toggle("active", button.dataset.apacheTab === tab);
+    }
+    document.getElementById("apache-modules-pane").hidden = tab !== "modules";
+    document.getElementById("apache-configs-pane").hidden = tab !== "configs";
+    document.getElementById("apache-text").innerHTML = tab === "modules"
+        ? `Each change is checked by Apache before it is kept, and undone if Apache rejects it. <span class="tag">used</span> means Apache's config, the vhosts or the sites' <code>.htaccess</code> files need it.`
+        : `The config files <code>httpd.conf</code> includes. Turning one on uncomments its <code>Include</code> line; Apache checks it first, and it is undone if Apache rejects it.`;
 }
 
 function showPhpTab() {

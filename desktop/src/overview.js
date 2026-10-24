@@ -16,7 +16,7 @@ function render() {
 
 /** The status under the title, the counts by each link, and the disk meter. */
 function renderSidebar() {
-    const { services, disk, php, node, modules, databases } = state;
+    const { services, disk, php, node, databases } = state;
     const apps = allApps();
     const health = stackHealth();
     const labels = { on : "All running", mid : "Partly running", off : "Stopped" };
@@ -27,7 +27,7 @@ function renderSidebar() {
     setBadge("sites",     `${apps.filter((app) => app.running).length}/${apps.length}`);
     setBadge("php",       php.version || "");
     setBadge("node",      node.broken ? "broken" : node.version, node.broken ? "bad" : "");
-    setBadge("apache",    String(modules.filter((module) => module.enabled).length));
+    setBadge("apache",    state.apache.version || "");
     setBadge("databases", databases.available ? String(databases.list.length) : "off", databases.available ? "" : "bad");
 
     const low = disk.free < 5 * 2 ** 30;

@@ -91,15 +91,15 @@
                             <span class="icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
                             <div><strong>phpMyAdmin</strong><span>Browse the databases</span></div>
                         </a>
-                        <button class="shortcut tone-cyan" data-open-file="vhosts">
+                        <button class="shortcut tone-cyan" data-edit-apache="vhosts">
                             <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></span>
                             <div><strong>Edit vhosts</strong><span>Add or change a site</span></div>
                         </button>
-                        <button class="shortcut tone-magenta" data-open-file="phpIni">
+                        <button class="shortcut tone-magenta" data-edit-php>
                             <span class="icon"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
                             <div><strong>Edit PHP overrides</strong><span id="php-ini-name"></span></div>
                         </button>
-                        <button class="shortcut tone-teal" data-open-file="httpdConf">
+                        <button class="shortcut tone-teal" data-edit-apache="httpd">
                             <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
                             <div><strong>Edit httpd.conf</strong><span>Apache's main config</span></div>
                         </button>
@@ -132,7 +132,7 @@
                 </div>
                 <div class="actions">
                     <button class="ghost" id="edit-config" data-edit-config title="The projects and servers listed here">Edit config</button>
-                    <button data-open-file="vhosts" class="ghost" id="edit-vhosts">Edit vhosts</button>
+                    <button data-edit-apache="vhosts" class="ghost" id="edit-vhosts">Edit vhosts</button>
                     <div class="segmented" id="site-tabs">
                         <button data-site-tab="apps">Apps <em id="tab-apps-count"></em></button>
                         <button data-site-tab="apache">Apache <em id="tab-apache-count"></em></button>
@@ -214,21 +214,34 @@
         <section data-view="apache">
             <header class="page-head">
                 <div>
-                    <h1>Apache modules <span id="module-count" class="muted"></span></h1>
-                    <p class="muted">Each change is checked with <code>apachectl configtest</code> and undone if Apache rejects it. <span class="tag">used</span> means Apache's config, the vhosts or the sites' <code>.htaccess</code> files need it.</p>
+                    <h1>Apache <span id="apache-version" class="muted"></span></h1>
+                    <p class="muted" id="apache-text"></p>
                 </div>
                 <div class="actions">
                     <button data-action="reload" class="ghost">Reload Apache</button>
-                    <button data-open-file="httpdConf" class="ghost">Edit httpd.conf</button>
+                    <button data-edit-apache="httpd" class="ghost">Edit httpd.conf</button>
+                    <div class="segmented" id="apache-tabs">
+                        <button data-apache-tab="modules">Modules <em id="tab-modules-count"></em></button>
+                        <button data-apache-tab="configs">Configs <em id="tab-configs-count"></em></button>
+                    </div>
                 </div>
             </header>
-            <div class="panel">
-                <div class="filters">
-                    <input id="module-search" type="search" placeholder="Filter modules…">
-                    <div class="segmented" id="module-filter">
-                        <button data-filter="all" class="active">All</button>
-                        <button data-filter="on">On</button>
-                        <button data-filter="off">Off</button>
+            <div class="panel" id="apache-configs-pane">
+                <div class="panel-head">
+                    <h2>Configs <span id="config-count" class="muted"></span></h2>
+                </div>
+                <div id="apache-configs" class="configs"></div>
+            </div>
+            <div class="panel" id="apache-modules-pane">
+                <div class="panel-head">
+                    <h2>Modules <span id="module-count" class="muted"></span></h2>
+                    <div class="filters">
+                        <input id="module-search" type="search" placeholder="Filter modules…">
+                        <div class="segmented" id="module-filter">
+                            <button data-filter="all" class="active">All</button>
+                            <button data-filter="on">On</button>
+                            <button data-filter="off">Off</button>
+                        </div>
                     </div>
                 </div>
                 <div id="modules" class="modules"></div>
@@ -352,8 +365,16 @@
         <div class="editor-body">
             <pre id="editor-lines" class="editor-lines" aria-hidden="true"></pre>
             <div class="editor-code">
+                <pre id="editor-marks" class="editor-paint editor-marks" aria-hidden="true"></pre>
                 <pre id="editor-paint" class="editor-paint" aria-hidden="true"></pre>
                 <textarea id="editor-text" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+                <div id="editor-find" class="editor-find" hidden>
+                    <input id="editor-find-text" type="search" placeholder="Find" spellcheck="false" autocomplete="off">
+                    <span id="editor-find-count"></span>
+                    <button class="icon-btn" data-find-step="-1" title="Previous (⇧↩)" aria-label="Previous match"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+                    <button class="icon-btn" data-find-step="1" title="Next (↩)" aria-label="Next match"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                    <button class="icon-btn" data-find-close title="Close (Esc)" aria-label="Close find"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                </div>
             </div>
         </div>
         <footer class="editor-foot">

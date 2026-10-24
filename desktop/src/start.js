@@ -11,6 +11,7 @@ document.getElementById("log").addEventListener("scroll", showLogBottom, { passi
 const columnWatch = new ResizeObserver((entries) => entries.forEach((entry) => markColumnEnds(entry.target)));
 columnWatch.observe(document.getElementById("php-extensions"));
 columnWatch.observe(document.getElementById("node-globals"));
+columnWatch.observe(document.getElementById("apache-configs-pane"));
 // A click outside the dialog, on its backdrop, is a Cancel.
 document.getElementById("ask").addEventListener("click", (event) => {
     if (event.target === event.currentTarget) {

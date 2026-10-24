@@ -112,12 +112,13 @@ function configProblem(config) {
 }
 
 /**
- * Opens one of the config files in the default text editor. Changes to
+ * Opens one of the config files in the default text editor, or a file Apache
+ * includes, by the path the server checked it is one. Changes to
  * config.json show in the apps on the next refresh: the plugin reads it on
  * every run.
  */
-async function openFile(which) {
-    const files = { httpdConf : HTTPD_CONF, vhosts : VHOSTS, phpIni : phpIniFile(), config : CONFIG };
+async function openFile(which, included = "") {
+    const files = { httpdConf : HTTPD_CONF, vhosts : VHOSTS, phpIni : phpIniFile(), config : CONFIG, apacheInclude : included };
     if (!files[which]) {
         throw new Error("Unknown file");
     }

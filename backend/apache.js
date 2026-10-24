@@ -1,9 +1,10 @@
 "use strict";
 
 const fs   = require("fs");
+const os   = require("os");
 const path = require("path");
 
-// Apache's modules, which of them the sites use, its vhosts and its reload.
+// Apache's modules, which of them the sites use, its vhosts, its config files and its reload.
 
 const { HTTPD, APACHE_CTL, HTTPD_CONF, VHOSTS, run, readFile } = require("./system");
 const { readServices }                                         = require("./services");
@@ -45,7 +46,8 @@ async function readModules() {
             protected : PROTECTED_MODULES.includes(name),
             used      : used.has(name),
         }))
-        .sort((a, b) => Number(b.enabled) - Number(a.enabled) || a.name.localeCompare(b.name));
+        // By name alone, so a module keeps its place as it is turned on or off.
+        .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -206,6 +208,179 @@ async function setModule(name, enabled) {
 }
 
 /**
+ * The config files httpd.conf includes, on or commented out: each with the
+ * note above it, as httpd.conf has one for each, and the module it waits
+ * for when inside an <IfModule>. A path of several files, with a *, cannot
+ * be edited here.
+ */
+const INCLUDE_LINE = /^(\s*)(#?)\s*(Include(?:Optional)?)\s+"?([^"\s]+)"?\s*$/;
+function readIncludes() {
+    const text  = readFile(HTTPD_CONF);
+    const lines = text.split("\n");
+    const found = [];
+    lines.forEach((line, index) => {
+        const match = line.match(INCLUDE_LINE);
+        if (!match) {
+            return;
+        }
+        const [ , , hash, , written ] = match;
+        // The notes above it, past an <IfModule> line, and a lone #.
+        let above = index - 1;
+        let module = "";
+        const guard = lines[above]?.match(/^\s*<IfModule\s+!?([\w.]+)>/i);
+        if (guard) {
+            module = guard[1].replace(/^mod_|\.c$|_module$/g, "");
+            above -= 1;
+        }
+        const note = lines[above]?.match(/^\s*#\s*([^#].*?)\s*$/)?.[1] || "";
+        const file = includedPath(text, written);
+        found.push({
+            file,
+            name     : path.basename(file),
+            enabled  : hash === "",
+            note     : /^(Include|LoadModule)\b/.test(note) ? "" : note,
+            module,
+            editable : !/[*?[]/.test(file) && fs.existsSync(file),
+        });
+    });
+    return found;
+}
+
+/** Where an Include line's path is: as written, or in ServerRoot when relative. */
+function includedPath(text, written) {
+    const root = text.match(/^\s*ServerRoot\s+"?([^"\n]+?)"?\s*$/m)?.[1] || "";
+    return path.isAbsolute(written) ? written : path.join(root, written);
+}
+
+/**
+ * Turns an included config file on or off by commenting its Include line,
+ * checked and undone as a module's change is, then Apache reloads.
+ */
+async function setInclude(file, enabled) {
+    const original = readFile(HTTPD_CONF);
+    const lines    = original.split("\n");
+    const index    = lines.findIndex((line) => line.match(INCLUDE_LINE) && includedPath(original, line.match(INCLUDE_LINE)[4]) === file);
+    if (index === -1) {
+        throw new Error(`${path.basename(String(file))} is not included in httpd.conf`);
+    }
+    lines[index] = lines[index].replace(INCLUDE_LINE, (line, lead, hash, directive, written) => `${lead}${enabled ? "" : "#"}${directive} ${written}`);
+    fs.writeFileSync(`${HTTPD_CONF}.bak-studio`, original);
+    fs.writeFileSync(HTTPD_CONF, lines.join("\n"));
+    const check = await run(APACHE_CTL, [ "configtest" ]);
+    if (!check.ok) {
+        fs.writeFileSync(HTTPD_CONF, original);
+        throw new Error(`Apache rejected it, so it was undone: ${apacheProblems(check.stderr)[0] || "configtest failed"}`);
+    }
+    usedCache.at = 0;
+    const reload = await reloadApache();
+    return { message : `${path.basename(file)} turned ${enabled ? "on" : "off"}. ${reload.message}` };
+}
+
+/**
+ * The config files the page edits: httpd.conf, the vhosts, and any single
+ * file httpd.conf includes, on or not -- never another file.
+ */
+function apacheFile(kind, file) {
+    if (kind === "httpd") {
+        return HTTPD_CONF;
+    }
+    if (kind === "vhosts") {
+        return VHOSTS;
+    }
+    if (kind === "include" && readIncludes().some((one) => one.file === file && one.editable)) {
+        return file;
+    }
+    throw new Error("Not a config file Apache includes");
+}
+
+/** A config file, for the page's editor. */
+function readApacheFile(kind, file) {
+    const found = apacheFile(kind, file);
+    return { file : found, exists : fs.existsSync(found), text : readFile(found) };
+}
+
+/**
+ * What Apache says of a config file's text, before it is saved: httpd checks
+ * a copy of its config with the text in place of the file -- for an included
+ * one, httpd.conf including the copy instead, and on even when the file is
+ * off, so it is known to work before it is turned on. Gives Apache's complaints,
+ * with the copy's path put back as the file's name; none when it reads.
+ */
+async function checkApacheFile(kind, text, target) {
+    const file = apacheFile(kind, target);
+    if (typeof text !== "string" || text.length > 1_000_000) {
+        throw new Error("The text is missing or too long");
+    }
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), "studio-apache-"));
+    try {
+        const copy = path.join(folder, path.basename(file));
+        fs.writeFileSync(copy, text);
+        let conf = copy;
+        if (file !== HTTPD_CONF) {
+            conf = path.join(folder, "httpd.conf");
+            const main     = readFile(HTTPD_CONF);
+            const included = main.split("\n").map((line) => {
+                const match = line.match(INCLUDE_LINE);
+                return match && includedPath(main, match[4]) === file ? `${match[1]}${match[3]} ${copy}` : line;
+            }).join("\n");
+            fs.writeFileSync(conf, included === main ? `${main}\nInclude ${copy}\n` : included);
+        }
+        const check = await run(HTTPD, [ "-t", "-f", conf ]);
+        if (check.ok) {
+            return { problems : [] };
+        }
+        const problems = apacheProblems(check.stderr, copy, path.basename(file));
+        return { problems : problems.length ? problems : [ "Apache does not take it" ] };
+    } finally {
+        fs.rmSync(folder, { recursive : true, force : true });
+    }
+}
+
+/**
+ * Apache's complaints, one per problem: without its AH codes and the lines
+ * that only say the check failed, a copy's path named as its file, and
+ * "Syntax error on line 12 of httpd.conf:" joined with its reason.
+ */
+function apacheProblems(stderr, copy = "", name = "") {
+    return stderr.split("\n")
+        .map((line) => (copy ? line.split(copy).join(name) : line).replace(/^AH\d+:\s*/, "").trim())
+        .filter((line) => line && line !== "Syntax OK" && !/^Action '-t' failed/.test(line) && !/^The Apache error log/.test(line) && !/Could not reliably determine the server's fully qualified domain name/.test(line))
+        .reduce((list, line) => {
+            if (list.length && list[list.length - 1].endsWith(":")) {
+                list[list.length - 1] += ` ${line}`;
+            } else {
+                list.push(line);
+            }
+            return list;
+        }, []);
+}
+
+/**
+ * Saves a config file from the page's editor, once Apache takes it. The
+ * previous one is kept beside it, and put back should Apache's own check
+ * fail all the same; then Apache reloads.
+ */
+async function saveApacheFile(kind, text, target) {
+    const file      = apacheFile(kind, target);
+    const { problems } = await checkApacheFile(kind, text, target);
+    if (problems.length) {
+        throw new Error(`Apache does not take it, so it was not saved: ${problems[0]}`);
+    }
+    const original = readFile(file);
+    const content  = text.endsWith("\n") ? text : `${text}\n`;
+    fs.writeFileSync(`${file}.bak-studio`, original);
+    fs.writeFileSync(file, content);
+    const check = await run(APACHE_CTL, [ "configtest" ]);
+    if (!check.ok) {
+        fs.writeFileSync(file, original);
+        throw new Error(`Apache rejected the change, so it was undone: ${check.stderr.trim()}`);
+    }
+    usedCache.at = 0;
+    const reload = await reloadApache();
+    return { message : `Saved ${path.basename(file)}. ${reload.message}` };
+}
+
+/**
  * Reloads Apache gracefully, so running requests finish first. Checks the
  * config before, since a graceful restart with a broken one stops Apache.
  */
@@ -228,4 +403,10 @@ module.exports = {
     readVhosts,
     setModule,
     reloadApache,
+    readIncludes,
+    setInclude,
+    apacheFile,
+    readApacheFile,
+    checkApacheFile,
+    saveApacheFile,
 };

@@ -9,7 +9,8 @@ const path = require("path");
 const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, versionOf }       = require("./system");
 const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
 const { readDatabases }                                                     = require("./databases");
-const { readModules, readListen, readVhosts, setModule, reloadApache }      = require("./apache");
+const { readModules, readListen, readVhosts, setModule, reloadApache, readIncludes, setInclude,
+        apacheFile, readApacheFile, checkApacheFile, saveApacheFile }       = require("./apache");
 const php                                                                   = require("./php");
 const { readNode, updatePackages, installPackage, uninstallPackage, searchPackages } = require("./node");
 const { readJob }                                                           = require("./jobs");
@@ -75,6 +76,9 @@ async function handle(request, response) {
         }
         if (url.pathname === "/api/php-overrides" && request.method === "GET") {
             return send(response, 200, php.readOverrides());
+        }
+        if (url.pathname === "/api/apache-file" && request.method === "GET") {
+            return send(response, 200, readApacheFile(url.searchParams.get("kind"), url.searchParams.get("file")));
         }
         if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
@@ -185,6 +189,8 @@ async function readState() {
         listen     : readListen(),
         logs       : readLogSizes(),
         modules    : await readModules(),
+        includes   : readIncludes(),
+        apache     : { version : versionOf("httpd") },
         vhosts     : readVhosts(),
         phpmyadmin : { url : PHPMYADMIN, version : versionOf("phpmyadmin") },
         files      : {
@@ -216,7 +222,11 @@ async function runAction(body) {
     case "pecl-remove":   return php.uninstallExtension(body.name);
     case "module":        return setModule(body.name, Boolean(body.enabled));
     case "reload":        return reloadApache();
-    case "open-file":     return openFile(body.file);
+    case "apache-check":  return checkApacheFile(body.kind, body.text, body.file);
+    case "apache-save":   return saveApacheFile(body.kind, body.text, body.file);
+    case "apache-include": return setInclude(String(body.file || ""), Boolean(body.enabled));
+    // A file Apache includes opens by its path, once it is known to be one.
+    case "open-file":     return openFile(body.file, body.file === "apacheInclude" ? apacheFile("include", body.path) : "");
     case "save-config":   return saveConfig(body.text);
     case "clear-log":     return clearLog(body.name);
     case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);

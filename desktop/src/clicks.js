@@ -15,7 +15,7 @@ function onClick(event) {
         expandable.classList.toggle("open");
         return;
     }
-    const target = event.target.closest("button, input[data-module]");
+    const target = event.target.closest("button, input[data-module], input[data-include]");
     if (!target) {
         return;
     }
@@ -60,6 +60,12 @@ function onClick(event) {
         choosePick(target.dataset.pickKey);
     } else if (target.dataset.insertSetting !== undefined) {
         insertSetting();
+    } else if (target.dataset.editApache) {
+        openEditor(target.dataset.editApache);
+    } else if (target.dataset.editInclude) {
+        openApacheConfig(target.dataset.editInclude);
+    } else if (target.dataset.apacheTab) {
+        navigate(target.dataset.apacheTab === "configs" ? "/apache/configs" : "/apache");
     } else if (target.dataset.editPhp !== undefined) {
         openEditor("php");
     } else if (target.dataset.unset !== undefined) {
@@ -115,13 +121,15 @@ function onClick(event) {
     } else if (target.dataset.saveEditor !== undefined) {
         saveEditor();
     } else if (target.dataset.openFile) {
-        act({ action : "open-file", file : target.dataset.openFile }, target);
+        act({ action : "open-file", file : target.dataset.openFile, path : target.dataset.openPath }, target);
     } else if (target.dataset.phpSave !== undefined) {
         saveSettings();
     } else if (target.dataset.phpDiscard !== undefined) {
         discardSettings();
     } else if (target.dataset.module) {
         toggleModule(event, target);
+    } else if (target.dataset.include) {
+        toggleInclude(event, target);
     } else if (target.dataset.filter) {
         moduleFilter = target.dataset.filter;
         setActive(target);

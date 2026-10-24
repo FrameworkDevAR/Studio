@@ -173,7 +173,7 @@ function packageRow({ name, url = "", tag = "", size = null, version = "", lates
  * sits, again whenever the box changes size.
  */
 function markColumnEnds(box) {
-    for (const list of box.querySelectorAll(".pkg-list")) {
+    for (const list of box.querySelectorAll(".pkg-list, .configs")) {
         const rows = /** @type {HTMLElement[]} */ ([ ...list.children ]);
         rows.forEach((row, index) => {
             row.classList.toggle("end", index === rows.length - 1 || rows[index + 1].offsetLeft !== row.offsetLeft);
