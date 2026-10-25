@@ -56,9 +56,12 @@ async function readRows({
     });
 
     const where = whereOf(columns, filters, match);
-    const order = columns.some((column) => column.name === sort)
-        ? `ORDER BY ${ident(sort)} ${dir === "desc" ? "DESC" : "ASC"}`
-        : structure.primary.length ? `ORDER BY ${structure.primary.map(ident).join(", ")}` : "";
+    let order   = "";
+    if (columns.some((column) => column.name === sort)) {
+        order = `ORDER BY ${ident(sort)} ${dir === "desc" ? "DESC" : "ASC"}`;
+    } else if (structure.primary.length) {
+        order = `ORDER BY ${structure.primary.map(ident).join(", ")}`;
+    }
 
     const at      = Math.max(0, (Math.floor(Number(page)) || 1) - 1) * PAGE;
     // A filter reads every row, which takes a while in a table of millions.
@@ -196,7 +199,11 @@ function whereOf(columns, filters, match) {
             return `${NEGATIVE[rule.op] ? "NOT " : ""}(${each.join(" OR ")})`;
         });
 
-    return conditions.length ? `WHERE ${conditions.join(match === "any" ? " OR " : " AND ")}` : "";
+    if (!conditions.length) {
+        return "";
+    }
+
+    return `WHERE ${conditions.join(match === "any" ? " OR " : " AND ")}`;
 }
 
 /**
@@ -231,11 +238,18 @@ function listOf(value) {
  */
 async function readRow({ db, table, key, keys = null, hex = false }) {
     const structure = await readStructure(db, table);
-    const select    = structure.columns.map((column) => (!column.binary ? ident(column.name)
-        : hex ? `HEX(${ident(column.name)}) AS ${ident(column.name)}`
-            : `IF(${ident(column.name)} IS NULL, NULL,
-                CONCAT(LENGTH(${ident(column.name)}), ' bytes')) AS ${ident(column.name)}`));
-    const from      = `SELECT ${select.join(", ")}
+    const select    = structure.columns.map((column) => {
+        if (!column.binary) {
+            return ident(column.name);
+        }
+        if (hex) {
+            return `HEX(${ident(column.name)}) AS ${ident(column.name)}`;
+        }
+        return `IF(${ident(column.name)} IS NULL, NULL,
+            CONCAT(LENGTH(${ident(column.name)}), ' bytes')) AS ${ident(column.name)}`;
+    });
+
+    const from = `SELECT ${select.join(", ")}
         FROM ${ident(structure.db)}.${ident(structure.table)}`;
 
     if (keys) {
@@ -353,10 +367,14 @@ async function deleteRow({ db, table, key, keys = null }) {
             false,
         );
         const gone      = keys.length - count;
+        const rows      = count === 1 ? "1 row" : `${count} rows`;
 
-        return { message : `Deleted ${count === 1
-            ? "1 row" : `${count} rows`} of ${structure.table}${gone
-            ? `; ${gone} ${gone === 1 ? "was" : "were"} gone already` : ""}`, count };
+        let already = "";
+        if (gone) {
+            already = `; ${gone} ${gone === 1 ? "was" : "were"} gone already`;
+        }
+
+        return { message : `Deleted ${rows} of ${structure.table}${already}`, count };
     }
 
     await change(`DELETE FROM ${target} WHERE ${keyWhere(structure, key)} LIMIT 1`);

@@ -180,9 +180,15 @@ function toHsl(red, green, blue) {
 
     const delta = max - min;
     const sat   = light > .5 ? delta / (2 - max - min) : delta / (max + min);
-    const hue   = max === r ? (g - b) / delta + (g < b ? 6 : 0)
-        : max === g ? (b - r) / delta + 2
-            : (r - g) / delta + 4;
+
+    let hue;
+    if (max === r) {
+        hue = (g - b) / delta + (g < b ? 6 : 0);
+    } else if (max === g) {
+        hue = (b - r) / delta + 2;
+    } else {
+        hue = (r - g) / delta + 4;
+    }
 
     return { hue : hue * 60, saturation : sat * 100, lightness : light * 100 };
 }
@@ -285,9 +291,28 @@ function renderSites() {
         const noun   = group.kind === "servers" ? "server" : "app";
         const count  = `${group.cards.length} ${noun}${group.cards.length === 1 ? "" : "s"}`;
         const dots   = group.cards
-            .map((card) => `<i class="${card.running ? "on"
-                : card.starting || card.stopping ? "mid" : ""}" title="${esc(card.label)}"></i>`)
+            .map((card) => {
+                let dot = "";
+                if (card.running) {
+                    dot = "on";
+                } else if (card.starting || card.stopping) {
+                    dot = "mid";
+                }
+
+                return `<i class="${dot}" title="${esc(card.label)}"></i>`;
+            })
             .join("");
+
+        let hostLink = "";
+        if (host && target) {
+            hostLink = `<a class="host" href="${esc(target)}" target="_blank"
+                rel="noopener" title="Open ${esc(first
+                    ? `${first.label} at ${target}`
+                    : target)}">${GLOBE_ICON}${esc(host)}</a>`;
+        } else if (host) {
+            hostLink = `<span class="host"
+                title="Where its apps answer">${GLOBE_ICON}${esc(host)}</span>`;
+        }
 
         return `
             <div class="panel app-block tone-${BLOCK_TONES[index % BLOCK_TONES.length]}"
@@ -303,14 +328,7 @@ function renderSites() {
                         <div class="block-meta">
                             ${branch ? `<span class="branch"
                                 title="Git branch">${BRANCH_ICON}${esc(branch)}</span>` : ""}
-                            ${host ? (target
-                                ? `<a class="host" href="${esc(target)}" target="_blank"
-                                    rel="noopener" title="Open ${esc(first
-                                        ? `${first.label} at ${target}`
-                                        : target)}">${GLOBE_ICON}${esc(host)}</a>`
-                                : `<span class="host"
-                                    title="Where its apps answer">${GLOBE_ICON}${esc(host)}</span>`)
-                                : ""}
+                            ${hostLink}
                             ${host ? `<span class="sep" aria-hidden="true">·</span>` : ""}
                             <span>${count}</span>
                         </div>
@@ -399,9 +417,13 @@ function appCard(card) {
         ? `<svg class="lock" viewBox="0 0 24 24" aria-label="HTTPS"><rect x="4" y="11" width="16"
             height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`
         : "";
-    let status  = card.running && card.port ? `Port ${card.port}${lock}`
-        : card.running ? "Running"
-            : "Stopped";
+    let status  = "Stopped";
+    if (card.running && card.port) {
+        status = `Port ${card.port}${lock}`;
+    } else if (card.running) {
+        status = "Running";
+    }
+
     let actions = iconButton("start", `Start ${card.label}`, `data-app-start ${card.target}`);
 
     if (card.stopping || (card.starting && !card.running)) {

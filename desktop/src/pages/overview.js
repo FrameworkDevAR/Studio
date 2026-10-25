@@ -73,8 +73,14 @@ function setBadge(view, text, kind = "") {
  */
 function stackHealth() {
     const { httpd, mariadb } = state.services;
-    return httpd.running && mariadb.running ? "on"
-        : httpd.running || mariadb.running ? "mid" : "off";
+
+    if (httpd.running && mariadb.running) {
+        return "on";
+    }
+    if (httpd.running || mariadb.running) {
+        return "mid";
+    }
+    return "off";
 }
 
 /**

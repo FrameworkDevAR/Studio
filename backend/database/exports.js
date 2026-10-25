@@ -104,10 +104,18 @@ async function prepareExport(spec) {
         job.table = structure.table;
         job.where = spec.keys ? `WHERE ${keysWhere(structure, spec.keys)}`
             : whereOf(structure.columns, spec.filters || "[]", spec.match);
-        job.sort  = structure.columns.some((column) => column.name === spec.sort)
-            ? { name : spec.sort, dir : spec.dir === "desc" ? "DESC" : "ASC" }
-            : null;
-        job.part  = spec.keys ? "rows" : job.where ? "filtered" : "";
+        job.sort  = null;
+        if (structure.columns.some((column) => column.name === spec.sort)) {
+            job.sort = { name : spec.sort, dir : spec.dir === "desc" ? "DESC" : "ASC" };
+        }
+
+        if (spec.keys) {
+            job.part = "rows";
+        } else if (job.where) {
+            job.part = "filtered";
+        } else {
+            job.part = "";
+        }
     } else {
         const all  = await readTables(db);
         const list = [].concat(spec.tables || []).map(String);
@@ -267,7 +275,15 @@ function dumpSql(job, out, closed) {
 
     // Every table of the database is the database itself, which keeps the views in order after the
     // tables.
-    args.push(job.db, ...(job.table ? [ job.table ] : job.whole ? [] : job.tables));
+    let names;
+    if (job.table) {
+        names = [ job.table ];
+    } else if (job.whole) {
+        names = [];
+    } else {
+        names = job.tables;
+    }
+    args.push(job.db, ...names);
 
     return new Promise((resolve, reject) => {
         const dump = spawn("mariadb-dump", args, { env : runEnv() });
@@ -310,8 +326,13 @@ async function eachRow(job, table, onColumns, onRow, closed) {
         const select    = structure.columns.map((column) => (column.binary
             ? `HEX(${ident(column.name)}) AS ${ident(column.name)}`
             : ident(column.name)));
-        const order     = job.table && job.sort ? `ORDER BY ${ident(job.sort.name)} ${job.sort.dir}`
-            : structure.primary.length ? `ORDER BY ${structure.primary.map(ident).join(", ")}` : "";
+
+        let order = "";
+        if (job.table && job.sort) {
+            order = `ORDER BY ${ident(job.sort.name)} ${job.sort.dir}`;
+        } else if (structure.primary.length) {
+            order = `ORDER BY ${structure.primary.map(ident).join(", ")}`;
+        }
 
         columns = structure.columns;
         sql     = `SELECT ${select.join(", ")} FROM ${ident(structure.table)} ${
@@ -443,13 +464,25 @@ function jsonValue(value, column) {
  * @returns {Promise<void>}
  */
 async function writeJson(job, out, closed) {
-    const list = job.sql ? [ null ] : job.table ? [ job.table ] : job.tables;
+    let list;
+    if (job.sql) {
+        list = [ null ];
+    } else if (job.table) {
+        list = [ job.table ];
+    } else {
+        list = job.tables;
+    }
+
     const many = list.length > 1;
     await put(out, many ? "{" : "");
 
     for (const [ at, table ] of list.entries()) {
         let first = true;
-        await put(out, `${many ? `${at ? "," : ""}\n  ${JSON.stringify(table)}: ` : ""}[`);
+        let key   = "";
+        if (many) {
+            key = `${at ? "," : ""}\n  ${JSON.stringify(table)}: `;
+        }
+        await put(out, `${key}[`);
 
         await eachRow(job, table, () => null, (values, columns) => {
             const text = JSON.stringify(Object.fromEntries(columns.map((column, place) => [
@@ -462,7 +495,11 @@ async function writeJson(job, out, closed) {
             return put(out, `${lead}${many ? "    " : "  "}${text}`);
         }, closed);
 
-        await put(out, `${first ? "" : `\n${many ? "  " : ""}`}]`);
+        let end = "";
+        if (!first) {
+            end = `\n${many ? "  " : ""}`;
+        }
+        await put(out, `${end}]`);
     }
 
     await put(out, many ? "\n}\n" : "\n");

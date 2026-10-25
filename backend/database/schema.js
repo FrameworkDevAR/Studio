@@ -105,7 +105,8 @@ async function readTables(db) {
  * @returns {Promise<TableStructure>}
  */
 async function readStructure(db, table) {
-    ({ db, table } = await existingTable(db, table));
+    const existing = await existingTable(db, table);
+    ({ db, table } = existing);
     const where = `TABLE_SCHEMA = ${quote(db)} AND TABLE_NAME = ${quote(table)}`;
     const [ columns, indexes, foreign, create ] = await query(`
         SELECT COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY, EXTRA,

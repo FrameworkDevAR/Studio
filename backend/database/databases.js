@@ -306,8 +306,9 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
     if (charset) {
         steps.push(`ALTER DATABASE ${ident(name)}${encoding(charset, collation)};`);
         if (convert) {
-            tables = await rows(`SELECT table_name FROM information_schema.tables
-                WHERE table_schema = ${quote(name)} AND table_type = 'BASE TABLE'`) || [];
+            const found = await rows(`SELECT table_name FROM information_schema.tables
+                WHERE table_schema = ${quote(name)} AND table_type = 'BASE TABLE'`);
+            tables = found || [];
             steps.push(...tables.map(([ table ]) => `ALTER TABLE ${ident(name)}.${ident(table)}
                 CONVERT TO${encoding(charset, collation)};`));
         }
@@ -332,7 +333,8 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
             }
 
             if (!now && has) {
-                steps.push(...await revokeSteps(account, name));
+                const revoke = await revokeSteps(account, name);
+                steps.push(...revoke);
             }
         }
     }
@@ -342,9 +344,13 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
     }
 
     await execute(steps, 10 * 60_000);
-    return { message : `Saved ${name}${tables.length
-        ? `, and converted its ${tables.length === 1 ? "table" : `${tables.length} tables`}`
-        : ""}` };
+
+    let converted = "";
+    if (tables.length) {
+        const what = tables.length === 1 ? "table" : `${tables.length} tables`;
+        converted  = `, and converted its ${what}`;
+    }
+    return { message : `Saved ${name}${converted}` };
 }
 
 /**
@@ -359,7 +365,8 @@ async function dropDatabase({ name, users }) {
     const steps = [ `DROP DATABASE ${ident(name)};` ];
 
     for (const account of accounts.filter((one) => one.databases.includes(name))) {
-        steps.push(...await revokeSteps(account, name));
+        const revoke = await revokeSteps(account, name);
+        steps.push(...revoke);
     }
 
     const going = await Promise.all((Array.isArray(users) ? users : []).map(existingAccount));
@@ -383,8 +390,9 @@ async function dropDatabase({ name, users }) {
  * @returns {Promise<string[]>}
  */
 async function revokeSteps(account, name) {
-    const found = await rows(`SELECT Db FROM mysql.db
-        WHERE User = ${quote(account.name)} AND Host = ${quote(account.host)}`) || [];
+    const grants = await rows(`SELECT Db FROM mysql.db
+        WHERE User = ${quote(account.name)} AND Host = ${quote(account.host)}`);
+    const found  = grants || [];
 
     return found
         .map(([ pattern ]) => pattern)
@@ -405,10 +413,9 @@ async function revokeSteps(account, name) {
  */
 async function createUser({ name, host, password : secret, all, databases, privileges }) {
     const account = accountOf(name, host);
-    const steps   = [
-        `CREATE USER ${account.sql} IDENTIFIED BY ${quote(password(secret))};`,
-        ...await accessSteps(account, all, databases, privileges),
-    ];
+    const create  = `CREATE USER ${account.sql} IDENTIFIED BY ${quote(password(secret))};`;
+    const access  = await accessSteps(account, all, databases, privileges);
+    const steps   = [ create, ...access ];
 
     await execute(steps);
     return { message : `Created ${account.name}` };
@@ -447,9 +454,10 @@ async function changeUser({
         || privilegesFor(Boolean(all)))}`;
 
     if (before !== after) {
+        const access = await accessSteps(account, all, databases, privileges);
         steps.push(
             `REVOKE ALL PRIVILEGES, GRANT OPTION FROM ${account.sql};`,
-            ...await accessSteps(account, all, databases, privileges),
+            ...access,
         );
     }
 
@@ -687,8 +695,12 @@ function likeRegex(pattern) {
         const char = pattern[i];
         if (char === "\\" && i + 1 < pattern.length) {
             source += escapeRegex(pattern[++i]);
+        } else if (char === "%") {
+            source += ".*";
+        } else if (char === "_") {
+            source += ".";
         } else {
-            source += char === "%" ? ".*" : char === "_" ? "." : escapeRegex(char);
+            source += escapeRegex(char);
         }
     }
 

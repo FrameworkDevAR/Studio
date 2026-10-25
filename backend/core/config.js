@@ -77,7 +77,8 @@ function configProblem(config) {
         return "it must be an object, between { and }";
     }
     if (config.paths !== undefined && (!isObject(config.paths)
-        || Object.values(config.paths).some((value) => typeof value !== "string"))) {
+        || Object.values(config.paths).some((value) => typeof value !== "string"))
+    ) {
         return "paths must be an object of folders and files, by name";
     }
 
@@ -106,9 +107,11 @@ function configProblem(config) {
         if (!isObject(project)) {
             return `${name} must be an object, between { and }`;
         }
+
         if (!project.dir && !project.servers) {
             return `${name} needs a dir, or servers`;
         }
+
         if (project.dir !== undefined && typeof project.dir !== "string") {
             return `the dir of ${name} must be a folder`;
         }
@@ -129,6 +132,7 @@ function configProblem(config) {
         for (const [ at, server ] of project.servers.entries()) {
             const which = isObject(server) && server.id ? `the server "${server.id}"`
                 : `server ${at + 1} of ${name}`;
+
             if (!isObject(server) || typeof server.id !== "string" || !server.id) {
                 return `${which} needs an id`;
             }
@@ -175,8 +179,12 @@ async function openFile(which, included = "") {
 
     // The editor of the config, when it names one and it opens; the Mac's
     // default text editor otherwise.
-    const opened = TOOLS.editor
-        && (await run("/usr/bin/open", [ "-a", TOOLS.editor, files[which] ])).ok;
+    let opened = false;
+    if (TOOLS.editor) {
+        const result = await run("/usr/bin/open", [ "-a", TOOLS.editor, files[which] ]);
+        opened       = result.ok;
+    }
+
     if (!opened) {
         await run("/usr/bin/open", [ "-t", files[which] ]);
     }

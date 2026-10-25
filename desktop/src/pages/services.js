@@ -47,12 +47,20 @@ function renderServices() {
     }));
 
     // Node.js is not a service either: nothing runs until an app starts it.
+    let nodeStatus;
+    if (node.broken) {
+        nodeStatus = "Does not start";
+    } else if (node.version) {
+        nodeStatus = "Installed";
+    } else {
+        nodeStatus = "Not installed";
+    }
     cards.push(serviceCard({
         logo    : "node",
         name    : "Node.js",
         version : node.version,
         running : Boolean(node.version) && !node.broken,
-        status  : node.broken ? "Does not start" : node.version ? "Installed" : "Not installed",
+        status  : nodeStatus,
         text    :
             "Runs the apps' servers and npm. It is not a service, so there is nothing to start.",
         actions : `<a class="button ghost small" href="/node">Packages</a>`,

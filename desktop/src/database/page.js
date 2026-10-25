@@ -292,11 +292,16 @@ function renderTableInfo(name) {
 
     // The same lines for every table, empty ones as a dash, so the panel never changes height.
     const charset = table.collation.split("_")[0];
-    const lines   = [
-        [
-            "Type",
-            table.view ? "View" : table.engine + (table.format ? ` · ${table.format}` : ""),
-        ],
+
+    let type;
+    if (table.view) {
+        type = "View";
+    } else {
+        type = table.engine + (table.format ? ` · ${table.format}` : "");
+    }
+
+    const lines = [
+        [ "Type", type ],
         [
             "Encoding",
             table.collation ? `${charset} · ${table.collation.slice(charset.length + 1)}` : "",
@@ -309,11 +314,27 @@ function renderTableInfo(name) {
     ];
 
     box.innerHTML = `
-        <dl>${lines.map(([ label, value ]) => `<div><dt>${label}</dt>${!value
-            ? `<dd class="none">—</dd>`
-            : value.startsWith("<") ? `<dd>${value}</dd>`
-                : `<dd title="${esc(value)}">${esc(value)}</dd>`}</div>`).join("")}</dl>
+        <dl>${lines.map(([ label, value ]) => `<div><dt>${label}</dt>${
+            tableInfoValue(value)}</div>`).join("")}</dl>
     `;
+}
+
+/**
+ * A line's value in the table's information: a dash when it is empty, markup as it is, and
+ * text escaped, whole on hover.
+ * @param {string} value
+ * @returns {string}
+ */
+function tableInfoValue(value) {
+    if (!value) {
+        return `<dd class="none">—</dd>`;
+    }
+
+    if (value.startsWith("<")) {
+        return `<dd>${value}</dd>`;
+    }
+
+    return `<dd title="${esc(value)}">${esc(value)}</dd>`;
 }
 
 /**
@@ -395,8 +416,7 @@ function stepTable(by) {
     }
 
     const at   = links.findIndex((one) => one.classList.contains("active"));
-    const next = links[at < 0 ? (by > 0 ? 0 : links.length - 1)
-        : Math.min(links.length - 1, Math.max(0, at + by))];
+    const next = links[steppedIndex(at, by, links.length)];
 
     for (const link of links) {
         link.classList.toggle("active", link === next);
@@ -407,6 +427,22 @@ function stepTable(by) {
 
     clearTimeout(tableStep);
     tableStep = setTimeout(() => navigate(new URL(next.href).pathname), 180);
+}
+
+/**
+ * Where a step of the keys lands in a list: from none marked, the first going down or the last
+ * going up; else the one that far from the mark, held to the list's ends.
+ * @param {number} at
+ * @param {number} by
+ * @param {number} count
+ * @returns {number}
+ */
+function steppedIndex(at, by, count) {
+    if (at < 0) {
+        return by > 0 ? 0 : count - 1;
+    }
+
+    return Math.min(count - 1, Math.max(0, at + by));
 }
 
 /**
@@ -444,9 +480,15 @@ const marked = {};
  * @returns {string}
  */
 function gridContext(id) {
-    return id === "rows-grid" ? JSON.stringify(rowsQuestion())
-        : id === "structure-grid" ? tableKey()
-            : browse.db;
+    if (id === "rows-grid") {
+        return JSON.stringify(rowsQuestion());
+    }
+
+    if (id === "structure-grid") {
+        return tableKey();
+    }
+
+    return browse.db;
 }
 
 /**
@@ -575,8 +617,7 @@ function stepRow(grid, by, extend = false) {
         && one.dataset.key === lead) >= 0
         ? rows.findIndex((one) => one.dataset.key === lead)
         : rows.findIndex((one) => one.classList.contains("selected"));
-    const next = rows[at < 0 ? (by > 0 ? 0 : rows.length - 1)
-        : Math.min(rows.length - 1, Math.max(0, at + by))];
+    const next = rows[steppedIndex(at, by, rows.length)];
 
     pickRow(next, extend ? "range" : "");
     revealRow(grid, next);
@@ -710,14 +751,27 @@ function renderOverview() {
         ? String(browse.tables.length)
         : "";
 
+    let foot = "";
+    if (shown.length > 1) {
+        foot = `<tfoot><tr>
+            <td>${countOf(shown.length, "table")}</td>
+            <td class="num">${shown.every((one) => one.view || one.exact)
+                ? ""
+                : "~"}${sum("rows").toLocaleString()}</td>
+            <td class="num">${bytes(sum("data"))}</td>
+            <td class="num">${bytes(sum("index"))}</td>
+            <td class="num">${bytes(sum("size"))}</td>
+            <td class="num">${sum("free") ? bytes(sum("free")) : ""}</td>
+            <td></td><td></td><td></td>
+        </tr></tfoot>`;
+    }
+
     document.getElementById("overview-grid").innerHTML = `
         <thead><tr>${head.map(([ key, label ]) => `
             <th><button class="sort ${right.includes(key) ? "right" : ""} ${overviewSort.key === key
                 ? "active"
                 : ""}"
-                data-overview-sort="${key}">${label}${overviewSort.key === key
-                ? `<span class="sort-dir">${overviewSort.dir > 0 ? "↑" : "↓"}</span>`
-                : ""}</button></th>
+                data-overview-sort="${key}">${label}${overviewArrow(key)}</button></th>
         `).join("")}</tr></thead>
         <tbody>
             ${shown.map((one) => `
@@ -739,21 +793,24 @@ function renderOverview() {
                 ? "No table matches."
                 : "No tables yet. Make one with SQL, or import a dump."}</td></tr>`}
         </tbody>
-        ${shown.length > 1 ? `<tfoot><tr>
-            <td>${countOf(shown.length, "table")}</td>
-            <td class="num">${shown.every((one) => one.view || one.exact)
-                ? ""
-                : "~"}${sum("rows").toLocaleString()}</td>
-            <td class="num">${bytes(sum("data"))}</td>
-            <td class="num">${bytes(sum("index"))}</td>
-            <td class="num">${bytes(sum("size"))}</td>
-            <td class="num">${sum("free") ? bytes(sum("free")) : ""}</td>
-            <td></td><td></td><td></td>
-        </tr></tfoot>` : ""}
+        ${foot}
     `;
 
     markRow(document.getElementById("overview-grid"));
     watchFades(/** @type {HTMLElement} */ (document.getElementById("overview-grid").parentElement));
+}
+
+/**
+ * The arrow of the column the tables are sorted by, the way they go; none on the others.
+ * @param {string} key
+ * @returns {string}
+ */
+function overviewArrow(key) {
+    if (overviewSort.key === key) {
+        return `<span class="sort-dir">${overviewSort.dir > 0 ? "↑" : "↓"}</span>`;
+    }
+
+    return "";
 }
 
 /**
@@ -763,8 +820,13 @@ function renderOverview() {
  */
 function sortOverview(key) {
 
-    overviewSort = overviewSort.key === key
-        ? { key, dir : -overviewSort.dir }
-        : { key, dir : [ "name", "engine", "collation", "comment" ].includes(key) ? 1 : -1 };
+    if (overviewSort.key === key) {
+        overviewSort = { key, dir : -overviewSort.dir };
+    } else {
+        overviewSort = {
+            key,
+            dir : [ "name", "engine", "collation", "comment" ].includes(key) ? 1 : -1,
+        };
+    }
     renderOverview();
 }

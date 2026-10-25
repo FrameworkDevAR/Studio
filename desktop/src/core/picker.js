@@ -209,9 +209,12 @@ function renderPicker(first = false) {
         for (const option of shown) {
             if (option.disabled) {
                 // A divider, as some lists have, or an option that can't be picked.
-                html += /^[─-]+$/.test(option.text.trim()) ? (search ? "" : `<hr>`)
-                    : `<div class="picker-option off ${group ? "in-group"
+                if (/^[─-]+$/.test(option.text.trim())) {
+                    html += search ? "" : `<hr>`;
+                } else {
+                    html += `<div class="picker-option off ${group ? "in-group"
                         : ""}">${esc(option.text)}</div>`;
+                }
                 continue;
             }
 

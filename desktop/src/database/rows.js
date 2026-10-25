@@ -100,9 +100,13 @@ function renderRows() {
     const keyed  = structure.primary.length > 0 && !table?.view;
     const clock  = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path
         d="M12 7.5V12l3 2"/></svg>`;
-    const arrow  = (name) => (browse.sort === name
-        ? `<span class="sort-dir">${browse.dir === "desc" ? "↓" : "↑"}</span>`
-        : "");
+    const arrow  = (name) => {
+        if (browse.sort === name) {
+            return `<span class="sort-dir">${browse.dir === "desc" ? "↓" : "↑"}</span>`;
+        }
+
+        return "";
+    };
     const dates  = browse.dates[tableKey()] || [];
     // The columns the filter at the bottom leaves, by their place in the row.
     const search = /** @type {HTMLInputElement} */ (document.getElementById("column-filter"))
@@ -139,12 +143,7 @@ function renderRows() {
                                 r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></span>`
                             : ""}${esc(column.name)}${arrow(column.name)}
                     </button>
-                    ${isTimestamps(rows, at) ? `<button
-                        class="icon-btn as-date ${dates.includes(column.name) ? "on" : ""}"
-                        data-as-date="${esc(column.name)}"
-                        title="${dates.includes(column.name) ? "Show the numbers"
-                            : "Show these timestamps as dates"}"
-                        aria-label="Show as dates">${clock}</button>` : ""}
+                    ${isTimestamps(rows, at) ? rowsDateButton(column.name, dates, clock) : ""}
                     <span class="col-resize" data-resize
                         title="Drag to resize, double-click to fit"></span>
                 </th>
@@ -174,6 +173,22 @@ function renderRows() {
 }
 
 /**
+ * The button that shows a timestamp column as dates, on when it does.
+ * @param {string} name
+ * @param {string[]} dates
+ * @param {string} clock
+ * @returns {string}
+ */
+function rowsDateButton(name, dates, clock) {
+    return `<button
+                        class="icon-btn as-date ${dates.includes(name) ? "on" : ""}"
+                        data-as-date="${esc(name)}"
+                        title="${dates.includes(name) ? "Show the numbers"
+                            : "Show these timestamps as dates"}"
+                        aria-label="Show as dates">${clock}</button>`;
+}
+
+/**
  * The table open, with its database, as the key of what is kept for it.
  * @returns {string}
  */
@@ -188,9 +203,14 @@ function tableKey() {
 function renderRowsTitle() {
     const name  = browse.rows.structure.table;
     const table = browse.tables.find((one) => one.name === name);
+
+    let count = "";
+    if (table && !table.view) {
+        count = `· ${table.exact ? "" : "~"}${countOf(table.rows, "row")}`;
+    }
+
     document.getElementById("rows-title").innerHTML = `${esc(name)} <span
-        class="muted">${table && !table.view
-            ? `· ${table.exact ? "" : "~"}${countOf(table.rows, "row")}` : ""}</span>`;
+        class="muted">${count}</span>`;
 }
 
 /**
@@ -201,17 +221,32 @@ function renderPager() {
     const { rows, page, size, more } = browse.rows;
     const table = browse.tables.find((one) => one.name === browse.table);
     const first = (page - 1) * size;
-    const total = browse.total === undefined
-        ? (table && !table.view ? `${table.exact ? "" : "~"}${table.rows.toLocaleString()}` : "")
-        : browse.total === null ? "…" : browse.total.toLocaleString();
+    const pager = document.getElementById("rows-pager");
 
-    document.getElementById("rows-pager").innerHTML = rows.length || page > 1 ? `
-        <span class="muted">Rows ${(first + (rows.length ? 1 : 0)).toLocaleString()}–${
-            (first + rows.length).toLocaleString()}${total ? ` of ${total}` : ""}</span>
-        <button class="ghost small" data-page="-1" ${page > 1 ? "" : "disabled"}>Previous</button>
-        <button class="ghost small" data-page="1" ${more ? "" : "disabled"}>Next</button>
-    ` : browse.filters.length
-        ? `<span class="muted">No rows of ${total || "the table"} match</span>` : "";
+    let total = "";
+    if (browse.total === undefined) {
+        if (table && !table.view) {
+            total = `${table.exact ? "" : "~"}${table.rows.toLocaleString()}`;
+        }
+    } else if (browse.total === null) {
+        total = "…";
+    } else {
+        total = browse.total.toLocaleString();
+    }
+
+    if (rows.length || page > 1) {
+        pager.innerHTML = `
+            <span class="muted">Rows ${(first + (rows.length ? 1 : 0)).toLocaleString()}–${
+                (first + rows.length).toLocaleString()}${total ? ` of ${total}` : ""}</span>
+            <button class="ghost small" data-page="-1"
+                ${page > 1 ? "" : "disabled"}>Previous</button>
+            <button class="ghost small" data-page="1" ${more ? "" : "disabled"}>Next</button>
+        `;
+    } else if (browse.filters.length) {
+        pager.innerHTML = `<span class="muted">No rows of ${total || "the table"} match</span>`;
+    } else {
+        pager.innerHTML = "";
+    }
 }
 
 /**
@@ -380,6 +415,14 @@ function renderFilterBar(force = false) {
     const rules   = browse.draft.length ? browse.draft : [ blankRule() ];
 
     bar.classList.toggle("applied", browse.filters.length > 0);
+
+    let match = "";
+    if (rules.length > 1) {
+        match = `<span class="field select"><select data-f="match"
+            aria-label="Match"><option value="all">All rules</option><option value="any"
+            ${browse.match === "any" ? "selected" : ""}>Any rule</option></select></span>`;
+    }
+
     bar.innerHTML = `
         <div class="filter-rules">
             ${rules.map((rule, index) => `
@@ -415,10 +458,7 @@ function renderFilterBar(force = false) {
         </div>
         <div class="filter-foot">
             <div class="filter-query"><code id="filter-sql" class="filter-sql"></code></div>
-            ${rules.length > 1 ? `<span class="field select"><select data-f="match"
-                aria-label="Match"><option value="all">All rules</option><option value="any"
-                ${browse.match === "any" ? "selected" : ""}>Any rule</option></select></span>`
-                : ""}
+            ${match}
             <button class="small">Filter</button>
             <button type="button" class="ghost small" data-filter-clear ${browse.filters.length
                 || rules.some((rule) => rule.value) ? "" : "disabled"}>Clear</button>
@@ -521,8 +561,14 @@ function showFilterSql() {
         "null"         : (name) => `${name} IS NULL`,
         "not null"     : (name) => `${name} IS NOT NULL`,
     };
-    const one = (op, name, value, second) => (ops[op] ? ops[op](name, value, second)
-        : `${name} ${op === "!=" ? "<>" : op} ${quote(value)}`);
+    const one = (op, name, value, second) => {
+        if (ops[op]) {
+            return ops[op](name, value, second);
+        }
+
+        const sign = op === "!=" ? "<>" : op;
+        return `${name} ${sign} ${quote(value)}`;
+    };
 
     const columns = browse.rows.structure.columns.filter((column) => !column.binary)
         .map((column) => `\`${column.name}\``);
@@ -726,12 +772,13 @@ async function openCell(button) {
 
         if (value.length > cut && structure.primary.length) {
             try {
-                value = (await api("/api/action", {
+                const { row } = await api("/api/action", {
                     action : "db-row",
                     db     : browse.db,
                     table  : browse.table,
                     key    : rowKey(Number(tr.dataset.row)),
-                })).row[at];
+                });
+                value = row[at];
             } catch (error) {
                 toast(error.message, true);
                 return;

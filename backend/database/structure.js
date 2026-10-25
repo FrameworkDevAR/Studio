@@ -285,7 +285,8 @@ async function columnSql({
         if (!TEXT_TYPE.test(type)) {
             throw new Error("Only a column of text has a collation");
         }
-        if (!(await readCharsets()).some((set) => set.collations.includes(collation))) {
+        const charsets = await readCharsets();
+        if (!charsets.some((set) => set.collations.includes(collation))) {
             throw new Error(`MariaDB has no collation ${collation}`);
         }
 

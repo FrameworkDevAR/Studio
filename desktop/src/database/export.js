@@ -26,6 +26,18 @@ function openExportDialog({ tables = null, rows = null } = {}) {
         [ "json", "JSON" ],
     ];
 
+    // Offered only from the rows: from the database nothing is filtered, and nothing picked.
+    const filteredChoice = filtered ? choice(
+        "filtered",
+        "The rows the filters show, in their order",
+        rows === "filtered",
+    ) : "";
+    const pickedChoice   = picked.length && rowsKeyed() ? choice(
+        "picked",
+        `The ${countOf(picked.length, "row")} picked`,
+        rows === "picked",
+    ) : "";
+
     formDialog({
         title  : fromRows ? `Export rows of ${browse.table}` : `Export ${browse.db}`,
         body   : `
@@ -35,16 +47,8 @@ function openExportDialog({ tables = null, rows = null } = {}) {
                         ${choice("all", `All the table's rows`, rows === "all"
                             || rows === "filtered" && !filtered
                             || rows === "picked" && !picked.length)}
-                        ${filtered ? choice(
-                            "filtered",
-                            "The rows the filters show, in their order",
-                            rows === "filtered",
-                        ) : ""}
-                        ${picked.length && rowsKeyed() ? choice(
-                            "picked",
-                            `The ${countOf(picked.length, "row")} picked`,
-                            rows === "picked",
-                        ) : ""}
+                        ${filteredChoice}
+                        ${pickedChoice}
                     </div></div>
                 ` : `
                     <div class="form-row">
@@ -203,10 +207,18 @@ function openExportDialog({ tables = null, rows = null } = {}) {
 
             if (fromRows) {
                 const part = String(data.get("rows"));
+
+                let rule;
+                if (part === "filtered") {
+                    rule = { filters : JSON.stringify(browse.filters), match : browse.match };
+                } else if (part === "picked") {
+                    rule = { keys : picked.map(rowKey) };
+                } else {
+                    rule = { filters : "[]" };
+                }
+
                 Object.assign(spec, { table : browse.table, sort : browse.sort, dir : browse.dir },
-                    part === "filtered"
-                        ? { filters : JSON.stringify(browse.filters), match : browse.match }
-                        : part === "picked" ? { keys : picked.map(rowKey) } : { filters : "[]" });
+                    rule);
             } else {
                 spec.tables = data.getAll("tables").map(String);
             }

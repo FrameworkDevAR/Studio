@@ -32,8 +32,11 @@ async function readPecl() {
         return peclCache.packages;
     }
 
-    const result   = fs.existsSync(PECL) ? await run(PECL, [ "list", "-c", "pecl" ], 20_000)
-        : { stdout : "" };
+    let result = { stdout : "" };
+    if (fs.existsSync(PECL)) {
+        result = await run(PECL, [ "list", "-c", "pecl" ], 20_000);
+    }
+
     /** @type {Object<string, string>} */
     const packages = {};
 
@@ -229,7 +232,8 @@ function peclError(lines) {
  * @returns {Promise<void>}
  */
 async function syncExtensionLines() {
-    const { mainIni, extDir = "" } = (await askPhp()).data;
+    const php                      = await askPhp();
+    const { mainIni, extDir = "" } = php.data;
     if (!mainIni || !fs.existsSync(mainIni)) {
         return;
     }
@@ -322,7 +326,12 @@ async function searchExtensions(text) {
         };
     }
 
-    const rank  = (name) => (name === query ? 0 : name.startsWith(query) ? 1 : 2);
+    const rank  = (name) => {
+        if (name === query) {
+            return 0;
+        }
+        return name.startsWith(query) ? 1 : 2;
+    };
     const names = peclNames.list
         .filter((name) => name.toLowerCase().includes(query))
         .sort((a, b) => rank(a.toLowerCase()) - rank(b.toLowerCase()) || a.localeCompare(b))
@@ -352,12 +361,21 @@ async function releaseOf(name) {
         return kept.info;
     }
 
-    const stable  = await peclRest(`r/${id}/stable.txt`).catch(() => "");
-    const version = stable.trim() || (await peclRest(`r/${id}/latest.txt`).catch(() => "")).trim();
-    const xml     = version ? await peclRest(`r/${id}/${version}.xml`).catch(() => "") : "";
-    const tag     = (key) => decodeXml(xml.match(new RegExp(`<${key}>([^<]*)</${key}>`))?.[1] || "")
+    const stable = await peclRest(`r/${id}/stable.txt`).catch(() => "");
+    let version  = stable.trim();
+    if (!version) {
+        const latest = await peclRest(`r/${id}/latest.txt`).catch(() => "");
+        version      = latest.trim();
+    }
+
+    let xml = "";
+    if (version) {
+        xml = await peclRest(`r/${id}/${version}.xml`).catch(() => "");
+    }
+
+    const tag  = (key) => decodeXml(xml.match(new RegExp(`<${key}>([^<]*)</${key}>`))?.[1] || "")
         .trim();
-    const info    = {
+    const info = {
         name,
         version,
         stable  : Boolean(stable.trim()),

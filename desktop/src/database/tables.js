@@ -138,9 +138,11 @@ async function tableAction(act) {
     }
     if (act === "export") {
         // From the rows, their choices; elsewhere, the table among the database's.
-        return name === browse.table && browse.tab === "rows" && names.length === 1
-            ? openExportDialog({ rows : browse.filters.length ? "filtered" : "all" })
-            : openExportDialog({ tables : names });
+        if (name === browse.table && browse.tab === "rows" && names.length === 1) {
+            return openExportDialog({ rows : browse.filters.length ? "filtered" : "all" });
+        }
+
+        return openExportDialog({ tables : names });
     }
     if (act === "drop") {
         return dropTable(name);
@@ -149,9 +151,10 @@ async function tableAction(act) {
     let text = names.join("\n");
     if (act === "create") {
         try {
-            text = (await api(`/api/db-structure?db=${encodeURIComponent(browse.db)}&table=${
+            const table = await api(`/api/db-structure?db=${encodeURIComponent(browse.db)}&table=${
                 encodeURIComponent(name)
-            }`)).create;
+            }`);
+            text = table.create;
         } catch (error) {
             toast(error.message, true);
             return;
@@ -207,9 +210,17 @@ async function maintainTables(op, names) {
 
     const time  = answer.time < 1000 ? `${answer.time} ms`
         : `${(answer.time / 1000).toFixed(1)} s`;
-    const worst = (said) => (said.some((one) => one.type === "error") ? "bad"
-        : said.some((one) => one.type === "warning") ? "warn"
-            : "ok");
+    const worst = (said) => {
+        if (said.some((one) => one.type === "error")) {
+            return "bad";
+        }
+
+        if (said.some((one) => one.type === "warning")) {
+            return "warn";
+        }
+
+        return "ok";
+    };
     const fine  = answer.results.filter((one) => worst(one.said) === "ok").length;
 
     document.getElementById("ask-title").textContent = `${doing.replace(/ing$/, "ed")} ${what}`;
@@ -420,11 +431,12 @@ async function emptyTable(name) {
     }
 
     try {
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-table-empty",
             db     : browse.db,
             table  : name,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return;
@@ -456,11 +468,12 @@ async function dropTable(name) {
     }
 
     try {
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-table-drop",
             db     : browse.db,
             table  : name,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return;

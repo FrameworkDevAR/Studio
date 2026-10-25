@@ -5,6 +5,23 @@ const { spawn } = require("child_process");
 // The long changes the page follows as they go: npm and pecl installs.
 
 
+/**
+ * A job the page follows: its id, each step's state and error, its own state,
+ * and what it says once done.
+ * @typedef {{
+ *     id: string,
+ *     items: { name: string, state: string, error: string }[],
+ *     state: string,
+ *     message: string,
+ * }} StudioJob
+ */
+
+/**
+ * A step of a job: the package it is for, and the arguments of its run.
+ * @typedef {{ name: string, args: string[] }} JobStep
+ */
+
+
 
 /**
  * Runs some steps as a job the page follows: it gets the job's id at once,
@@ -19,20 +36,9 @@ const { spawn } = require("child_process");
 const jobs   = new Map();
 const queues = new Map();
 let jobCount = 0;
-/**
- * A job the page follows: its id, each step's state and error, its own state,
- * and what it says once done.
- * @typedef {{
- *     id: string,
- *     items: { name: string, state: string, error: string }[],
- *     state: string,
- *     message: string,
- * }} StudioJob
- */
-/**
- * A step of a job: the package it is for, and the arguments of its run.
- * @typedef {{ name: string, args: string[] }} JobStep
- */
+
+
+
 /**
  * Queues the steps as a new job, and gives its id at once.
  * @param {string} queue
@@ -74,19 +80,23 @@ function runJob(queue, steps, { runStep, after = async () => {}, done }) {
         let   note   = "";
 
         try {
-            note = (await after(worked)) || "";
+            const said = await after(worked);
+            note = said || "";
         } catch (error) {
             note = error.message;
         }
 
-        job.state   = failed.length ? "failed" : "done";
-        job.message = [
-            worked.length ? done(worked) : "",
-            failed.length === 1 ? `${failed[0].name} failed: ${failed[0].error}`
-                : failed.length ? `${failed.length} failed`
-                    : "",
-            note,
-        ].filter(Boolean).join(". ");
+        job.state = failed.length ? "failed" : "done";
+
+        const summary = worked.length ? done(worked) : "";
+        let   failure = "";
+        if (failed.length === 1) {
+            failure = `${failed[0].name} failed: ${failed[0].error}`;
+        } else if (failed.length) {
+            failure = `${failed.length} failed`;
+        }
+
+        job.message = [ summary, failure, note ].filter(Boolean).join(". ");
     }));
 
     return { job : job.id };

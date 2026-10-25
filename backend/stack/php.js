@@ -156,7 +156,8 @@ async function setPhpSettings(changes) {
         throw new Error("Nothing to save");
     }
 
-    const known = (await askPhp()).data.values || {};
+    const php   = await askPhp();
+    const known = php.data.values || {};
     let content = readFile(phpIniFile());
 
     for (const { key, value, remove } of list) {
@@ -178,9 +179,15 @@ async function setPhpSettings(changes) {
     }
 
     const reload = await writeOverrides(content);
-    const said   = list.length > 1 ? `${list.length} changes saved`
-        : list[0].remove ? `${list[0].key} override removed`
-            : `${list[0].key} set to ${list[0].value}`;
+
+    let said;
+    if (list.length > 1) {
+        said = `${list.length} changes saved`;
+    } else if (list[0].remove) {
+        said = `${list[0].key} override removed`;
+    } else {
+        said = `${list[0].key} set to ${list[0].value}`;
+    }
     return { message : `${said}. ${reload.message}` };
 }
 

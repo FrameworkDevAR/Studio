@@ -37,13 +37,17 @@ function renderNode() {
     document.getElementById("node-packages").hidden = !problem.hidden;
     const behind = node.globals.filter((pkg) => pkg.latest).length;
     document.getElementById("node-count").textContent = String(node.globals.length);
-    document.getElementById("node-outdated").innerHTML = !node.checked
-        ? "Checking for updates…"
-        : behind
-            ? `<b>${behind} outdated</b>
-               <button data-npm-update-all>${isUpdating("npm")
-                   ? "Updating…" : "Update packages"}</button>`
-            : "All up to date";
+    let outdated;
+    if (!node.checked) {
+        outdated = "Checking for updates…";
+    } else if (behind) {
+        outdated = `<b>${behind} outdated</b>
+           <button data-npm-update-all>${isUpdating("npm")
+               ? "Updating…" : "Update packages"}</button>`;
+    } else {
+        outdated = "All up to date";
+    }
+    document.getElementById("node-outdated").innerHTML = outdated;
 
     // The filter keeps the packages whose name holds what is typed.
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("node-filter"))
@@ -82,15 +86,22 @@ function renderNode() {
  */
 function packageButtons(pkg) {
     const removing = updating.has(`remove:${pkg.name}`);
-    const remove   = pkg.name === "npm" ? "" : `
-        <button class="icon-btn remove ${removing ? "busy" : ""}"
-            title="${pkg.linked ? "Remove the link" : "Uninstall"}"
-            aria-label="Uninstall ${esc(pkg.name)}" data-npm-uninstall="${esc(pkg.name)}"
-            ${removing ? "disabled" : ""}>
-            <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1
-                14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
-    `;
+
+    let remove;
+    if (pkg.name === "npm") {
+        remove = "";
+    } else {
+        remove = `
+            <button class="icon-btn remove ${removing ? "busy" : ""}"
+                title="${pkg.linked ? "Remove the link" : "Uninstall"}"
+                aria-label="Uninstall ${esc(pkg.name)}" data-npm-uninstall="${esc(pkg.name)}"
+                ${removing ? "disabled" : ""}>
+                <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19
+                    6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+        `;
+    }
+
     return (pkg.latest ? updateButton(pkg.name) : "") + remove;
 }
 
@@ -192,9 +203,17 @@ function renderNpmList(loading = false, failed = "") {
     }
 
     if (failed || loading || !npmFound.length) {
-        const text = failed || (loading ? "Searching…"
-            : npmAsked.length >= 2 ? `No packages match “${esc(npmAsked)}”.`
-                : "Search the npm registry for a package to install globally.");
+        let text;
+        if (failed) {
+            text = failed;
+        } else if (loading) {
+            text = "Searching…";
+        } else if (npmAsked.length >= 2) {
+            text = `No packages match “${esc(npmAsked)}”.`;
+        } else {
+            text = "Search the npm registry for a package to install globally.";
+        }
+
         box.innerHTML = `<div class="npm-empty">${text}</div>`;
         return;
     }
@@ -254,17 +273,29 @@ function npmActions(spec, latest = "", mine = null) {
     const busy     = updating.has(spec);
     const removing = updating.has(`remove:${spec}`);
 
+    let update = "";
+    if (newer) {
+        update = `<button class="small" data-npm-update="${esc(spec)}"
+            ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>`;
+    }
+
+    let uninstall;
+    if (spec === "npm") {
+        uninstall = "";
+    } else {
+        uninstall = `<button class="small danger"
+            data-npm-uninstall="${esc(spec)}" ${removing ? "disabled" : ""}>${removing
+                ? "Removing…" : "Uninstall"}</button>`;
+    }
+
     return `
         <div class="npm-actions">
             <span class="npm-here">Installed <b>${esc(version)}</b>${newer
                 ? `<span class="pkg-latest">→ ${esc(latest)}</span>`
                 : ` · newest`}</span>
             <span class="npm-buttons">
-                ${newer ? `<button class="small" data-npm-update="${esc(spec)}"
-                    ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>` : ""}
-                ${spec === "npm" ? "" : `<button class="small danger"
-                    data-npm-uninstall="${esc(spec)}" ${removing ? "disabled" : ""}>${removing
-                        ? "Removing…" : "Uninstall"}</button>`}
+                ${update}
+                ${uninstall}
             </span>
         </div>
     `;
@@ -297,10 +328,17 @@ function isNewer(version, than) {
 function ago(date) {
     const days = (Date.now() - Date.parse(date)) / 86_400_000;
     const say  = (count, unit) => `${count} ${unit}${count === 1 ? "" : "s"} ago`;
-    return days < 1 ? "today"
-        : days < 30 ? say(Math.floor(days), "day")
-            : days < 365 ? say(Math.floor(days / 30), "month")
-                : say(Math.floor(days / 365), "year");
+
+    if (days < 1) {
+        return "today";
+    }
+    if (days < 30) {
+        return say(Math.floor(days), "day");
+    }
+    if (days < 365) {
+        return say(Math.floor(days / 30), "month");
+    }
+    return say(Math.floor(days / 365), "year");
 }
 
 /**
@@ -309,9 +347,13 @@ function ago(date) {
  * @returns {string}
  */
 function downloads(count) {
-    return count >= 1e6 ? `${(count / 1e6).toFixed(count >= 1e7 ? 0 : 1)}M`
-        : count >= 1e3 ? `${Math.round(count / 1e3)}K`
-            : String(count);
+    if (count >= 1e6) {
+        return `${(count / 1e6).toFixed(count >= 1e7 ? 0 : 1)}M`;
+    }
+    if (count >= 1e3) {
+        return `${Math.round(count / 1e3)}K`;
+    }
+    return String(count);
 }
 
 /**
@@ -461,7 +503,8 @@ async function confirmUpdateAll(kind = "npm") {
     };
     sync();
 
-    const names = (await waiting)
+    const sure  = await waiting;
+    const names = sure
         ? picks.filter((pick) => pick.checked).map((pick) => pick.value) : [];
     box.onchange = null;
 
@@ -618,9 +661,16 @@ function renderUpdateProgress() {
     const failed  = items.filter((item) => item.state === "failed").length;
     const running = updateJob.state === "waiting" || updateJob.state === "running";
 
-    document.getElementById("ask-title").textContent = running
-        ? `Updating ${items.length === 1 ? items[0].name : countOf(items.length, updateJob.noun)}`
-        : failed ? "Update finished with errors" : "Update finished";
+    let title;
+    if (running) {
+        title = `Updating ${items.length === 1
+            ? items[0].name : countOf(items.length, updateJob.noun)}`;
+    } else if (failed) {
+        title = "Update finished with errors";
+    } else {
+        title = "Update finished";
+    }
+    document.getElementById("ask-title").textContent = title;
 
     // The description says what the update does; how far it got is below.
     document.getElementById("ask-text").textContent =
@@ -668,15 +718,30 @@ function renderUpdateProgress() {
             class="progress-text"></span>`;
     }
 
-    note.className = `editor-status progress ${running ? "" : failed ? "bad" : "ok"}`;
+    let tone;
+    if (running) {
+        tone = "";
+    } else if (failed) {
+        tone = "bad";
+    } else {
+        tone = "ok";
+    }
+    note.className = `editor-status progress ${tone}`;
     /** @type {HTMLElement} */ (note.querySelector(".progress-bar i")).style.width =
         `${(finished / items.length) * 100}%`;
-    note.querySelector(".progress-text").textContent = running
-        ? `${done} of ${items.length} updated · closing this leaves it going`
-        : `${done} updated${failed
-            ? `, ${failed} failed · hover one for ${updateJob.kind === "pecl"
-                ? "pecl" : "npm"}'s error`
-            : ""}`;
+
+    let progress;
+    if (running) {
+        progress = `${done} of ${items.length} updated · closing this leaves it going`;
+    } else {
+        let failures = "";
+        if (failed) {
+            failures = `, ${failed} failed · hover one for ${updateJob.kind === "pecl"
+                ? "pecl" : "npm"}'s error`;
+        }
+        progress = `${done} updated${failures}`;
+    }
+    note.querySelector(".progress-text").textContent = progress;
 
     /** @type {HTMLElement} */ (dialog.querySelector(".editor-foot")).hidden = false;
     document.getElementById("ask-x").hidden      = false;

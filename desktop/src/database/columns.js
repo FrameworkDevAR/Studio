@@ -114,18 +114,28 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
 
     const tableCollation = browse.tables.find((one) => one.name === structure.table)?.collation
         || "";
-    const column = old ? { ...old, name : copy ? `${old.name}_copy` : old.name } : {
-        name      : "",
-        type      : "varchar(255)",
-        nullable  : true,
-        value     : { kind : "null", value : "" },
-        extra     : "",
-        comment   : "",
-        collation : "",
-    };
+    let column;
+    if (old) {
+        column = { ...old, name : copy ? `${old.name}_copy` : old.name };
+    } else {
+        column = {
+            name      : "",
+            type      : "varchar(255)",
+            nullable  : true,
+            value     : { kind : "null", value : "" },
+            extra     : "",
+            comment   : "",
+            collation : "",
+        };
+    }
 
     const others = structure.columns.filter((one) => one.name !== name || copy);
-    const place  = copy ? name : after ?? (adding ? structure.columns.at(-1)?.name : "");
+    let place;
+    if (copy) {
+        place = name;
+    } else {
+        place = after ?? (adding ? structure.columns.at(-1)?.name : "");
+    }
     const kinds  = [
         [ "none", "No default" ],
         [ "null", "NULL" ],
@@ -223,12 +233,18 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                     fields.querySelector("[data-column-preset]")
                 );
                 box.style.visibility = kind === "none" || kind === "null" ? "hidden" : "";
-                box.querySelector("span").textContent = made ? "Made from"
-                    : kind === "expression" ? "Expression"
-                        : "Value";
-                /** @type {HTMLInputElement} */ (box.querySelector("input")).placeholder = made
-                    ? "`price` * `count`"
-                    : kind === "expression" ? "current_timestamp()" : "";
+
+                let label  = "Value";
+                let sample = "";
+                if (made) {
+                    label  = "Made from";
+                    sample = "`price` * `count`";
+                } else if (kind === "expression") {
+                    label  = "Expression";
+                    sample = "current_timestamp()";
+                }
+                box.querySelector("span").textContent = label;
+                /** @type {HTMLInputElement} */ (box.querySelector("input")).placeholder = sample;
 
                 /** @type {HTMLElement} */ (
                     fields.querySelector("[data-column-checks]")
@@ -261,11 +277,11 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
             const sized = String(data.get("length") ?? "").trim();
 
             // Unsigned for a number, and zerofill kept when it had it.
-            const marks = NUMBER_TYPE.test(name)
-                ? `${data.get("unsigned") === "on" ? " unsigned" : ""}${
-                    /zerofill/i.test(flags) ? " zerofill" : ""
-                }`
-                : "";
+            let marks = "";
+            if (NUMBER_TYPE.test(name)) {
+                const unsigned = data.get("unsigned") === "on" ? " unsigned" : "";
+                marks = `${unsigned}${/zerofill/i.test(flags) ? " zerofill" : ""}`;
+            }
 
             const definition = {
                 name      : String(data.get("name")),
@@ -345,9 +361,13 @@ function columnDefinition(column, changes = {}) {
  * @returns {string}
  */
 function defaultText(column) {
-    return column.value.kind === "none" ? ""
-        : column.value.kind === "null" ? "NULL"
-            : column.value.value;
+    if (column.value.kind === "none") {
+        return "";
+    }
+    if (column.value.kind === "null") {
+        return "NULL";
+    }
+    return column.value.value;
 }
 
 /**
@@ -361,11 +381,16 @@ function defaultOf(text, column) {
     if (text === defaultText(column)) {
         return { value : column.value.kind, preset : column.value.value };
     }
-    return text === "" ? { value : "none", preset : "" }
-        : /^null$/i.test(text) ? { value : "null", preset : "" }
-            : /^[a-z_][a-z0-9_]*\(.*\)$/i.test(text.trim())
-                ? { value : "expression", preset : text.trim() }
-                : { value : "value", preset : text };
+    if (text === "") {
+        return { value : "none", preset : "" };
+    }
+    if (/^null$/i.test(text)) {
+        return { value : "null", preset : "" };
+    }
+    if (/^[a-z_][a-z0-9_]*\(.*\)$/i.test(text.trim())) {
+        return { value : "expression", preset : text.trim() };
+    }
+    return { value : "value", preset : text };
 }
 
 /**
@@ -514,12 +539,19 @@ async function saveColumnCell(edit, then = null) {
     edit.done = true;
     const text = edit.input.value;
     if (text !== edit.old) {
-        const column  = browse.structure.columns.find((one) => one.name === edit.name);
-        const changes = edit.field === "name" ? { name : text }
-            : edit.field === "type" ? { type : text.trim() }
-                : edit.field === "null" ? { nullable : text === "yes" }
-                    : edit.field === "comment" ? { comment : text }
-                        : defaultOf(text, column);
+        const column = browse.structure.columns.find((one) => one.name === edit.name);
+        let changes;
+        if (edit.field === "name") {
+            changes = { name : text };
+        } else if (edit.field === "type") {
+            changes = { type : text.trim() };
+        } else if (edit.field === "null") {
+            changes = { nullable : text === "yes" };
+        } else if (edit.field === "comment") {
+            changes = { comment : text };
+        } else {
+            changes = defaultOf(text, column);
+        }
         edit.input.disabled = true;
 
         try {
@@ -571,8 +603,13 @@ function dropColumnAt(tr, below) {
     const columns = browse.structure.columns.map((one) => one.name);
     const target  = tr.dataset.key;
     const at      = columns.indexOf(target);
-    const after   = below ? target : at > 0 ? columns[at - 1] : "first";
-    const name    = columnDrag;
+    let after;
+    if (below) {
+        after = target;
+    } else {
+        after = at > 0 ? columns[at - 1] : "first";
+    }
+    const name = columnDrag;
 
     // Dropped where it is already: before or after itself.
     if (!name || name === target || after === columns[columns.indexOf(name) - 1]
@@ -659,16 +696,22 @@ async function columnAction(act) {
     }
 
     // Up goes after the one two above, or first; down after the one below.
-    const after = act === "up" ? (at > 1 ? columns[at - 2].name : "first") : columns[at + 1].name;
+    let after;
+    if (act === "up") {
+        after = at > 1 ? columns[at - 2].name : "first";
+    } else {
+        after = columns[at + 1].name;
+    }
 
     try {
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-column-move",
             db     : browse.db,
             table  : browse.table,
             column : name,
             after,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return;
@@ -696,12 +739,13 @@ async function dropColumn(name) {
     }
 
     try {
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-column-drop",
             db     : browse.db,
             table  : browse.table,
             column : name,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return;

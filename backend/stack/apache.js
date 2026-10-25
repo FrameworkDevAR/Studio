@@ -137,8 +137,8 @@ async function readDirectives() {
         .map((found) => found[1]));
     const moduleOf = new Map();
 
-    for (const [ , directive, source ] of (await run(HTTPD, [ "-L" ])).stdout
-        .matchAll(/^<?(\w+) \((\w+)\.c\)$/gm)) {
+    const listed = await run(HTTPD, [ "-L" ]);
+    for (const [ , directive, source ] of listed.stdout.matchAll(/^<?(\w+) \((\w+)\.c\)$/gm)) {
         const base = source.replace(/^mod_/, "");
         const name = [ `${base}_module`, `mpm_${base}_module` ].find((one) => names.has(one));
         if (name) {

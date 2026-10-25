@@ -56,9 +56,19 @@ function paintSql(text) {
 
     for (const found of text.matchAll(parts)) {
         const [ part, comment, quoted, name, number, word ] = found;
-        const kind = comment ? "code-mark" : quoted ? "code-string" : name ? "code-key"
-            : number ? "code-number"
-            : word && SQL_WORDS.has(word.toUpperCase()) ? "code-word" : "";
+
+        let kind = "";
+        if (comment) {
+            kind = "code-mark";
+        } else if (quoted) {
+            kind = "code-string";
+        } else if (name) {
+            kind = "code-key";
+        } else if (number) {
+            kind = "code-number";
+        } else if (word && SQL_WORDS.has(word.toUpperCase())) {
+            kind = "code-word";
+        }
 
         result += escapeCode(text.slice(last, found.index));
         result += kind ? `<span class="${kind}">${escapeCode(part)}</span>` : escapeCode(part);
@@ -231,26 +241,36 @@ function renderResults() {
                         title="All its rows, run again, as CSV or JSON">Export…</button>`
                     : ""}
             </div>
-            ${result.rows.length ? `
-                <div class="grid-wrap"><div class="grid-scroll"><table
-                    class="data-grid ${result.edit ? "editable" : ""}">
-                    <thead><tr>${result.columns
-                        .map((name) => `<th><span class="th">${esc(name)}</span><span
-                            class="col-resize" data-resize></span></th>`)
-                        .join("")}</tr></thead>
-                    <tbody>${result.rows
-                        .map((row, at) => `<tr data-result="${index}" data-r="${at}">${row
-                            .map((value, column) => resultCell(result, value, column))
-                            .join("")}</tr>`)
-                        .join("")}</tbody>
-                </table></div></div>
-            ` : ""}
+            ${result.rows.length ? sqlResultGrid(result, index) : ""}
         </div>
     `).join("");
 
     document.querySelectorAll("#sql-results .grid-scroll")
         .forEach((one) => watchFades(/** @type {HTMLElement} */ (one)));
     watchFades(/** @type {HTMLElement} */ (document.querySelector(".browse-main")));
+}
+
+/**
+ * A result's rows as a grid, its columns to resize, each row knowing its result.
+ * @param {SqlResultSet} result
+ * @param {number} index
+ * @returns {string}
+ */
+function sqlResultGrid(result, index) {
+    return `
+        <div class="grid-wrap"><div class="grid-scroll"><table
+            class="data-grid ${result.edit ? "editable" : ""}">
+            <thead><tr>${result.columns
+                .map((name) => `<th><span class="th">${esc(name)}</span><span
+                    class="col-resize" data-resize></span></th>`)
+                .join("")}</tr></thead>
+            <tbody>${result.rows
+                .map((row, at) => `<tr data-result="${index}" data-r="${at}">${row
+                    .map((value, column) => resultCell(result, value, column))
+                    .join("")}</tr>`)
+                .join("")}</tbody>
+        </table></div></div>
+    `;
 }
 
 // A query that only reads, whose results can be run again to export.
@@ -585,10 +605,19 @@ function sqlItem(sql, data, meta) {
  */
 function agoOf(time) {
     const minutes = Math.round((Date.now() - time) / 60_000);
-    return minutes < 1 ? "just now"
-        : minutes < 60 ? `${minutes} min ago`
-        : minutes < 1440 ? `${Math.round(minutes / 60)} h ago`
-        : new Date(time).toLocaleDateString();
+    if (minutes < 1) {
+        return "just now";
+    }
+
+    if (minutes < 60) {
+        return `${minutes} min ago`;
+    }
+
+    if (minutes < 1440) {
+        return `${Math.round(minutes / 60)} h ago`;
+    }
+
+    return new Date(time).toLocaleDateString();
 }
 
 /**
@@ -696,12 +725,13 @@ function forgetSql(at) {
  * @returns {Promise<void>}
  */
 async function clearSqlHistory() {
-    if (await ask({
+    const sure = await ask({
         title  : `Clear ${browse.db}'s history?`,
         text   : "The queries run in it are forgotten. The favorites stay.",
         ok     : "Clear",
         danger : true,
-    })) {
+    });
+    if (sure) {
         localStorage.setItem(
             SQL_HISTORY,
             JSON.stringify(readStored(SQL_HISTORY).filter((one) => one.db !== browse.db)),

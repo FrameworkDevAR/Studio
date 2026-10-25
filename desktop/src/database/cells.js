@@ -83,23 +83,26 @@ async function openRowDialog(index = null, copy = null) {
     let values;
 
     try {
-        values = key
-            ? (await api("/api/action", {
+        if (key) {
+            const { row } = await api("/api/action", {
                 action : "db-row",
                 db     : browse.db,
                 table  : browse.table,
                 key,
-            })).row
-            : structure.columns.map(() => "");
+            });
+            values = row;
+        } else {
+            values = structure.columns.map(() => "");
+        }
 
         if (copy !== null) {
-            const row = (await api("/api/action", {
+            const { row } = await api("/api/action", {
                 action : "db-row",
                 db     : browse.db,
                 table  : browse.table,
                 key    : rowKey(copy),
-            })).row;
-            values    = structure.columns.map((column, at) => (
+            });
+            values        = structure.columns.map((column, at) => (
                 column.binary || column.extra.includes("auto_increment") ? "" : row[at]
             ));
         }
@@ -111,16 +114,25 @@ async function openRowDialog(index = null, copy = null) {
     const from = copy === null ? ""
         : Object.entries(rowKey(copy)).map(([ name, value ]) => `${name} ${value}`).join(" · ");
 
+    let title;
+    let text;
+    if (key) {
+        title = `Change the row of ${structure.table}`;
+        text  = Object.entries(key).map(([ name, value ]) => `${name} ${value}`).join(" · ");
+    } else if (copy !== null) {
+        title = `Duplicate the row of ${structure.table}`;
+        text  = `A copy of ${from}. Empty fields get their column's default${
+            structure.columns.some((column) => column.binary)
+                ? "; binary values aren't copied" : ""
+        }.`;
+    } else {
+        title = `New row in ${structure.table}`;
+        text  = "Empty fields get their column's default.";
+    }
+
     formDialog({
-        title  : key ? `Change the row of ${structure.table}`
-            : copy !== null ? `Duplicate the row of ${structure.table}`
-                : `New row in ${structure.table}`,
-        text   : key ? Object.entries(key).map(([ name, value ]) => `${name} ${value}`).join(" · ")
-            : copy !== null ? `A copy of ${from}. Empty fields get their column's default${
-                structure.columns.some((column) => column.binary)
-                    ? "; binary values aren't copied" : ""
-            }.`
-                : "Empty fields get their column's default.",
+        title,
+        text,
         body   : structure.columns.map((column, at) => rowField(column, values[at], !key)).join(""),
         ok     : key ? "Save" : "Add",
         remove : key ? { label : "Delete row", run : () => deleteRows([ index ]) } : null,
@@ -185,9 +197,16 @@ async function openRowDialog(index = null, copy = null) {
 function rowField(column, value, adding) {
     const name   = esc(column.name);
     const isNull = value === null;
-    const hint   = adding && column.binary ? "left empty: binary values are set with SQL"
-        : adding && column.extra.includes("auto_increment") ? "auto"
-        : adding && column.default !== null ? `default: ${column.default}` : "";
+
+    let hint = "";
+    if (adding && column.binary) {
+        hint = "left empty: binary values are set with SQL";
+    } else if (adding && column.extra.includes("auto_increment")) {
+        hint = "auto";
+    } else if (adding && column.default !== null) {
+        hint = `default: ${column.default}`;
+    }
+
     const attrs  = `data-column="${name}" ${isNull || column.binary ? "disabled" : ""}
         spellcheck="false" placeholder="${esc(hint)}"`;
     const text   = value ?? "";
@@ -210,6 +229,13 @@ function rowField(column, value, adding) {
         field = `<input ${attrs} value="${esc(text)}">`;
     }
 
+    let nullBox = "";
+    if (column.nullable && !column.binary) {
+        nullBox = `<label class="check"><input type="checkbox"
+            class="box" data-null-for="${name}"
+            ${isNull ? "checked" : ""}><span>NULL</span></label>`;
+    }
+
     return `
         <div class="form-row row-field">
             <span>${name} <small class="col-type">${esc(column.type)}${
@@ -217,9 +243,7 @@ function rowField(column, value, adding) {
             }</small></span>
             <div class="row-value">
                 ${field}
-                ${column.nullable && !column.binary ? `<label class="check"><input type="checkbox"
-                    class="box" data-null-for="${name}"
-                    ${isNull ? "checked" : ""}><span>NULL</span></label>` : ""}
+                ${nullBox}
             </div>
         </div>
     `;
@@ -248,12 +272,13 @@ async function deleteRows(indexes) {
 
     try {
         const body = keys.length === 1 ? { key : keys[0] } : { keys };
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-row-delete",
             db     : browse.db,
             table  : browse.table,
             ...body,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return false;
@@ -292,6 +317,15 @@ function openRowMenu(indexes, at, x, y) {
     const many   = indexes.length > 1 ? "s" : "";
     const menu   = document.getElementById("row-menu");
 
+    // The NULL item, only for a column clicked that can be set to NULL.
+    let nullItem = "";
+    if (column && column.nullable && rowsKeyed() && !column.binary
+        && ![ "virtual", "stored" ].includes(column.value.kind)) {
+        nullItem = `<button role="menuitem" data-row-act="null">Set '${esc(column.name)}' to NULL${
+            many ? ` in ${indexes.length} Rows` : ""
+        }</button>`;
+    }
+
     rowMenu = { indexes, at };
     menu.innerHTML = `
         <button role="menuitem"
@@ -303,12 +337,7 @@ function openRowMenu(indexes, at, x, y) {
                 data-row-act="insert-new">Copy as SQL INSERT (no auto_increment)</button>`
             : ""}
         ${column ? `
-            ${column.nullable && rowsKeyed() && !column.binary
-                && ![ "virtual", "stored" ].includes(column.value.kind)
-                ? `<button role="menuitem" data-row-act="null">Set '${esc(column.name)}' to NULL${
-                    many ? ` in ${indexes.length} Rows` : ""
-                }</button>`
-                : ""}
+            ${nullItem}
             <button role="menuitem"
                 data-row-act="value">Copy '${esc(column.name)}' Value${many}</button>
             <button role="menuitem"
@@ -364,14 +393,15 @@ async function rowAction(act) {
         const column = browse.rows.structure.columns[at];
 
         try {
-            toast((await api("/api/action", {
+            const { message } = await api("/api/action", {
                 action : "db-rows-set",
                 db     : browse.db,
                 table  : browse.table,
                 keys   : indexes.map(rowKey),
                 column : column.name,
                 value  : null,
-            })).message);
+            });
+            toast(message);
         } catch (error) {
             toast(error.message, true);
             return;
@@ -387,13 +417,14 @@ async function rowAction(act) {
     // The rows whole, as the grid cuts long text and shows binary values by their size.
     if (rowsKeyed()) {
         try {
-            rows = (await api("/api/action", {
+            const whole = await api("/api/action", {
                 action : "db-row",
                 db     : browse.db,
                 table  : browse.table,
                 keys   : indexes.map(rowKey),
                 hex    : true,
-            })).rows;
+            });
+            rows = whole.rows;
         } catch (error) {
             toast(error.message, true);
             return;
@@ -401,15 +432,29 @@ async function rowAction(act) {
     }
 
     const columns = structure.columns.map((column, place) => ({ column, place }));
-    const plain   = (column, value) => (value === null ? "NULL"
-        : column.binary && rowsKeyed() ? `0x${value}`
-            : value);
-    const sql     = (column, value) => (value === null ? "NULL"
-        : column.binary && rowsKeyed() ? (value ? `0x${value}` : "''")
-            : /int|decimal|float|double/.test(column.dataType)
-                && /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(value) ? value
-                : `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
-                    .replace(/\n/g, "\\n").replace(/\r/g, "\\r")}'`);
+    const plain   = (column, value) => {
+        if (value === null) {
+            return "NULL";
+        }
+        if (column.binary && rowsKeyed()) {
+            return `0x${value}`;
+        }
+        return value;
+    };
+    const sql     = (column, value) => {
+        if (value === null) {
+            return "NULL";
+        }
+        if (column.binary && rowsKeyed()) {
+            return value ? `0x${value}` : "''";
+        }
+        if (/int|decimal|float|double/.test(column.dataType)
+            && /^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(value)) {
+            return value;
+        }
+        return `'${value.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
+            .replace(/\n/g, "\\n").replace(/\r/g, "\\r")}'`;
+    };
     const ident   = (name) => `\`${name.replace(/`/g, "``")}\``;
     const line    = (row) => columns.map(({ column, place }) => plain(column, row[place]))
         .join("\t");
@@ -665,12 +710,13 @@ async function editValue(index, at) {
     let value = rows[index][at];
     if (value !== null && value.length > cut) {
         try {
-            value = (await api("/api/action", {
+            const { row } = await api("/api/action", {
                 action : "db-row",
                 db     : browse.db,
                 table  : browse.table,
                 key    : rowKey(index),
-            })).row[at];
+            });
+            value = row[at];
         } catch (error) {
             toast(error.message, true);
             return;
@@ -692,6 +738,12 @@ async function editValue(index, at) {
     const compact = json && !/\n/.test(value);
     const markup  = !json && /^\s*<[!?A-Za-z]/.test(shown);
 
+    let nullBox = "";
+    if (column.nullable) {
+        nullBox = `<label class="check"><input type="checkbox" class="box" name="null"
+            ${value === null ? "checked" : ""}><span>NULL</span></label>`;
+    }
+
     formDialog({
         title  : column.name,
         text   : `${column.type}${json ? " · JSON" : ""} · ${
@@ -706,8 +758,7 @@ async function editValue(index, at) {
                         autocapitalize="off" wrap="off">${esc(shown)}</textarea>
                 </div>
             </div>
-            ${column.nullable ? `<label class="check"><input type="checkbox" class="box" name="null"
-                ${value === null ? "checked" : ""}><span>NULL</span></label>` : ""}
+            ${nullBox}
         `,
         ok     : "Save",
         ready  : (fields) => {
@@ -720,9 +771,17 @@ async function editValue(index, at) {
             );
 
             const box = /** @type {HTMLElement} */ (fields.querySelector(".value-code"));
+            let paint;
+            if (json) {
+                paint = paintJson;
+            } else if (markup) {
+                paint = paintMarkup;
+            } else {
+                paint = escapeCode;
+            }
             codeArea(
                 box,
-                json ? paintJson : markup ? paintMarkup : escapeCode,
+                paint,
                 json ? "  " : "    ",
             );
 

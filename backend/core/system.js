@@ -43,7 +43,6 @@ const PATH = `${path.dirname(process.execPath)}:${PATHS.homebrew}/bin:${
 }/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`;
 
 
-// ----------------------------------------------------------------- helpers ---
 
 /**
  * Runs a command without a shell. Never throws: ok says how it went. An input

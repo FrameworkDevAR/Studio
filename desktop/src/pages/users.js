@@ -316,12 +316,18 @@ function toggleAdvanced(button, open = button.getAttribute("aria-expanded") !== 
  */
 async function dropUser(key) {
     const user = state.databases.users.find((one) => `${one.name}@${one.host}` === key);
+
+    let reach = "MariaDB";
+    if (user.all) {
+        reach = "any database";
+    } else if (user.databases.length) {
+        reach = user.databases.join(", ");
+    }
+
     const sure = await ask({
         title  : `Drop ${user.name}?`,
-        text   : `The sites that log in as ${user.name} can no longer reach ${user.all
-            ? "any database"
-            : user.databases.length ? user.databases.join(", ")
-                : "MariaDB"}. Its databases stay.`,
+        text   : `The sites that log in as ${user.name} can no longer reach ${
+            reach}. Its databases stay.`,
         ok     : "Drop",
         danger : true,
     });

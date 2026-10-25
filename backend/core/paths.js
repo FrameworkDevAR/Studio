@@ -32,6 +32,8 @@ const TOOLS = {
     phpMyAdmin : "http://localhost/phpmyadmin",
 };
 
+
+
 /**
  * The paths of a config, with the defaults filled in and `~` expanded. The
  * tools inside Homebrew -- brew, httpd, apachectl -- come from `homebrew`.

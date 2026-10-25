@@ -10,8 +10,9 @@ const { projectRoots } = require("./apps");
 
 // Folders never searched: they hold packages, not the project's own files.
 const SKIPPED_DIRS = [ "node_modules", "vendor", ".git" ];
+
 // The kinds of icon a page can show, best first: an SVG stays sharp at any size.
-const ICON_TYPES   = [ ".svg", ".png", ".ico" ];
+const ICON_TYPES = [ ".svg", ".png", ".ico" ];
 
 /**
  * The favicon of each project, by the name the page knows it by: the
@@ -20,6 +21,9 @@ const ICON_TYPES   = [ ".svg", ".png", ".ico" ];
  * page asks every 5s and favicons hardly ever change.
  */
 let iconCache = { at : 0, data : {} };
+
+
+
 /**
  * The favicon file of each project that has one, by project.
  * @param {import("./apps").StudioApp[]} apps

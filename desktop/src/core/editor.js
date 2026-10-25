@@ -131,9 +131,14 @@ async function openEditor(kind) {
     text.value  = data.text;
     closeFind(false);
 
+    let path = data.file;
+    if (!data.exists) {
+        const from = kind === "config" ? ", from the example" : "";
+        path = `${data.file} — new${from}`;
+    }
+
     document.getElementById("editor-title").textContent = file.title;
-    document.getElementById("editor-path").textContent  = data.exists ? data.file
-        : `${data.file} — new${kind === "config" ? ", from the example" : ""}`;
+    document.getElementById("editor-path").textContent  = path;
     open.dataset.openFile = file.open;
     open.dataset.openPath = file.body?.file || "";
     document.getElementById("editor-insert").hidden      = kind !== "php" && kind !== "mariadb";
@@ -153,13 +158,16 @@ async function openEditor(kind) {
  */
 async function closeEditor() {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
-    if (text.value !== editorSaved && !await ask({
-        title  : "Close without saving?",
-        text   : `The changes to ${EDITOR_FILES[editorKind].title} are lost.`,
-        ok     : "Close",
-        danger : true,
-    })) {
-        return;
+    if (text.value !== editorSaved) {
+        const sure = await ask({
+            title  : "Close without saving?",
+            text   : `The changes to ${EDITOR_FILES[editorKind].title} are lost.`,
+            ok     : "Close",
+            danger : true,
+        });
+        if (!sure) {
+            return;
+        }
     }
 
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
@@ -242,12 +250,24 @@ function updateEditor() {
     }
 
     renderMarks();
-    status.className   = `editor-status ${error ? "bad" : dirty ? "dirty" : ""}`;
-    status.textContent = error ? error
-        : asking ? `Checking with ${file.who}…`
-            : dirty ? `${file.valid}, not saved yet`
-                : editorEdited ? "No changes"
-                    : "";
+
+    let state   = "";
+    let message = "";
+    if (error) {
+        state   = "bad";
+        message = error;
+    } else if (asking) {
+        state   = dirty ? "dirty" : "";
+        message = `Checking with ${file.who}…`;
+    } else if (dirty) {
+        state   = "dirty";
+        message = `${file.valid}, not saved yet`;
+    } else if (editorEdited) {
+        message = "No changes";
+    }
+
+    status.className   = `editor-status ${state}`;
+    status.textContent = message;
     /** @type {HTMLButtonElement} */ (document.getElementById("editor-save")).disabled
         = Boolean(error) || asking || !dirty;
 }
@@ -396,9 +416,13 @@ function toggleComment() {
     const to    = found === -1 ? value.length : found;
     const lines = value.slice(from, to).split("\n");
     const out   = lines.every((line) => !line.trim() || line.trimStart().startsWith(mark));
-    const next  = lines.map((line) => (!line.trim() ? line
-        : out ? line.replace(new RegExp(`^(\\s*)\\${mark} ?`), "$1")
-            : line.replace(/^(\s*)/, `$1${mark}`))).join("\n");
+    const next  = lines.map((line) => {
+        if (!line.trim()) {
+            return line;
+        }
+        return out ? line.replace(new RegExp(`^(\\s*)\\${mark} ?`), "$1")
+            : line.replace(/^(\s*)/, `$1${mark}`);
+    }).join("\n");
 
     const single = lines.length === 1 && text.selectionStart === text.selectionEnd;
     const caret  = Math.max(from, text.selectionStart + next.length - (to - from));
@@ -547,9 +571,14 @@ function showMatch() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const input = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"));
 
-    document.getElementById("editor-find-count").textContent = !input.value ? ""
-        : findState.matches.length ? `${findState.index + 1} of ${findState.matches.length}`
+    let count = "";
+    if (input.value) {
+        count = findState.matches.length
+            ? `${findState.index + 1} of ${findState.matches.length}`
             : "No matches";
+    }
+
+    document.getElementById("editor-find-count").textContent = count;
 
     const match = findState.matches[findState.index];
     if (match) {

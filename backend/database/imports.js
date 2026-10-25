@@ -116,8 +116,8 @@ async function importCsv(request, { db, table, spec = "{}" }) {
     }
 
     const structure = await readStructure(db, table);
-    const engine    = (await readTables(structure.db))
-        .find((one) => one.name === structure.table)?.engine || "";
+    const tables    = await readTables(structure.db);
+    const engine    = tables.find((one) => one.name === structure.table)?.engine || "";
     const target    = `${ident(structure.db)}.${ident(structure.table)}`;
     const separator = [ ",", ";", "\t", "|" ].includes(options.separator) ? options.separator
         : ",";
@@ -152,9 +152,15 @@ async function importCsv(request, { db, table, spec = "{}" }) {
 
     // A value as SQL: NULL, a binary one's 0x hex as it is, as Studio exports it, or a text in
     // quotes.
-    const literal = (value, column) => (value === null ? "NULL"
-        : column.binary && /^0x[\da-f]*$/i.test(value) ? (value.length > 2 ? value : "''")
-            : quote(value));
+    const literal = (value, column) => {
+        if (value === null) {
+            return "NULL";
+        }
+        if (column.binary && /^0x[\da-f]*$/i.test(value)) {
+            return value.length > 2 ? value : "''";
+        }
+        return quote(value);
+    };
 
     // The client stops at the first statement that fails, and the transaction with it.
     const client = spawn("mariadb", [ "--batch", "--skip-column-names", "-D", structure.db ], {
@@ -238,13 +244,17 @@ async function importCsv(request, { db, table, spec = "{}" }) {
 
     const changed = Number(out.trim().split("\n").pop()) || 0;
     const rows    = (count) => `${count.toLocaleString()} ${count === 1 ? "row" : "rows"}`;
-    const message = duplicate === "update"
-        ? `Imported ${rows(read)} into ${structure.table}, adding or updating each`
-        : duplicate === "skip" && changed < read
-            ? `Added ${rows(changed)} to ${structure.table}; ${
-                rows(read - changed)
-            } already there ${read - changed === 1 ? "was" : "were"} skipped`
-            : `Added ${rows(changed)} to ${structure.table}`;
+
+    let message;
+    if (duplicate === "update") {
+        message = `Imported ${rows(read)} into ${structure.table}, adding or updating each`;
+    } else if (duplicate === "skip" && changed < read) {
+        message = `Added ${rows(changed)} to ${structure.table}; ${
+            rows(read - changed)
+        } already there ${read - changed === 1 ? "was" : "were"} skipped`;
+    } else {
+        message = `Added ${rows(changed)} to ${structure.table}`;
+    }
 
     return { message, read, changed };
 }

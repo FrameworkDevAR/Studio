@@ -12,7 +12,9 @@ let engineList = null;
  * @returns {Promise<{ name: string, comment: string, preset: boolean }[]>}
  */
 async function loadEngines() {
-    engineList = engineList || await api("/api/engines");
+    if (!engineList) {
+        engineList = await api("/api/engines");
+    }
     return engineList;
 }
 

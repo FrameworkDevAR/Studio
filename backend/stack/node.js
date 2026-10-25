@@ -62,7 +62,10 @@ async function readNodeKept() {
     const check = await run(NODE, [ "-v" ], 5_000);
     // A node that cannot start, as after an upgrade of a library it uses.
     const broken = versionOf("node") && !check.ok ? brokenReason(check.stderr) : "";
-    const globals = check.ok ? await readGlobals() : { root : "", packages : [] };
+    let globals = { root : "", packages : [] };
+    if (check.ok) {
+        globals = await readGlobals();
+    }
 
     nodeCache = { at : Date.now(), data : {
         version  : check.ok ? check.stdout.trim().replace(/^v/, "") : versionOf("node"),
@@ -190,8 +193,14 @@ async function searchPackages(text) {
         throw new Error("npm's search did not answer");
     }
 
-    const rank = (name) => (name === query ? 0 : name.startsWith(query) ? 1 : 2);
-    const list = (await response.json()).objects
+    const rank = (name) => {
+        if (name === query) {
+            return 0;
+        }
+        return name.startsWith(query) ? 1 : 2;
+    };
+    const found = await response.json();
+    const list  = found.objects
         .map(({ package : pkg, downloads }) => ({
             name        : pkg.name,
             version     : pkg.version,

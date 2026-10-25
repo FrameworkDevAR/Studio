@@ -234,6 +234,11 @@ function packageRow({
     const shown = version.replace(/\+.*/, "");
     const text  = `${scope ? `<span class="pkg-scope">${esc(scope)}</span>` : ""}${esc(rest)}`;
 
+    let sizeCell = "";
+    if (size !== null) {
+        sizeCell = `<span class="pkg-size">${size ? bytes(size) : ""}</span>`;
+    }
+
     return `
         <div class="pkg ${latest ? "outdated" : ""}">
             <span class="pkg-name">
@@ -244,7 +249,7 @@ function packageRow({
                 ${tag ? `<span class="tag amber"
                     title="${esc(TAG_TIPS[tag] || "")}">${esc(tag)}</span>` : ""}
             </span>
-            ${size === null ? "" : `<span class="pkg-size">${size ? bytes(size) : ""}</span>`}
+            ${sizeCell}
             <span class="pkg-version"
                 ${shown !== version ? `title="${esc(version)}"` : ""}>${esc(shown)}${latest
                     ? `<span class="pkg-latest">→ ${esc(latest)}</span>` : ""}</span>
@@ -387,7 +392,8 @@ function formDialog({
     drop.hidden      = !remove;
     drop.textContent = remove?.label || "";
     drop.onclick     = async () => {
-        if (await remove.run()) {
+        const removed = await remove.run();
+        if (removed) {
             dialog.close();
         }
     };

@@ -24,20 +24,38 @@ function renderModules() {
     document.getElementById("tab-modules-count").textContent = String(on);
 
     renderConfigs();
-    document.getElementById("modules").innerHTML = modules.map((module) => `
+    document.getElementById("modules").innerHTML = modules.map((module) => {
+        let title;
+        if (module.protected) {
+            title = "Apache needs this one";
+        } else if (module.enabled) {
+            title = "Turn off";
+        } else {
+            title = "Turn on";
+        }
+
+        let tag;
+        if (module.protected) {
+            tag = `<span class="tag">required</span>`;
+        } else if (module.used) {
+            tag = `<span class="tag">used</span>`;
+        } else {
+            tag = "";
+        }
+
+        return `
         <div class="module ${module.enabled ? "" : "off"}">
-            <label class="switch" title="${module.protected ? "Apache needs this one"
-                : module.enabled ? "Turn off" : "Turn on"}">
+            <label class="switch" title="${title}">
                 <input type="checkbox" data-module="${esc(module.name)}" data-used="${module.used}"
                     ${module.enabled ? "checked" : ""}
                     ${module.protected && module.enabled ? "disabled" : ""}>
                 <span></span>
             </label>
             <span class="name">${esc(module.name.replace(/_module$/, ""))}</span>
-            ${module.protected ? `<span class="tag">required</span>`
-                : module.used ? `<span class="tag">used</span>` : ""}
+            ${tag}
         </div>
-    `).join("") || `<div class="empty">No modules match.</div>`;
+    `;
+    }).join("") || `<div class="empty">No modules match.</div>`;
 }
 
 /**
@@ -52,7 +70,13 @@ function renderConfigs() {
     document.getElementById("config-count").textContent     = `${on} of ${includes.length} on`;
     document.getElementById("tab-configs-count").textContent = String(on);
 
-    document.getElementById("apache-configs").innerHTML = includes.map((one) => `
+    document.getElementById("apache-configs").innerHTML = includes.map((one) => {
+        let needs = "";
+        if (one.module) {
+            needs = `${one.note ? " · " : ""}only with ${esc(one.module)}`;
+        }
+
+        return `
         <div class="config-row ${one.enabled ? "" : "off"}">
             <label class="switch" title="${one.enabled ? "Turn off" : "Turn on"}">
                 <input type="checkbox" data-include="${esc(one.file)}"
@@ -61,14 +85,14 @@ function renderConfigs() {
             </label>
             <span class="config-text">
                 <span class="name" title="${esc(one.file)}">${esc(one.name)}</span>
-                <small>${esc(one.note)}${one.module
-                    ? `${one.note ? " · " : ""}only with ${esc(one.module)}` : ""}</small>
+                <small>${esc(one.note)}${needs}</small>
             </span>
             ${one.editable
                 ? `<button class="ghost small" data-edit-include="${esc(one.file)}">Edit</button>`
                 : ""}
         </div>
-    `).join("") || `<div class="empty">httpd.conf includes no other files.</div>`;
+    `;
+    }).join("") || `<div class="empty">httpd.conf includes no other files.</div>`;
     markColumnEnds(document.getElementById("apache-configs-pane"));
 }
 
@@ -84,12 +108,13 @@ async function toggleInclude(event, input) {
     if (!enabled && input.dataset.include === state.files.vhosts) {
         event.preventDefault();
 
-        if (!await ask({
+        const sure = await ask({
             title  : "Turn off the vhosts?",
             text   : "Every site in them stops answering by its name.",
             ok     : "Turn them off",
             danger : true,
-        })) {
+        });
+        if (!sure) {
             return;
         }
 

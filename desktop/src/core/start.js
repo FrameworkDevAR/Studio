@@ -64,13 +64,27 @@ document.addEventListener("pointerdown", (event) => {
     if (row && !(menuClick && row.classList.contains("selected"))) {
         // ⌘ (Ctrl elsewhere) adds a row to the ones marked or takes it out, and ⇧ marks all up
         // to it.
-        pickRow(row, menuClick ? ""
-            : (IS_MAC ? event.metaKey : event.ctrlKey) ? "toggle"
-                : event.shiftKey ? "range"
-                    : "");
+        let mode = /** @type {"" | "toggle" | "range"} */ ("");
+        if (!menuClick) {
+            const adds = IS_MAC ? event.metaKey : event.ctrlKey;
+            if (adds) {
+                mode = "toggle";
+            } else if (event.shiftKey) {
+                mode = "range";
+            }
+        }
+
+        pickRow(row, mode);
     }
 
-    focusKeys(target.closest(".browse-aside") ? "list" : grid ? grid.id : "");
+    let keys = "";
+    if (target.closest(".browse-aside")) {
+        keys = "list";
+    } else if (grid) {
+        keys = grid.id;
+    }
+
+    focusKeys(keys);
 });
 // Tabbing into the list's filter gives the list the keys, and into another field, takes them.
 document.addEventListener("focusin", (event) => {

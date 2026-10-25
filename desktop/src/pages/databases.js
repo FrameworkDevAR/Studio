@@ -239,7 +239,10 @@ let charsetList = null;
  * @returns {Promise<DbPageCharset[]>}
  */
 async function loadCharsets() {
-    charsetList = charsetList || await api("/api/charsets");
+    if (!charsetList) {
+        charsetList = await api("/api/charsets");
+    }
+
     return charsetList;
 }
 
@@ -264,7 +267,19 @@ async function openDatabaseDialog(name = "") {
     const db       = databases.list.find((one) => one.name === name);
     const accounts = state.databases.users.filter((user) => !user.admin);
     const charset  = db?.charset || databases.charset;
-    const body     = `
+
+    let convertField = "";
+    if (db?.tables) {
+        convertField = `
+            <label class="check" id="db-convert" hidden>
+                <input type="checkbox" class="box" name="convert">
+                <span>Convert its ${db.tables === 1 ? "table" : `${db.tables} tables`}
+                    too<small>MariaDB gives the new encoding to new tables only</small></span>
+            </label>
+        `;
+    }
+
+    const body = `
         <label class="form-row">
             <span>Name</span>
             <input name="name" value="${esc(name)}"
@@ -284,13 +299,7 @@ async function openDatabaseDialog(name = "") {
                 <span class="field select"><select name="collation"></select></span>
             </label>
         </div>
-        ${db?.tables ? `
-            <label class="check" id="db-convert" hidden>
-                <input type="checkbox" class="box" name="convert">
-                <span>Convert its ${db.tables === 1 ? "table" : `${db.tables} tables`}
-                    too<small>MariaDB gives the new encoding to new tables only</small></span>
-            </label>
-        ` : ""}
+        ${convertField}
         ${db ? databaseUsersField(db, accounts) : newUserField(accounts)}
     `;
 
@@ -319,18 +328,25 @@ async function openDatabaseDialog(name = "") {
 
             const mode = /** @type {HTMLElement} */ (form.querySelector("[data-user-mode].active"))
                 ?.dataset.userMode || "none";
+
+            let user = null;
+            if (mode === "new") {
+                user = {
+                    mode,
+                    name     : data.get("user"),
+                    host     : data.get("host"),
+                    password : data.get("password"),
+                };
+            } else if (mode === "existing") {
+                user = { mode, account : data.get("account") };
+            }
+
             return api("/api/action", {
                 action    : "db-create",
                 name      : data.get("name"),
                 charset   : set,
                 collation : sort,
-                user      : mode === "new" ? {
-                    mode,
-                    name     : data.get("user"),
-                    host     : data.get("host"),
-                    password : data.get("password"),
-                }
-                    : mode === "existing" ? { mode, account : data.get("account") } : null,
+                user,
             });
         },
     });
@@ -347,6 +363,14 @@ async function openDatabaseDialog(name = "") {
 function databaseUsersField(db, accounts) {
     const some = accounts.filter((user) => !user.all);
     const all  = accounts.filter((user) => user.all);
+
+    let others = "";
+    if (some.length && all.length) {
+        others = `<small class="form-note">${all.length === 1
+            ? `${esc(all[0].name)} reaches` : `${all.length} more users reach`} every database,
+            this one among them.</small>`;
+    }
+
     return `
         <div class="form-row">
             <span>Users</span>
@@ -363,9 +387,7 @@ function databaseUsersField(db, accounts) {
                 </div>
             ` : `<small class="form-note">Every user reaches all databases, this one among them.
                 Give one only some in Users, and it can be ticked here.</small>`}
-            ${some.length && all.length ? `<small class="form-note">${all.length === 1
-                ? `${esc(all[0].name)} reaches` : `${all.length} more users reach`} every database,
-                this one among them.</small>` : ""}
+            ${others}
         </div>
     `;
 }
@@ -481,12 +503,16 @@ async function dropDatabase(name) {
     const db    = state.databases.list.find((one) => one.name === name);
     const users = db.users.filter((key) => !state.databases.users
         .find((user) => `${user.name}@${user.host}` === key)?.admin);
-    const sure  = await ask({
+
+    let text = "It has no tables.";
+    if (db.tables) {
+        text = `Its ${db.tables === 1 ? "table"
+            : `${db.tables} tables`}, ${bytes(db.size)}, are gone for good.`;
+    }
+
+    const sure = await ask({
         title  : `Drop ${name}?`,
-        text   : db.tables
-            ? `Its ${db.tables === 1 ? "table"
-                : `${db.tables} tables`}, ${bytes(db.size)}, are gone for good.`
-            : "It has no tables.",
+        text,
         body   : users.length ? `
             <div class="form-row">
                 <span>Drop these users too</span>

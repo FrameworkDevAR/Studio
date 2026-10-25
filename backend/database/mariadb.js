@@ -92,15 +92,24 @@ async function readMariadb() {
     const option = (key) => {
         const known = variables[key];
         const from  = others[key];
-        const base  = from ? displayValue(key, from.value, known)
-            : known ? displayValue(key, known.defaultValue, known)
-                : "";
+
+        let base = "";
+        if (from) {
+            base = displayValue(key, from.value, known);
+        } else if (known) {
+            base = displayValue(key, known.defaultValue, known);
+        }
+
+        let value = "";
+        if (key in own) {
+            value = displayValue(key, own[key], known);
+        } else if (known) {
+            value = displayValue(key, known.value, known);
+        }
 
         return {
             key,
-            value    : key in own ? displayValue(key, own[key], known)
-                : known ? displayValue(key, known.value, known)
-                    : "",
+            value,
             inFile   : key in own,
             known    : Boolean(known),
             options  : optionsOf(key, known, variables),
@@ -268,7 +277,9 @@ function displayValue(key, value, known) {
 function ownerOf(key) {
     /** @type {[ RegExp, string ][]} */
     const groups = [
-        [ /^innodb_/, "InnoDB" ], [ /^aria_/, "Aria" ], [ /^myisam_|^key_/, "MyISAM" ],
+        [ /^innodb_/, "InnoDB" ],
+        [ /^aria_/, "Aria" ],
+        [ /^myisam_|^key_/, "MyISAM" ],
         [ /^performance_schema/, "Performance schema" ],
         [ /^(character_set|collation)_/, "Encoding" ],
         [ /^query_cache/, "Query cache" ],
@@ -302,7 +313,8 @@ async function setOptions(changes) {
         throw new Error("Nothing to save");
     }
 
-    const variables = await readVariables() || {};
+    const current   = await readVariables();
+    const variables = current || {};
     let   text      = readFile(MYSQL_CNF);
 
     for (const { key, value, remove } of list) {
@@ -313,9 +325,17 @@ async function setOptions(changes) {
     }
 
     const live = list.every(({ key, remove }) => !remove && variables[key]?.dynamic);
-    const said = list.length > 1 ? `${list.length} changes saved`
-        : list[0].remove ? `${list[0].key} taken out` : `${list[0].key} set to ${list[0].value}`;
-    return { message : `${said}. ${await writeOptions(text, live ? list : null)}` };
+
+    let said;
+    if (list.length > 1) {
+        said = `${list.length} changes saved`;
+    } else if (list[0].remove) {
+        said = `${list[0].key} taken out`;
+    } else {
+        said = `${list[0].key} set to ${list[0].value}`;
+    }
+    const outcome = await writeOptions(text, live ? list : null);
+    return { message : `${said}. ${outcome}` };
 }
 
 /**
@@ -329,10 +349,9 @@ async function saveOptionsFile(text) {
         throw new Error("No text to save");
     }
 
+    const outcome = await writeOptions(text.replace(/\r\n/g, "\n"), null);
     return {
-        message : `Saved ${path.basename(MYSQL_CNF)}. ${
-            await writeOptions(text.replace(/\r\n/g, "\n"), null)
-        }`,
+        message : `Saved ${path.basename(MYSQL_CNF)}. ${outcome}`,
     };
 }
 
@@ -449,7 +468,8 @@ async function writeOptions(text, live) {
     forgetDatabases();
     await serviceAction("mariadb", "restart");
 
-    if (await answers()) {
+    const back = await answers();
+    if (back) {
         return "MariaDB restarted";
     }
 
@@ -490,7 +510,8 @@ function writeFile(text, before) {
  */
 async function answers() {
     for (let tries = 0; tries < 40; tries++) {
-        if ((await run("mariadb", [ "-N", "-B", "-e", "SELECT 1" ], 5_000)).ok) {
+        const result = await run("mariadb", [ "-N", "-B", "-e", "SELECT 1" ], 5_000);
+        if (result.ok) {
             return true;
         }
         await new Promise((resolve) => setTimeout(resolve, 500));

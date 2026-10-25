@@ -25,14 +25,16 @@ async function changeTable({ db, table, engine, charset, collation, convert, com
     const specs     = [];
 
     if (engine) {
-        if (!(await readEngines()).some((one) => one.name === engine)) {
+        const engines = await readEngines();
+        if (!engines.some((one) => one.name === engine)) {
             throw new Error(`MariaDB has no engine ${engine}`);
         }
         specs.push(`ENGINE = ${engine}`);
     }
 
     if (charset) {
-        const set = (await readCharsets()).find((one) => one.name === charset);
+        const charsets = await readCharsets();
+        const set      = charsets.find((one) => one.name === charset);
         if (!set || (collation && !set.collations.includes(collation))) {
             throw new Error(`MariaDB has no encoding ${charset}${
                 collation ? ` with ${collation}` : ""
@@ -95,7 +97,8 @@ function tableName(name) {
  * @returns {Promise<{ db: string, table: string, view: boolean, target: string }>}
  */
 async function kindOf(db, table) {
-    ({ db, table } = await existingTable(db, table));
+    const existing = await existingTable(db, table);
+    ({ db, table } = existing);
     const [ set ] = await query(`SELECT TABLE_TYPE FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = ${quote(db)} AND TABLE_NAME = ${quote(table)};`);
 
@@ -145,21 +148,24 @@ async function createTable({
     db   = await existingDatabase(db);
     name = tableName(name);
 
-    const specs = [ await columnSql(column || {}) ];
+    const definition = await columnSql(column || {});
+    const specs      = [ definition ];
     if (primary) {
         specs.push(`PRIMARY KEY (${ident(column.name)})`);
     }
 
     const options = [];
     if (engine) {
-        if (!(await readEngines()).some((one) => one.name === engine)) {
+        const engines = await readEngines();
+        if (!engines.some((one) => one.name === engine)) {
             throw new Error(`MariaDB has no engine ${engine}`);
         }
         options.push(`ENGINE = ${engine}`);
     }
 
     if (collation) {
-        const set = (await readCharsets()).find((one) => one.collations.includes(collation));
+        const charsets = await readCharsets();
+        const set      = charsets.find((one) => one.collations.includes(collation));
         if (!set) {
             throw new Error(`MariaDB has no collation ${collation}`);
         }

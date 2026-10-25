@@ -57,6 +57,9 @@ the apps and servers of each project. See the README.
 - Function bodies read as steps, with a blank line between them: after the opening
   declarations, around a multi-line `if` or loop, before a final `return`. Never split
   an aligned run, or a comment from its code.
+- Never a ternary inside a ternary: use `if / else`, or a small named function.
+- An `await` stands on its own: `const apps = await readApps();`, then use the result.
+  Not `(await readApps()).apps`, nor an `await` behind `&&`, `||` or `? :`.
 - A module's `module.exports` comes after three blank lines and `// The public API`.
 - Keep names plain and one word where possible, like the user's other projects
   (Framework, Runner, Diff, JSON).

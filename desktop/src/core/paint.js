@@ -79,11 +79,15 @@ function paintIni(text) {
         }
 
         const [ , lead, key, equals, value, comment = "" ] = found;
-        const kind = /^".*"?$/.test(value) ? "code-string"
-            : /^-?\d+[KMGkmg]?$/.test(value) ? "code-number"
-            : /^(On|Off|True|False|Yes|No|None|Null)$/i.test(value)
-                || /^[~(!]*E_[A-Z_]+/.test(value) ? "code-word"
-            : "";
+        let kind = "";
+        if (/^".*"?$/.test(value)) {
+            kind = "code-string";
+        } else if (/^-?\d+[KMGkmg]?$/.test(value)) {
+            kind = "code-number";
+        } else if (/^(On|Off|True|False|Yes|No|None|Null)$/i.test(value)
+            || /^[~(!]*E_[A-Z_]+/.test(value)) {
+            kind = "code-word";
+        }
 
         return `${lead}<span class="code-key">${escapeCode(key)}</span><span
             class="code-mark">${escapeCode(equals)}</span>`
@@ -161,9 +165,12 @@ function paintMarkup(text) {
         const [ , open, name, rest ] = part.match(/^(<[/?!]?)([^\s<>/?]+)([\s\S]*)$/);
         const close = rest.match(/[/?]?>$/)?.[0] || "";
         const attrs = rest.slice(0, rest.length - close.length)
-            .replace(/("[^"]*"?|'[^']*'?)|([^\s="']+)|[\s\S]/g, (all, quoted, word) => (quoted
-                ? `<span class="code-string">${escapeCode(all)}</span>`
-                : word ? `<span class="code-key">${escapeCode(all)}</span>` : escapeCode(all)));
+            .replace(/("[^"]*"?|'[^']*'?)|([^\s="']+)|[\s\S]/g, (all, quoted, word) => {
+                if (quoted) {
+                    return `<span class="code-string">${escapeCode(all)}</span>`;
+                }
+                return word ? `<span class="code-key">${escapeCode(all)}</span>` : escapeCode(all);
+            });
 
         result += `<span class="code-mark">${escapeCode(open)}</span><span
             class="code-word">${escapeCode(name)}</span>${attrs}<span

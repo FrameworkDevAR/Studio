@@ -74,10 +74,15 @@ async function serviceAction(formula, op) {
     }
 
     forgetDatabases();
+
+    let done = "restarted";
+    if (op === "stop") {
+        done = "stopped";
+    } else if (op === "start") {
+        done = "started";
+    }
     return {
-        message : `${service.name} ${op === "stop" ? "stopped"
-            : op === "start" ? "started"
-                : "restarted"}`,
+        message : `${service.name} ${done}`,
     };
 }
 

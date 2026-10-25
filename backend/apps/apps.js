@@ -51,6 +51,7 @@ async function readApps() {
  * 15s, since the page asks every 5s and branches rarely change.
  */
 let branchCache = { at : 0, data : {} };
+
 /**
  * The branch of each project's folder, by project, read with git.
  * @param {StudioApp[]} apps
@@ -82,7 +83,8 @@ async function readBranches(apps) {
  * @returns {Promise<{ message: string }>}
  */
 async function startApp(dir) {
-    const app = (await readApps()).apps.find((one) => one.dir === dir);
+    const { apps } = await readApps();
+    const app      = apps.find((one) => one.dir === dir);
     if (!app) {
         throw new Error("Unknown app");
     }
@@ -100,7 +102,8 @@ async function startApp(dir) {
  * @returns {Promise<{ message: string }>}
  */
 async function stopApp(dir) {
-    const app = (await readApps()).apps.find((one) => one.dir === dir);
+    const { apps } = await readApps();
+    const app      = apps.find((one) => one.dir === dir);
     if (!app || !app.pid) {
         throw new Error("That app is not running");
     }
@@ -152,7 +155,8 @@ async function startGroup(group) {
  * @returns {Promise<{ message: string }>}
  */
 async function startServer(id) {
-    const server = (await readApps()).servers.find((one) => one.id === id);
+    const { servers } = await readApps();
+    const server      = servers.find((one) => one.id === id);
     if (!server) {
         throw new Error("Unknown server");
     }
@@ -170,7 +174,8 @@ async function startServer(id) {
  * @returns {Promise<{ message: string }>}
  */
 async function stopServer(id) {
-    const server = (await readApps()).servers.find((one) => one.id === id);
+    const { servers } = await readApps();
+    const server      = servers.find((one) => one.id === id);
     if (!server || !server.pid) {
         throw new Error("That server is not running");
     }

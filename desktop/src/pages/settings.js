@@ -187,20 +187,34 @@ function settingRow(setting, scope) {
     const base   = setting.known === false ? "" : String(setting.base ?? "");
     const shown  = base === "" ? "empty" : base;
     const preset = setting.baseFrom === "default";
-    const origin = inFile
-        ? setting.known === false
-            ? unknown
-            : preset ? `${who}'s default is ${shown}` : `${setting.baseFrom} has ${shown}`
-        : preset ? `${who}'s default` : `From ${setting.baseFrom}`;
-    const hint   = [ SETTING_HINTS[setting.key], origin ].filter(Boolean).map(esc).join(" · ");
-    const undo   = inFile ? `
-        <button class="icon-btn unset" data-unset
-            title="Remove the override${setting.known === false ? "" : `: back to ${esc(shown)}`}"
-            aria-label="Remove the override">
-            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
-        </button>
-    ` : "";
-    const from   = setting.known === false ? "" : preset ? `${who}'s default` : setting.baseFrom;
+
+    let origin;
+    if (inFile && setting.known === false) {
+        origin = unknown;
+    } else if (inFile) {
+        origin = preset ? `${who}'s default is ${shown}` : `${setting.baseFrom} has ${shown}`;
+    } else {
+        origin = preset ? `${who}'s default` : `From ${setting.baseFrom}`;
+    }
+
+    const hint = [ SETTING_HINTS[setting.key], origin ].filter(Boolean).map(esc).join(" · ");
+
+    let undo = "";
+    if (inFile) {
+        undo = `
+            <button class="icon-btn unset" data-unset
+                title="Remove the override${
+                    setting.known === false ? "" : `: back to ${esc(shown)}`}"
+                aria-label="Remove the override">
+                <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        `;
+    }
+
+    let from = "";
+    if (setting.known !== false) {
+        from = preset ? `${who}'s default` : setting.baseFrom;
+    }
 
     return `
         <div class="setting ${inFile ? "set" : ""}
@@ -351,9 +365,13 @@ function showSettingChanges(scope) {
 
     document.getElementById(`${id}-list`).innerHTML = rows.map((row) => {
         const { key, value, base, from } = row.dataset;
-        const to = row.classList.contains("removing")
-            ? from ? `${esc(base || "empty")} <i>from ${esc(from)}</i>` : "<i>removed</i>"
-            : esc(fieldValue(row) || "empty");
+        let to;
+        if (row.classList.contains("removing")) {
+            to = from ? `${esc(base || "empty")} <i>from ${esc(from)}</i>` : "<i>removed</i>";
+        } else {
+            to = esc(fieldValue(row) || "empty");
+        }
+
         return `<span class="change"><code>${esc(key)}</code> ${esc(value || "empty")}
             <b>→ ${to}</b></span>`;
     }).join("");
@@ -526,7 +544,12 @@ function byOwner(settings, scope) {
         groups.set(title, [ ...groups.get(title) || [], one ]);
     }
 
-    const rank = (title) => (title === first ? 0 : title === stranger ? 2 : 1);
+    const rank = (title) => {
+        if (title === first) {
+            return 0;
+        }
+        return title === stranger ? 2 : 1;
+    };
     return [ ...groups ]
         .map(([ title, rows ]) => ({ title, rows }))
         .sort((a, b) => rank(a.title) - rank(b.title)
@@ -546,16 +569,27 @@ function choosePick(key) {
     const { noun, site, lookup } = SETTING_SCOPES[pick.scope];
     pick.key     = one ? key : "";
 
-    document.getElementById("pick-key").innerHTML = one
-        ? `<a href="${esc(lookup(key))}" target="_blank" rel="noopener"
-            title="Look it up on ${site}">${esc(key)}</a>`
-        : `Pick ${noun === "option" ? "an option" : "a setting"}`;
+    let keyHtml;
+    if (one) {
+        keyHtml = `<a href="${esc(lookup(key))}" target="_blank" rel="noopener"
+            title="Look it up on ${site}">${esc(key)}</a>`;
+    } else {
+        keyHtml = `Pick ${noun === "option" ? "an option" : "a setting"}`;
+    }
+
+    document.getElementById("pick-key").innerHTML = keyHtml;
+
     value.innerHTML = one
         ? settingField(one)
         : `<span class="field"><input disabled></span>`;
 
-    button.disabled    = !one;
-    button.textContent = pick.inEditor ? "Insert" : one?.inFile ? "Change" : "Add";
+    button.disabled = !one;
+    if (pick.inEditor) {
+        button.textContent = "Insert";
+    } else {
+        button.textContent = one?.inFile ? "Change" : "Add";
+    }
+
     setPickStatus("");
 
     for (const row of /** @type {NodeListOf<HTMLElement>} */ (

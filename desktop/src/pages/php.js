@@ -50,17 +50,24 @@ function renderPhpText() {
 function renderPhpProblems() {
     const { php } = state;
     const box     = document.getElementById("php-problem");
-    const missing = php.missing.map((ext) => `
+    const missing = php.missing.map((ext) => {
+        let rebuild = "";
+        if (ext.pecl) {
+            rebuild = `<button class="small" data-pecl-rebuild="${esc(ext.name)}"
+                ${updating.has(`pecl:${ext.name}`) ? "disabled" : ""}>${
+                    updating.has(`pecl:${ext.name}`) ? "Building…" : "Build again"
+                }</button>`;
+        }
+
+        return `
         <div class="problem-line">
             <span><b>${esc(ext.name)}</b> is not loaded. ${ext.pecl
                 ? "It was built for another PHP version, or its file is gone."
                 : "php.ini asks for it, but pecl did not install it."}</span>
-            ${ext.pecl ? `<button class="small" data-pecl-rebuild="${esc(ext.name)}"
-                ${updating.has(`pecl:${ext.name}`) ? "disabled" : ""}>${
-                    updating.has(`pecl:${ext.name}`) ? "Building…" : "Build again"
-                }</button>` : ""}
+            ${rebuild}
         </div>
-    `);
+    `;
+    });
 
     // Each failed extension also has a warning, said already by its line.
     const names    = php.missing.map((ext) => ext.name);
@@ -101,14 +108,19 @@ function renderExtensions() {
 
     document.getElementById("ext-count").textContent       = String(php.extensions.length);
     document.getElementById("ext-panel-count").textContent = String(php.extensions.length);
-    document.getElementById("pecl-outdated").innerHTML = !added.some((ext) => ext.pecl)
-        ? ""
-        : !php.checked
-            ? "Checking for updates…"
-            : behind
-                ? `<b>${behind} outdated</b> <button data-pecl-update-all>${isUpdating("pecl")
-                    ? "Updating…" : "Update extensions"}</button>`
-                : "All up to date";
+
+    let outdated;
+    if (!added.some((ext) => ext.pecl)) {
+        outdated = "";
+    } else if (!php.checked) {
+        outdated = "Checking for updates…";
+    } else if (behind) {
+        outdated = `<b>${behind} outdated</b> <button data-pecl-update-all>${isUpdating("pecl")
+            ? "Updating…" : "Update extensions"}</button>`;
+    } else {
+        outdated = "All up to date";
+    }
+    document.getElementById("pecl-outdated").innerHTML = outdated;
 
     // The ones being installed, from the dialog, open or closed, until PHP
     // loads them, in their places among the others.
@@ -125,30 +137,40 @@ function renderExtensions() {
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity : "base" }));
     const others   = builtIn.filter(matches);
 
-    document.getElementById("php-extensions").innerHTML = !rows.length && !others.length
-        ? `<div class="pkg-none">No extensions match “${esc(filter)}”.</div>`
-        : [
-        rows.length ? `<div class="pkg-list wide">${rows.map((ext) => (ext.building ? packageRow({
-            name    : ext.name,
-            url     : `https://pecl.php.net/package/${ext.name}`,
-            tag     : "pecl",
-            size    : 0,
-            version : "Building…",
-            actions : `<span class="pkg-building" title="Being built and installed"
-                aria-label="Building"></span>`,
-        }) : packageRow({
-            name    : ext.name,
-            url     : ext.pecl ? `https://pecl.php.net/package/${ext.name}` : "",
-            tag     : ext.pecl ? "pecl" : "added",
-            size    : ext.size,
-            version : ext.version,
-            latest  : ext.latest,
-            actions : extensionButtons(ext),
-        }))).join("")}</div>` : "",
-        others.length ? `<div class="pkg-list">${others
-            .map((ext) => packageRow({ name : ext.name, tag : "", actions : null }))
-            .join("")}</div>` : "",
+    let list;
+    if (!rows.length && !others.length) {
+        list = `<div class="pkg-none">No extensions match “${esc(filter)}”.</div>`;
+    } else {
+        list = [
+            rows.length ? `<div class="pkg-list wide">${rows.map((ext) => {
+                if (ext.building) {
+                    return packageRow({
+                        name    : ext.name,
+                        url     : `https://pecl.php.net/package/${ext.name}`,
+                        tag     : "pecl",
+                        size    : 0,
+                        version : "Building…",
+                        actions : `<span class="pkg-building" title="Being built and installed"
+                            aria-label="Building"></span>`,
+                    });
+                }
+
+                return packageRow({
+                    name    : ext.name,
+                    url     : ext.pecl ? `https://pecl.php.net/package/${ext.name}` : "",
+                    tag     : ext.pecl ? "pecl" : "added",
+                    size    : ext.size,
+                    version : ext.version,
+                    latest  : ext.latest,
+                    actions : extensionButtons(ext),
+                });
+            }).join("")}</div>` : "",
+            others.length ? `<div class="pkg-list">${others
+                .map((ext) => packageRow({ name : ext.name, tag : "", actions : null }))
+                .join("")}</div>` : "",
         ].join("");
+    }
+    document.getElementById("php-extensions").innerHTML = list;
     markColumnEnds(document.getElementById("php-extensions"));
 }
 
@@ -167,14 +189,19 @@ function extensionButtons(ext) {
     const busy     = updating.has(`pecl:${id}`);
     const removing = updating.has(`pecl-remove:${id}`);
 
-    return `
-        ${ext.latest ? `
+    let update = "";
+    if (ext.latest) {
+        update = `
             <button class="icon-btn update ${busy ? "busy" : ""}" title="Update to the newest"
                 aria-label="Update ${esc(ext.name)}" data-pecl-update="${esc(id)}"
                 ${busy ? "disabled" : ""}>
                 <svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
             </button>
-        ` : ""}
+        `;
+    }
+
+    return `
+        ${update}
         <button class="icon-btn remove ${removing ? "busy" : ""}" title="Uninstall"
             aria-label="Uninstall ${esc(ext.name)}" data-pecl-remove="${esc(id)}"
             ${removing ? "disabled" : ""}>
@@ -190,12 +217,13 @@ function extensionButtons(ext) {
  * @returns {Promise<void>}
  */
 async function uninstallExtension(name) {
-    if (!await ask({
+    const sure = await ask({
         title  : `Uninstall ${name}?`,
         text   : "Its file and its line in php.ini go, and Apache reloads without it.",
         ok     : "Uninstall",
         danger : true,
-    })) {
+    });
+    if (!sure) {
         return;
     }
 
@@ -293,10 +321,18 @@ function renderPeclList(loading = false, failed = "") {
     const box = document.getElementById("pecl-list");
 
     if (failed || loading || !peclFound.length) {
-        const text = failed || (loading ? "Searching…"
-            : peclAsked.length >= 2 ? `No extensions match “${esc(peclAsked)}”.`
-                : "Search PECL for an extension to build and add to PHP. " +
-                    "Most others are part of PHP already.");
+        let text;
+        if (failed) {
+            text = failed;
+        } else if (loading) {
+            text = "Searching…";
+        } else if (peclAsked.length >= 2) {
+            text = `No extensions match “${esc(peclAsked)}”.`;
+        } else {
+            text = "Search PECL for an extension to build and add to PHP. " +
+                "Most others are part of PHP already.";
+        }
+
         box.innerHTML = `<div class="npm-empty">${text}</div>`;
         return;
     }
@@ -304,6 +340,22 @@ function renderPeclList(loading = false, failed = "") {
     const minor = (state.php.version || "").split(".").slice(0, 2).join(".");
     box.innerHTML = peclFound.map((ext) => {
         const years = ext.date ? (Date.now() - Date.parse(ext.date)) / (365 * 86_400_000) : 0;
+
+        let release;
+        if (ext.version) {
+            release = `latest <b>${esc(ext.version)}</b>${ext.stable ? ""
+                : ` <span class="tag amber">beta</span>`}`;
+        } else {
+            release = "no releases";
+        }
+
+        let age = "";
+        if (ext.date) {
+            age = `${ago(ext.date)}${years > 3 ? ` <span class="tag amber"
+                title="Old extensions often do not build on new PHP versions">may
+                not build on PHP ${esc(minor)}</span>` : ""}`;
+        }
+
         return `
             <div class="npm-item">
                 <div class="npm-item-body">
@@ -312,13 +364,8 @@ function renderPeclList(loading = false, failed = "") {
                     ${ext.summary ? `<p>${esc(ext.summary)}</p>` : ""}
                     <div class="npm-meta">
                         ${[
-                            ext.version
-                                ? `latest <b>${esc(ext.version)}</b>${ext.stable ? ""
-                                    : ` <span class="tag amber">beta</span>`}`
-                                : "no releases",
-                            ext.date ? `${ago(ext.date)}${years > 3 ? ` <span class="tag amber"
-                                title="Old extensions often do not build on new PHP versions">may
-                                not build on PHP ${esc(minor)}</span>` : ""}` : "",
+                            release,
+                            age,
                             ext.license ? esc(ext.license) : "",
                         ].filter(Boolean).join(`<i class="sep">·</i>`)}
                     </div>
@@ -357,14 +404,19 @@ function peclActions(ext) {
     const busy     = updating.has(`pecl:${id}`);
     const removing = updating.has(`pecl-remove:${id}`);
 
+    let update = "";
+    if (newer) {
+        update = `<button class="small" data-pecl-update="${esc(id)}"
+            ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>`;
+    }
+
     return `
         <div class="npm-actions">
             <span class="npm-here">Installed <b>${esc(mine.version)}</b>${newer
                 ? `<span class="pkg-latest">→ ${esc(ext.version)}</span>`
                 : " · newest"}</span>
             <span class="npm-buttons">
-                ${newer ? `<button class="small" data-pecl-update="${esc(id)}"
-                    ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>` : ""}
+                ${update}
                 <button class="small danger" data-pecl-remove="${esc(id)}"
                     ${removing ? "disabled" : ""}>${removing ? "Removing…" : "Uninstall"}</button>
             </span>

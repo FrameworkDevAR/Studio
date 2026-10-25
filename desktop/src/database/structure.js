@@ -49,6 +49,19 @@ async function loadStructure() {
 
     browse.structure = structure;
     const view = browse.tables.find((one) => one.name === structure.table)?.view;
+
+    // A foreign key is added from the indexes' head while the table has none, if it is InnoDB.
+    let foreignAdd = "";
+    if (!view && !structure.foreign.length
+        && browse.tables.find((one) => one.name === structure.table)?.engine === "InnoDB") {
+        foreignAdd = `<button class="ghost small" data-fk-add>Add foreign key</button>`;
+    }
+
+    let foreignButton = "";
+    if (structure.foreign.length && !view) {
+        foreignButton = `<button class="ghost small" data-fk-add>Add foreign key</button>`;
+    }
+
     box.innerHTML = `
         <div class="panel structure-columns">
             <div class="panel-head">
@@ -75,11 +88,7 @@ async function loadStructure() {
             <div class="panel-head">
                 <h2>Indexes <span class="muted">${structure.indexes.length}</span></h2>
                 ${view ? "" : `<div class="head-tools">
-                    ${structure.foreign.length
-                        || browse.tables.find((one) => one.name === structure.table)?.engine
-                            !== "InnoDB"
-                        ? ""
-                        : `<button class="ghost small" data-fk-add>Add foreign key</button>`}
+                    ${foreignAdd}
                     <button class="ghost small" data-index-add>Add index</button>
                 </div>`}
             </div>
@@ -87,9 +96,7 @@ async function loadStructure() {
                 <div class="structure-line">
                     <code>${esc(index.name)}</code>
                     <span>${index.columns.map(esc).join(", ")}</span>
-                    <span class="tag">${index.name === "PRIMARY" ? "primary"
-                        : index.unique ? "unique"
-                            : index.type.toLowerCase()}</span>
+                    <span class="tag">${structureIndexTag(index)}</span>
                     <button class="icon-btn remove" data-index-drop="${esc(index.name)}"
                         title="Drop it" aria-label="Drop the index ${esc(index.name)}"><svg
                         viewBox="0 0 24 24"><path
@@ -100,7 +107,7 @@ async function loadStructure() {
         ${structure.foreign.length ? `<div class="panel structure-indexes">
             <div class="panel-head">
                 <h2>Foreign keys <span class="muted">${structure.foreign.length}</span></h2>
-                ${view ? "" : `<button class="ghost small" data-fk-add>Add foreign key</button>`}
+                ${foreignButton}
             </div>
             <div class="index-list">${structure.foreign.map((key) => `
                 <div class="structure-line fk-line" data-fk-edit="${esc(key.name)}"
@@ -133,6 +140,21 @@ async function loadStructure() {
     renderStructureColumns();
     box.querySelectorAll(".grid-scroll, .index-list")
         .forEach((one) => watchFades(/** @type {HTMLElement} */ (one)));
+}
+
+/**
+ * The tag an index shows in the structure: primary, unique, or its type.
+ * @param {{ name: string, unique: boolean, type: string }} index
+ * @returns {string}
+ */
+function structureIndexTag(index) {
+    if (index.name === "PRIMARY") {
+        return "primary";
+    }
+    if (index.unique) {
+        return "unique";
+    }
+    return index.type.toLowerCase();
 }
 
 /**
@@ -494,12 +516,13 @@ async function dropForeignKey(name) {
     }
 
     try {
-        toast((await api("/api/action", {
+        const { message } = await api("/api/action", {
             action : "db-fk-drop",
             db     : browse.db,
             table  : browse.table,
             name,
-        })).message);
+        });
+        toast(message);
     } catch (error) {
         toast(error.message, true);
         return false;
@@ -595,8 +618,14 @@ function renderStructureColumns() {
  */
 function defaultCell(column) {
     const { kind, value } = column.value;
-    return kind === "none" ? `<span class="null">none</span>`
-        : kind === "null" ? `<span class="null">NULL</span>`
-            : kind === "virtual" || kind === "stored" ? `<span class="null">as</span> ${esc(value)}`
-                : value === "" ? `<span class="null">empty</span>` : esc(value);
+    if (kind === "none") {
+        return `<span class="null">none</span>`;
+    }
+    if (kind === "null") {
+        return `<span class="null">NULL</span>`;
+    }
+    if (kind === "virtual" || kind === "stored") {
+        return `<span class="null">as</span> ${esc(value)}`;
+    }
+    return value === "" ? `<span class="null">empty</span>` : esc(value);
 }

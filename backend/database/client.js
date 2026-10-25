@@ -7,12 +7,13 @@ const { PATH, run } = require("../core/system");
 const { readDatabases, forgetDatabases, quote } = require("./databases");
 
 
-// ----------------------------------------------------------------- helpers ---
 
 /**
  * A result set of the client: its statement, its column names, and its rows, null for NULL.
  * @typedef {{ statement: string, columns: string[], rows: string[][] }} ResultSet
  */
+
+
 
 /**
  * Runs SQL in the mariadb client, given on stdin, and reads every result
@@ -28,9 +29,12 @@ async function query(sql, db = "", timeout = 30_000) {
     const result = await run("mariadb", [ "--xml", ...(db ? [ "-D", db ] : []) ], timeout, sql);
     if (!result.ok) {
         const said = result.stderr.match(/^ERROR \d+ \([\w]+\)( at line \d+)?: (.*)$/m);
-        throw new Error(said
-            ? `${said[2]}${said[1] && sql.includes("\n") ? ` (${said[1].trim()})` : ""}`
-            : result.stderr.trim() || "MariaDB did not answer");
+        if (!said) {
+            throw new Error(result.stderr.trim() || "MariaDB did not answer");
+        }
+
+        const line = said[1] && sql.includes("\n") ? ` (${said[1].trim()})` : "";
+        throw new Error(`${said[2]}${line}`);
     }
 
     return parseResults(result.stdout);
@@ -103,7 +107,8 @@ async function existingDatabase(name) {
     let { list } = await readDatabases();
     if (!list.some((db) => db.name === name)) {
         forgetDatabases();
-        ({ list } = await readDatabases());
+        const again = await readDatabases();
+        list = again.list;
     }
 
     if (!list.some((db) => db.name === name)) {

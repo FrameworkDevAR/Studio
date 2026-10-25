@@ -51,13 +51,26 @@ async function loadLog(jumpToEnd = false) {
         .filter((entry) => !query || entry.raw.toLowerCase().includes(query));
 
     renderLogMeta();
-    document.getElementById("log-matches").textContent = query
-        ? `${entries.length} match${entries.length === 1 ? "" : "es"}` : "";
-    box.innerHTML = entries.length
-        ? renderLogEntries(entries)
-        : `<div class="log-empty">${query ? `Nothing matches “${esc(query)}”.`
-            : errors ? "No errors or warnings."
-                : "Nothing here."}</div>`;
+
+    let matches = "";
+    if (query) {
+        matches = `${entries.length} match${entries.length === 1 ? "" : "es"}`;
+    }
+
+    document.getElementById("log-matches").textContent = matches;
+
+    if (entries.length) {
+        box.innerHTML = renderLogEntries(entries);
+    } else {
+        let empty = "Nothing here.";
+        if (query) {
+            empty = `Nothing matches “${esc(query)}”.`;
+        } else if (errors) {
+            empty = "No errors or warnings.";
+        }
+
+        box.innerHTML = `<div class="log-empty">${empty}</div>`;
+    }
 
     for (const details of box.querySelectorAll("details")) {
         details.open = opened.has(details.dataset.key);
@@ -284,12 +297,26 @@ function parseLogLine(name, line) {
             micros
         ] = request;
         const code = Number(status);
+        let tone   = "ok";
+        if (code >= 500) {
+            tone = "error";
+        } else if (code >= 400) {
+            tone = "warn";
+        } else if (code >= 300) {
+            tone = "info";
+        }
+
+        let source = "";
+        if (site) {
+            source = port === "80" || port === "443" ? site : `${site}:${port}`;
+        }
+
         Object.assign(entry, {
             date    : new Date(Number(year), MONTHS[month], Number(day)),
             time,
-            tone    : code >= 500 ? "error" : code >= 400 ? "warn" : code >= 300 ? "info" : "ok",
+            tone,
             label   : status,
-            source  : site ? (port === "80" || port === "443" ? site : `${site}:${port}`) : "",
+            source,
             message : `${method} ${target}`,
             request : {
                 method,
@@ -326,14 +353,19 @@ function parseLogLine(name, line) {
         }, levelOf(level));
     } else if (safe) {
         const [ , year, month, day, time, source, message ] = safe;
+        let level = "note";
+        if (/error|abort|fail/i.test(message)) {
+            level = "error";
+        } else if (/already exists/i.test(message)) {
+            level = "warning";
+        }
+
         Object.assign(entry, {
             date : new Date(2000 + Number(year), Number(month) - 1, Number(day)),
             time : time.padStart(8, "0"),
             source,
             message,
-        }, levelOf(/error|abort|fail/i.test(message) ? "error"
-            : /already exists/i.test(message) ? "warning"
-                : "note"));
+        }, levelOf(level));
     } else if (redis) {
         const [ , day, month, year, time, mark, message ] = redis;
         const level = { "#" : "warning", "*" : "notice", "-" : "info", "." : "debug" }[mark];
@@ -447,12 +479,24 @@ function renderLogEntries(entries) {
  */
 function renderRequest(entry) {
     const { method, target, size, ms, client } = entry.request;
+    let timing = "";
+    if (ms !== null) {
+        let speed = "";
+        if (ms >= 1000) {
+            speed = "slow";
+        } else if (ms >= 300) {
+            speed = "slowish";
+        }
+
+        timing = `<span class="${speed}">${ms
+            >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`}</span>`;
+    }
+
     const meta = [
         entry.source ? esc(entry.source) : "",
         client ? `from ${esc(client)}` : "",
         size ? bytes(size) : "",
-        ms !== null ? `<span class="${ms >= 1000 ? "slow" : ms >= 300 ? "slowish" : ""}">${ms
-            >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`}</span>` : "",
+        timing,
     ].filter(Boolean).join(`<i class="sep">·</i>`);
 
     return `
@@ -535,20 +579,24 @@ function renderLogEntry(entry, index) {
         entry.referer  ? `<span>via ${esc(entry.referer.replace(/^https?:\/\//, ""))}</span>` : "",
     ].filter(Boolean).join(`<i class="sep">·</i>`);
 
-    const trace = entry.frames?.length ? `
-        <details data-key="${esc(`${index}|${entry.raw.slice(0, 120)}`)}">
-            <summary>Stack trace · ${entry.frames.length}
-                frame${entry.frames.length > 1 ? "s" : ""}</summary>
-            <ol class="frames">
-                ${entry.frames.map((frame) => {
-                    const [ , number, rest ] = frame.match(/^#(\d+) (.*)$/);
-                    return `<li><span
-                        class="frame-n">#${number}</span><span>${formatLogText(rest)}</span></li>`;
-                }).join("")}
-            </ol>
-            ${entry.thrown ? `<div class="thrown">${formatLogText(entry.thrown)}</div>` : ""}
-        </details>
-    ` : "";
+    let trace = "";
+    if (entry.frames?.length) {
+        trace = `
+            <details data-key="${esc(`${index}|${entry.raw.slice(0, 120)}`)}">
+                <summary>Stack trace · ${entry.frames.length}
+                    frame${entry.frames.length > 1 ? "s" : ""}</summary>
+                <ol class="frames">
+                    ${entry.frames.map((frame) => {
+                        const [ , number, rest ] = frame.match(/^#(\d+) (.*)$/);
+                        return `<li><span
+                            class="frame-n">#${number}</span><span>${
+                                formatLogText(rest)}</span></li>`;
+                    }).join("")}
+                </ol>
+                ${entry.thrown ? `<div class="thrown">${formatLogText(entry.thrown)}</div>` : ""}
+            </details>
+        `;
+    }
 
     return `
         <div class="entry tone-${entry.tone}">

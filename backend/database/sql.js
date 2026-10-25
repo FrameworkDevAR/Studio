@@ -107,8 +107,8 @@ async function editableOf(db, set) {
 
     let structure;
     try {
-        if ((await readTables(base))
-            .find((one) => one.name.toLowerCase() === table.toLowerCase())?.view !== false) {
+        const tables = await readTables(base);
+        if (tables.find((one) => one.name.toLowerCase() === table.toLowerCase())?.view !== false) {
             return null;
         }
         structure = await readStructure(base, table);

@@ -75,7 +75,8 @@ async function handle(request, response) {
 
     try {
         if (url.pathname === "/api/state" && request.method === "GET") {
-            return send(response, 200, await readState());
+            const state = await readState();
+            return send(response, 200, state);
         }
         if (url.pathname === "/api/config" && request.method === "GET") {
             return send(response, 200, readConfigFile());
@@ -90,13 +91,16 @@ async function handle(request, response) {
             ));
         }
         if (url.pathname === "/api/npm-search" && request.method === "GET") {
-            return send(response, 200, await searchPackages(url.searchParams.get("q")));
+            const packages = await searchPackages(url.searchParams.get("q"));
+            return send(response, 200, packages);
         }
         if (url.pathname === "/api/pecl-search" && request.method === "GET") {
-            return send(response, 200, await pecl.searchExtensions(url.searchParams.get("q")));
+            const extensions = await pecl.searchExtensions(url.searchParams.get("q"));
+            return send(response, 200, extensions);
         }
         if (url.pathname === "/api/php-directives" && request.method === "GET") {
-            return send(response, 200, await php.readDirectives());
+            const directives = await php.readDirectives();
+            return send(response, 200, directives);
         }
         if (url.pathname === "/api/php-overrides" && request.method === "GET") {
             return send(response, 200, php.readOverrides());
@@ -109,40 +113,48 @@ async function handle(request, response) {
         }
 
         if (url.pathname === "/api/charsets" && request.method === "GET") {
-            return send(response, 200, await db.readCharsets());
+            const charsets = await db.readCharsets();
+            return send(response, 200, charsets);
         }
         if (url.pathname === "/api/mariadb-options" && request.method === "GET") {
-            return send(response, 200, await mariadb.readOptionList());
+            const options = await mariadb.readOptionList();
+            return send(response, 200, options);
         }
         if (url.pathname === "/api/mariadb-file" && request.method === "GET") {
             return send(response, 200, mariadb.readOptionsFile());
         }
         if (url.pathname === "/api/db-tables" && request.method === "GET") {
-            return send(response, 200, await schema.readTables(url.searchParams.get("db")));
+            const list = await schema.readTables(url.searchParams.get("db"));
+            return send(response, 200, list);
         }
         if (url.pathname === "/api/db-structure" && request.method === "GET") {
-            return send(response, 200, await schema.readStructure(
+            const details = await schema.readStructure(
                 url.searchParams.get("db"),
                 url.searchParams.get("table"),
-            ));
+            );
+            return send(response, 200, details);
         }
         if (url.pathname === "/api/db-rows" && request.method === "GET") {
-            return send(response, 200, await tableRows.readRows(
+            const rows = await tableRows.readRows(
                 Object.fromEntries(url.searchParams),
-            ));
+            );
+            return send(response, 200, rows);
         }
         if (url.pathname === "/api/engines" && request.method === "GET") {
-            return send(response, 200, await schema.readEngines());
+            const engines = await schema.readEngines();
+            return send(response, 200, engines);
         }
         if (url.pathname === "/api/db-counts" && request.method === "GET") {
-            return send(response, 200, await tableRows.countSmallTables(
+            const counts = await tableRows.countSmallTables(
                 url.searchParams.get("db"),
-            ));
+            );
+            return send(response, 200, counts);
         }
         if (url.pathname === "/api/db-count" && request.method === "GET") {
-            return send(response, 200, await tableRows.countRows(
+            const count = await tableRows.countRows(
                 Object.fromEntries(url.searchParams),
-            ));
+            );
+            return send(response, 200, count);
         }
 
         // The export asked for in an action, by its id, as a download.
@@ -155,10 +167,11 @@ async function handle(request, response) {
             if (request.headers["x-studio"] !== "1") {
                 return send(response, 403, { error : "Forbidden" });
             }
-            return send(response, 200, await sql.importDatabase(
+            const imported = await sql.importDatabase(
                 request,
                 Object.fromEntries(url.searchParams),
-            ));
+            );
+            return send(response, 200, imported);
         }
 
         // A CSV into a table, streamed as the import of a dump is, its options in the address.
@@ -166,10 +179,11 @@ async function handle(request, response) {
             if (request.headers["x-studio"] !== "1") {
                 return send(response, 403, { error : "Forbidden" });
             }
-            return send(response, 200, await importer.importCsv(
+            const imported = await importer.importCsv(
                 request,
                 Object.fromEntries(url.searchParams),
-            ));
+            );
+            return send(response, 200, imported);
         }
 
         if (url.pathname === "/api/job" && request.method === "GET") {
@@ -179,7 +193,9 @@ async function handle(request, response) {
             if (request.headers["x-studio"] !== "1") {
                 return send(response, 403, { error : "Forbidden" });
             }
-            return send(response, 200, await runAction(await readBody(request)));
+            const body   = await readBody(request);
+            const answer = await runAction(body);
+            return send(response, 200, answer);
         }
         if (request.method === "GET" && !url.pathname.startsWith("/api/")) {
             return sendFile(response, url.pathname);
