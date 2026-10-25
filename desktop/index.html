@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Studio</title>
     <link rel="icon" href="/favicon.svg">
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/pages.css">
+    <link rel="stylesheet" href="/styles/forms.css">
+    <link rel="stylesheet" href="/styles/databases.css">
+    <link rel="stylesheet" href="/styles/database.css">
+    <link rel="stylesheet" href="/styles/sql.css">
+    <link rel="stylesheet" href="/styles/dialog.css">
+    <link rel="stylesheet" href="/styles/logs.css">
+    <link rel="stylesheet" href="/styles/editor.css">
+    <link rel="stylesheet" href="/styles/menus.css">
 </head>
 <body>
     <aside class="sidebar">
@@ -19,12 +28,17 @@
 
         <nav id="nav">
             <a href="/overview" data-view="overview">
-                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"
+                    rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12"
+                    width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5"
+                    rx="1.5"/></svg>
                 <span>Overview</span>
             </a>
             <div class="nav-label">Stack</div>
             <a href="/services" data-view="services">
-                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7"
+                    rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path
+                    d="M7 7.5h.01M7 16.5h.01"/></svg>
                 <span>Services</span><em id="badge-services"></em>
             </a>
             <a href="/php" data-view="php">
@@ -32,24 +46,35 @@
                 <span>PHP</span><em id="badge-php"></em>
             </a>
             <a href="/node" data-view="node">
-                <svg viewBox="0 0 24 24"><path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><path d="M12 8v8M9 10.5l3-2.5 3 2.5"/></svg>
+                <svg viewBox="0 0 24 24"><path
+                    d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><path
+                    d="M12 8v8M9 10.5l3-2.5 3 2.5"/></svg>
                 <span>Node.js</span><em id="badge-node"></em>
             </a>
             <a href="/apache" data-view="apache">
-                <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                <svg viewBox="0 0 24 24"><path
+                    d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6"
+                    r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
                 <span>Apache</span><em id="badge-apache"></em>
             </a>
             <a href="/databases" data-view="databases">
-                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8"
+                    ry="3"/><path
+                    d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3
+                    8-3"/></svg>
                 <span>Databases</span><em id="badge-databases"></em>
             </a>
             <div class="nav-label">Work</div>
             <a href="/sites" data-view="sites">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg>
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path
+                    d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5
+                    5.7 12 3z"/></svg>
                 <span>Sites</span><em id="badge-sites"></em>
             </a>
             <a href="/logs" data-view="logs">
-                <svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+                <svg viewBox="0 0 24 24"><path
+                    d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path
+                    d="M14 3v6h6M8 13h8M8 17h5"/></svg>
                 <span>Logs</span><em id="badge-logs"></em>
             </a>
         </nav>
@@ -69,8 +94,11 @@
                     <p id="hero-text" class="muted"></p>
                 </div>
                 <div class="actions">
-                    <button data-action="start-all" title="Starts Apache and MariaDB, not Redis or the apps">Start Apache + MariaDB</button>
-                    <button data-action="stop-all" class="ghost" title="Stops Apache, MariaDB and Redis">Stop services</button>
+                    <button data-action="start-all"
+                        title="Starts Apache and MariaDB, not Redis or the apps">Start Apache +
+                        MariaDB</button>
+                    <button data-action="stop-all" class="ghost"
+                        title="Stops Apache, MariaDB and Redis">Stop services</button>
                 </div>
             </header>
 
@@ -87,21 +115,36 @@
                 <div class="panel">
                     <div class="panel-head"><h2>Shortcuts</h2></div>
                     <div class="shortcuts">
-                        <a id="shortcut-pma" class="shortcut tone-yellow" target="_blank" rel="noopener">
-                            <span class="icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>
+                        <a id="shortcut-pma" class="shortcut tone-yellow"
+                            target="_blank" rel="noopener">
+                            <span class="icon"><svg
+                                viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path
+                                d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13M4 12c0 1.7 3.6 3 8
+                                3s8-1.3 8-3"/></svg></span>
                             <div><strong>phpMyAdmin</strong><span>Browse the databases</span></div>
                         </a>
                         <button class="shortcut tone-cyan" data-edit-apache="vhosts">
-                            <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></span>
+                            <span class="icon"><svg
+                                viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path
+                                d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8
+                                9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/></svg></span>
                             <div><strong>Edit vhosts</strong><span>Add or change a site</span></div>
                         </button>
                         <button class="shortcut tone-magenta" data-edit-php>
-                            <span class="icon"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
-                            <div><strong>Edit PHP overrides</strong><span id="php-ini-name"></span></div>
+                            <span class="icon"><svg
+                                viewBox="0 0 24 24"><path
+                                d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></svg></span>
+                            <div><strong>Edit PHP
+                                overrides</strong><span id="php-ini-name"></span></div>
                         </button>
                         <button class="shortcut tone-teal" data-edit-apache="httpd">
-                            <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span>
-                            <div><strong>Edit httpd.conf</strong><span>Apache's main config</span></div>
+                            <span class="icon"><svg
+                                viewBox="0 0 24 24"><path
+                                d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6"
+                                r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18"
+                                r="2"/></svg></span>
+                            <div><strong>Edit
+                                httpd.conf</strong><span>Apache's main config</span></div>
                         </button>
                     </div>
                 </div>
@@ -113,11 +156,15 @@
             <header class="page-head">
                 <div>
                     <h1>Services</h1>
-                    <p class="muted">They start only when asked, never at login. Start all brings up Apache and MariaDB; Redis starts on its own.</p>
+                    <p class="muted">They start only when asked, never at login.
+                        Start all brings up Apache and MariaDB; Redis starts on its own.</p>
                 </div>
                 <div class="actions">
-                    <button data-action="start-all" title="Starts Apache and MariaDB, not Redis or the apps">Start Apache + MariaDB</button>
-                    <button data-action="stop-all" class="ghost" title="Stops Apache, MariaDB and Redis">Stop services</button>
+                    <button data-action="start-all"
+                        title="Starts Apache and MariaDB, not Redis or the apps">Start Apache +
+                        MariaDB</button>
+                    <button data-action="stop-all" class="ghost"
+                        title="Stops Apache, MariaDB and Redis">Stop services</button>
                 </div>
             </header>
             <div id="service-cards" class="service-grid"></div>
@@ -131,16 +178,20 @@
                     <p class="muted" id="sites-text"></p>
                 </div>
                 <div class="actions">
-                    <button class="ghost" id="edit-config" data-edit-config title="The projects and servers listed here">Edit config</button>
-                    <button data-edit-apache="vhosts" class="ghost" id="edit-vhosts">Edit vhosts</button>
+                    <button class="ghost" id="edit-config" data-edit-config
+                        title="The projects and servers listed here">Edit config</button>
+                    <button data-edit-apache="vhosts" class="ghost"
+                        id="edit-vhosts">Edit vhosts</button>
                     <div class="segmented" id="site-tabs">
                         <button data-site-tab="apps">Apps <em id="tab-apps-count"></em></button>
-                        <button data-site-tab="apache">Apache <em id="tab-apache-count"></em></button>
+                        <button data-site-tab="apache">Apache <em
+                            id="tab-apache-count"></em></button>
                     </div>
                 </div>
             </header>
             <div id="apps-pane"></div>
-            <div id="apache-pane"><div class="panel flush"><table id="vhost-table" class="fixed"></table></div></div>
+            <div id="apache-pane"><div class="panel flush"><table id="vhost-table"
+                class="fixed"></table></div></div>
         </section>
 
         <!-- ----------------------------------------------------------- php -->
@@ -160,8 +211,10 @@
                         <button class="ghost" data-pecl-open>Install extension</button>
                     </span>
                     <div class="segmented" id="php-tabs">
-                        <button data-php-tab="settings">Overrides <em id="tab-overrides-count"></em></button>
-                        <button data-php-tab="extensions">Extensions <em id="ext-count"></em></button>
+                        <button data-php-tab="settings">Overrides <em
+                            id="tab-overrides-count"></em></button>
+                        <button data-php-tab="extensions">Extensions <em
+                            id="ext-count"></em></button>
                     </div>
                 </div>
             </header>
@@ -182,7 +235,8 @@
             <div id="php-ext-pane" class="panel">
                 <div class="panel-head">
                     <h2>Extensions <span id="ext-panel-count" class="muted"></span></h2>
-                    <input id="php-ext-filter" type="search" placeholder="Filter extensions…" spellcheck="false" autocomplete="off">
+                    <input id="php-ext-filter" type="search"
+                        placeholder="Filter extensions…" spellcheck="false" autocomplete="off">
                 </div>
                 <div id="php-extensions"></div>
             </div>
@@ -204,7 +258,8 @@
             <div id="node-packages" class="panel">
                 <div class="panel-head">
                     <h2>Global packages <span id="node-count" class="muted"></span></h2>
-                    <input id="node-filter" type="search" placeholder="Filter packages…" spellcheck="false" autocomplete="off">
+                    <input id="node-filter" type="search"
+                        placeholder="Filter packages…" spellcheck="false" autocomplete="off">
                 </div>
                 <div id="node-globals"></div>
             </div>
@@ -221,8 +276,10 @@
                     <button data-action="reload" class="ghost">Reload Apache</button>
                     <button data-edit-apache="httpd" class="ghost">Edit httpd.conf</button>
                     <div class="segmented" id="apache-tabs">
-                        <button data-apache-tab="modules">Modules <em id="tab-modules-count"></em></button>
-                        <button data-apache-tab="configs">Configs <em id="tab-configs-count"></em></button>
+                        <button data-apache-tab="modules">Modules <em
+                            id="tab-modules-count"></em></button>
+                        <button data-apache-tab="configs">Configs <em
+                            id="tab-configs-count"></em></button>
                     </div>
                 </div>
             </header>
@@ -249,11 +306,21 @@
         </section>
 
         <!-- ------------------------------------------------------ database -->
-        <!-- One database's tables: their structure, their rows, their information, and SQL to run. -->
+        <!-- One database's tables: their structure, their rows, their information, and SQL to
+             run. -->
         <section data-view="database">
             <header class="page-head">
                 <div>
-                    <h1><a href="/databases" class="crumb">Databases</a><span class="crumb-sep">/</span><span class="menu-wrap db-switch"><button class="db-switch-btn" data-db-switch aria-haspopup="listbox" title="Switch to another database"><span id="browse-db"></span><svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div id="db-switch" class="menu menu-left db-switch-menu" hidden><input type="search" id="db-switch-filter" placeholder="Filter databases…" spellcheck="false" autocomplete="off"><div id="db-switch-list" class="db-switch-list" role="listbox"></div></div></span></h1>
+                    <h1><a href="/databases" class="crumb">Databases</a><span
+                        class="crumb-sep">/</span><span class="menu-wrap db-switch"><button
+                        class="db-switch-btn" data-db-switch aria-haspopup="listbox"
+                        title="Switch to another database"><span id="browse-db"></span><svg
+                        class="chevron" viewBox="0 0 24 24"><path
+                        d="M6 9l6 6 6-6"/></svg></button><div id="db-switch"
+                        class="menu menu-left db-switch-menu" hidden><input type="search"
+                        id="db-switch-filter" placeholder="Filter databases…" spellcheck="false"
+                        autocomplete="off"><div id="db-switch-list" class="db-switch-list"
+                        role="listbox"></div></div></span></h1>
                 </div>
                 <div class="actions">
                     <div class="segmented" id="browse-tabs">
@@ -265,11 +332,14 @@
                     </div>
                     <!-- What is done to the database as a whole, in a menu. -->
                     <div class="menu-wrap">
-                        <button class="ghost" data-menu="browse-menu" aria-haspopup="menu">Actions<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                        <button class="ghost" data-menu="browse-menu"
+                            aria-haspopup="menu">Actions<svg class="chevron"
+                            viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
                         <div id="browse-menu" class="menu" role="menu" hidden>
                             <button role="menuitem" data-db-import>Import…</button>
                             <button role="menuitem" data-db-export>Export…</button>
-                            <a role="menuitem" id="browse-pma" target="_blank" rel="noopener">Open phpMyAdmin</a>
+                            <a role="menuitem" id="browse-pma"
+                                target="_blank" rel="noopener">Open phpMyAdmin</a>
                         </div>
                     </div>
                 </div>
@@ -277,7 +347,8 @@
             <div class="browse">
                 <div class="browse-aside">
                     <div class="panel browse-side">
-                        <input id="table-filter" type="search" placeholder="Filter tables…" spellcheck="false" autocomplete="off">
+                        <input id="table-filter" type="search"
+                            placeholder="Filter tables…" spellcheck="false" autocomplete="off">
                         <div id="browse-tables" class="browse-tables"></div>
                     </div>
                     <!-- What the marked table is, as Sequel Ace's Table Information has it. -->
@@ -288,26 +359,37 @@
                         <div class="panel-head">
                             <h2>Tables <span id="overview-count" class="muted"></span></h2>
                             <div class="head-tools">
-                                <input id="overview-filter" type="search" placeholder="Filter tables…" spellcheck="false" autocomplete="off">
+                                <input id="overview-filter"
+                                    type="search" placeholder="Filter tables…" spellcheck="false"
+                                    autocomplete="off">
                                 <button class="ghost" data-table-add>Add table</button>
                             </div>
                         </div>
-                        <div class="grid-wrap"><div class="grid-scroll"><table id="overview-grid" class="data-grid fill"></table></div></div>
+                        <div class="grid-wrap"><div
+                            class="grid-scroll"><table id="overview-grid"
+                            class="data-grid fill"></table></div></div>
                     </div>
                     <div id="browse-rows" class="panel browse-fill">
                         <div class="panel-head">
                             <h2 id="rows-title"></h2>
                             <div class="head-tools">
                                 <button class="ghost" data-row-new>New row</button>
-                                <button class="ghost" data-table-menu aria-haspopup="menu">Table<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                                <button class="ghost"
+                                    data-table-menu aria-haspopup="menu">Table<svg class="chevron"
+                                    viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
                             </div>
                         </div>
-                        <!-- The filters, as Sequel Ace has them: a rule per line, all or any of them. -->
+                        <!-- The filters, as Sequel Ace has them: a rule per line, all or any of
+                             them. -->
                         <form id="rows-filters" class="filter-bar" autocomplete="off"></form>
                         <div id="rows-note" class="form-note" hidden></div>
-                        <div class="grid-wrap"><div class="grid-scroll"><table id="rows-grid" class="data-grid"></table></div></div>
+                        <div class="grid-wrap"><div
+                            class="grid-scroll"><table id="rows-grid"
+                            class="data-grid"></table></div></div>
                         <div class="rows-foot">
-                            <input id="column-filter" type="search" placeholder="Filter columns…" spellcheck="false" autocomplete="off">
+                            <input id="column-filter" type="search"
+                                placeholder="Filter columns…" spellcheck="false"
+                                autocomplete="off">
                             <div id="rows-pager" class="pager"></div>
                         </div>
                     </div>
@@ -316,22 +398,36 @@
                     <div id="browse-sql" class="panel">
                         <div class="sql-box">
                             <pre id="sql-paint" class="sql-paint" aria-hidden="true"></pre>
-                            <textarea id="sql-text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="SELECT * FROM …"></textarea>
+                            <textarea id="sql-text" spellcheck="false"
+                                autocomplete="off" autocapitalize="off"
+                                placeholder="SELECT * FROM …"></textarea>
                         </div>
                         <div class="sql-bar">
                             <!-- The queries run here before, and the ones kept, to use again. -->
                             <div class="menu-wrap">
-                                <button class="ghost" data-menu="sql-history" aria-haspopup="menu">History<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-                                <div id="sql-history" class="menu menu-left sql-menu" role="menu" hidden></div>
+                                <button class="ghost"
+                                    data-menu="sql-history" aria-haspopup="menu">History<svg
+                                    class="chevron" viewBox="0 0 24 24"><path
+                                    d="M6 9l6 6 6-6"/></svg></button>
+                                <div id="sql-history"
+                                    class="menu menu-left sql-menu" role="menu" hidden></div>
                             </div>
                             <div class="menu-wrap">
-                                <button class="ghost" data-menu="sql-favorites" aria-haspopup="menu">Favorites<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-                                <div id="sql-favorites" class="menu menu-left sql-menu" role="menu" hidden></div>
+                                <button class="ghost"
+                                    data-menu="sql-favorites" aria-haspopup="menu">Favorites<svg
+                                    class="chevron" viewBox="0 0 24 24"><path
+                                    d="M6 9l6 6 6-6"/></svg></button>
+                                <div id="sql-favorites"
+                                    class="menu menu-left sql-menu" role="menu" hidden></div>
                             </div>
                             <span id="sql-status" class="editor-status"></span>
-                            <button class="ghost" data-sql-explain title="EXPLAIN the statement the cursor is in">Explain</button>
-                            <button class="ghost" data-sql-current title="Run the statement the cursor is in">Run current <kbd>⇧⌘↩</kbd></button>
-                            <button data-sql-run><span id="sql-run-label">Run all</span> <kbd>⌘↩</kbd></button>
+                            <button class="ghost" data-sql-explain
+                                title="EXPLAIN the statement the cursor is in">Explain</button>
+                            <button class="ghost" data-sql-current
+                                title="Run the statement the cursor is in">Run current
+                                <kbd>⇧⌘↩</kbd></button>
+                            <button data-sql-run><span
+                                id="sql-run-label">Run all</span> <kbd>⌘↩</kbd></button>
                         </div>
                         <div id="sql-results"></div>
                     </div>
@@ -348,11 +444,13 @@
                 </div>
                 <div class="actions">
                     <span id="db-list-actions" class="actions">
-                        <a id="phpmyadmin-link" class="button ghost" target="_blank" rel="noopener">Open phpMyAdmin</a>
+                        <a id="phpmyadmin-link" class="button ghost"
+                            target="_blank" rel="noopener">Open phpMyAdmin</a>
                         <button class="ghost" data-db-new>New database</button>
                     </span>
                     <span id="db-user-actions" class="actions">
-                        <a id="phpmyadmin-users-link" class="button ghost" target="_blank" rel="noopener">Open phpMyAdmin</a>
+                        <a id="phpmyadmin-users-link" class="button ghost"
+                            target="_blank" rel="noopener">Open phpMyAdmin</a>
                         <button class="ghost" data-user-new>New user</button>
                     </span>
                     <span id="db-option-actions" class="actions">
@@ -360,24 +458,29 @@
                         <button class="ghost" data-edit-mariadb>Edit options</button>
                     </span>
                     <div class="segmented" id="db-tabs">
-                        <button data-db-tab="databases">Databases <em id="tab-db-count"></em></button>
+                        <button data-db-tab="databases">Databases <em
+                            id="tab-db-count"></em></button>
                         <button data-db-tab="users">Users <em id="tab-user-count"></em></button>
-                        <button data-db-tab="options">Options <em id="tab-option-count"></em></button>
+                        <button data-db-tab="options">Options <em
+                            id="tab-option-count"></em></button>
                     </div>
                 </div>
             </header>
-            <div id="db-problem" class="panel problem" hidden>MariaDB is not running. Start it from Services.</div>
+            <div id="db-problem" class="panel problem" hidden>MariaDB is not running.
+                Start it from Services.</div>
             <div id="db-list-pane" class="panel">
                 <div class="panel-head">
                     <h2>Databases <span id="db-total" class="muted"></span></h2>
-                    <input id="db-filter" type="search" placeholder="Filter databases…" spellcheck="false" autocomplete="off">
+                    <input id="db-filter" type="search"
+                        placeholder="Filter databases…" spellcheck="false" autocomplete="off">
                 </div>
                 <div id="db-list" class="db-list"></div>
             </div>
             <div id="db-users-pane" class="panel">
                 <div class="panel-head">
                     <h2>Users <span id="user-count" class="muted"></span></h2>
-                    <input id="user-filter" type="search" placeholder="Filter users…" spellcheck="false" autocomplete="off">
+                    <input id="user-filter" type="search"
+                        placeholder="Filter users…" spellcheck="false" autocomplete="off">
                 </div>
                 <div id="db-users" class="db-list"></div>
             </div>
@@ -409,11 +512,15 @@
                         <button data-log="mariadb">MariaDB</button>
                         <button data-log="redis">Redis</button>
                     </div>
-                    <button id="log-errors" class="toggle danger-tone" aria-pressed="false" title="Show only errors and warnings">
-                        <svg viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                    <button id="log-errors" class="toggle danger-tone"
+                        aria-pressed="false" title="Show only errors and warnings">
+                        <svg viewBox="0 0 24 24"><path
+                            d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0
+                            0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
                         Errors only
                     </button>
-                    <button id="log-follow" class="toggle" aria-pressed="true" title="Keep loading new lines and stay at the end">
+                    <button id="log-follow" class="toggle" aria-pressed="true"
+                        title="Keep loading new lines and stay at the end">
                         <svg viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
                         Follow
                     </button>
@@ -421,8 +528,10 @@
                 <div class="page-meta log-meta">
                     <p id="log-file" class="muted"></p>
                     <label class="search">
-                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                        <input id="log-search" type="search" placeholder="Search this log…" spellcheck="false" autocomplete="off">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11"
+                            r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                        <input id="log-search" type="search"
+                            placeholder="Search this log…" spellcheck="false" autocomplete="off">
                         <span id="log-matches"></span>
                     </label>
                 </div>
@@ -439,13 +548,21 @@
     <!-- The install dialogs, dressed as the sites they search. -->
     <dialog id="npm-dialog" class="editor npm">
         <header class="npm-head">
-            <svg class="npm-logo" viewBox="0 0 18 7" aria-label="npm"><path class="npm-logo-box" d="M0 0h18v6H9v1H5V6H0z"/><path class="npm-logo-text" d="M1 5h2V2h1v3h1V1H1zM6 1v5h2V5h2V1zm2 1h1v2H8zM11 1v4h2V2h1v3h1V2h1v3h1V1z"/></svg>
+            <svg class="npm-logo" viewBox="0 0 18 7" aria-label="npm"><path
+                class="npm-logo-box" d="M0 0h18v6H9v1H5V6H0z"/><path class="npm-logo-text"
+                d="M1 5h2V2h1v3h1V1H1zM6 1v5h2V5h2V1zm2 1h1v2H8zM11
+                1v4h2V2h1v3h1V2h1v3h1V1z"/></svg>
             <form id="npm-search" class="npm-search">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-                <input name="q" placeholder="Search packages, or name one like eslint@9" spellcheck="false" autocomplete="off">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path
+                    d="M20 20l-4-4"/></svg>
+                <input name="q"
+                    placeholder="Search packages, or name one like eslint@9" spellcheck="false"
+                    autocomplete="off">
                 <button>Search</button>
             </form>
-            <button class="icon-btn" data-close-npm title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <button class="icon-btn" data-close-npm title="Close (Esc)"
+                aria-label="Close"><svg viewBox="0 0 24 24"><path
+                d="M6 6l12 12M18 6L6 18"/></svg></button>
         </header>
         <div id="npm-list" class="npm-list"></div>
     </dialog>
@@ -454,11 +571,15 @@
         <header class="npm-head">
             <span class="pecl-logo" aria-label="PECL"><span class="logo-tile"></span>PECL</span>
             <form id="pecl-search" class="npm-search">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-                <input name="q" placeholder="Search extensions, as redis or imagick" spellcheck="false" autocomplete="off">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path
+                    d="M20 20l-4-4"/></svg>
+                <input name="q" placeholder="Search extensions, as redis or imagick"
+                    spellcheck="false" autocomplete="off">
                 <button>Search</button>
             </form>
-            <button class="icon-btn" data-close-pecl title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <button class="icon-btn" data-close-pecl title="Close (Esc)"
+                aria-label="Close"><svg viewBox="0 0 24 24"><path
+                d="M6 6l12 12M18 6L6 18"/></svg></button>
         </header>
         <div id="pecl-list" class="npm-list"></div>
     </dialog>
@@ -470,7 +591,9 @@
                     <h2 id="ask-title"></h2>
                     <p id="ask-text" class="muted"></p>
                 </div>
-                <button value="cancel" id="ask-x" class="icon-btn" title="Close (Esc)" aria-label="Close" hidden><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                <button value="cancel" id="ask-x" class="icon-btn"
+                    title="Close (Esc)" aria-label="Close" hidden><svg viewBox="0 0 24 24"><path
+                    d="M6 6l12 12M18 6L6 18"/></svg></button>
             </header>
             <div id="ask-body" class="confirm-list"></div>
             <footer class="editor-foot">
@@ -486,7 +609,9 @@
     <!-- A row's menu, opened by a right click in the rows grid. -->
     <div id="row-menu" class="menu context-menu" role="menu" hidden></div>
     <!-- The options of the select open, to pick from and search. -->
-    <div id="picker" class="picker-box" popover="manual" tabindex="-1"><input type="search" placeholder="Search…" spellcheck="false" autocomplete="off" aria-label="Search the options"><div class="picker-list" role="listbox"></div></div>
+    <div id="picker" class="picker-box" popover="manual" tabindex="-1"><input type="search"
+        placeholder="Search…" spellcheck="false" autocomplete="off"
+        aria-label="Search the options"><div class="picker-list" role="listbox"></div></div>
     <!-- What the SQL box offers to complete the word typed. -->
     <div id="sql-complete" class="menu context-menu sql-complete" role="listbox" hidden></div>
 
@@ -498,9 +623,13 @@
                 <code id="editor-path"></code>
             </div>
             <div class="actions">
-                <button class="ghost small" id="editor-insert" data-insert-setting hidden>Insert setting</button>
-                <button class="ghost small" data-editor-open data-open-file="config">Open in VS Code</button>
-                <button class="icon-btn" data-close-editor title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                <button class="ghost small" id="editor-insert" data-insert-setting
+                    hidden>Insert setting</button>
+                <button class="ghost small" data-editor-open
+                    data-open-file="config">Open in VS Code</button>
+                <button class="icon-btn" data-close-editor title="Close (Esc)"
+                    aria-label="Close"><svg viewBox="0 0 24 24"><path
+                    d="M6 6l12 12M18 6L6 18"/></svg></button>
             </div>
         </header>
         <div class="editor-body">
@@ -508,13 +637,21 @@
             <div class="editor-code">
                 <pre id="editor-marks" class="editor-paint editor-marks" aria-hidden="true"></pre>
                 <pre id="editor-paint" class="editor-paint" aria-hidden="true"></pre>
-                <textarea id="editor-text" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"></textarea>
+                <textarea id="editor-text" spellcheck="false" autocomplete="off"
+                    autocapitalize="off" wrap="off"></textarea>
                 <div id="editor-find" class="editor-find" hidden>
-                    <input id="editor-find-text" type="search" placeholder="Find" spellcheck="false" autocomplete="off">
+                    <input id="editor-find-text" type="search"
+                        placeholder="Find" spellcheck="false" autocomplete="off">
                     <span id="editor-find-count"></span>
-                    <button class="icon-btn" data-find-step="-1" title="Previous (⇧↩)" aria-label="Previous match"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
-                    <button class="icon-btn" data-find-step="1" title="Next (↩)" aria-label="Next match"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-                    <button class="icon-btn" data-find-close title="Close (Esc)" aria-label="Close find"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                    <button class="icon-btn" data-find-step="-1"
+                        title="Previous (⇧↩)" aria-label="Previous match"><svg
+                        viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+                    <button class="icon-btn" data-find-step="1"
+                        title="Next (↩)" aria-label="Next match"><svg viewBox="0 0 24 24"><path
+                        d="M6 9l6 6 6-6"/></svg></button>
+                    <button class="icon-btn" data-find-close title="Close (Esc)"
+                        aria-label="Close find"><svg viewBox="0 0 24 24"><path
+                        d="M6 6l12 12M18 6L6 18"/></svg></button>
                 </div>
             </div>
         </div>
@@ -534,10 +671,14 @@
                 <h2 id="pick-title">Add a setting</h2>
                 <p class="muted" id="pick-text"></p>
             </div>
-            <button class="icon-btn" data-close-pick title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <button class="icon-btn" data-close-pick title="Close (Esc)"
+                aria-label="Close"><svg viewBox="0 0 24 24"><path
+                d="M6 6l12 12M18 6L6 18"/></svg></button>
         </header>
         <div class="pick-filter">
-            <input id="pick-filter" type="search" placeholder="Filter settings, as upload or xdebug…" spellcheck="false" autocomplete="off">
+            <input id="pick-filter" type="search"
+                placeholder="Filter settings, as upload or xdebug…" spellcheck="false"
+                autocomplete="off">
         </div>
         <div id="pick-list" class="pick-list" role="listbox"></div>
         <form id="pick-form" class="editor-foot pick-foot">
@@ -560,7 +701,9 @@
                     <h2 id="form-title"></h2>
                     <p id="form-text" class="muted"></p>
                 </div>
-                <button type="button" class="icon-btn" data-close-form title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                <button type="button" class="icon-btn" data-close-form
+                    title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24"><path
+                    d="M6 6l12 12M18 6L6 18"/></svg></button>
             </header>
             <div id="form-body" class="form-body"></div>
             <footer class="editor-foot">
@@ -575,24 +718,35 @@
     </dialog>
 
     <div id="toasts" popover="manual"></div>
-    <script src="/src/state.js"></script>
-    <script src="/src/logos.js"></script>
-    <script src="/src/helpers.js"></script>
-    <script src="/src/routes.js"></script>
-    <script src="/src/api.js"></script>
-    <script src="/src/overview.js"></script>
-    <script src="/src/services.js"></script>
-    <script src="/src/sites.js"></script>
-    <script src="/src/settings.js"></script>
-    <script src="/src/php.js"></script>
-    <script src="/src/node.js"></script>
-    <script src="/src/apache.js"></script>
-    <script src="/src/databases.js"></script>
-    <script src="/src/browse.js"></script>
-    <script src="/src/logs.js"></script>
-    <script src="/src/editor.js"></script>
-    <script src="/src/clicks.js"></script>
-    <script src="/src/picker.js"></script>
-    <script src="/src/start.js"></script>
+    <script src="/src/core/state.js"></script>
+    <script src="/src/core/logos.js"></script>
+    <script src="/src/core/helpers.js"></script>
+    <script src="/src/core/routes.js"></script>
+    <script src="/src/core/api.js"></script>
+    <script src="/src/pages/overview.js"></script>
+    <script src="/src/pages/services.js"></script>
+    <script src="/src/pages/sites.js"></script>
+    <script src="/src/pages/settings.js"></script>
+    <script src="/src/pages/php.js"></script>
+    <script src="/src/pages/node.js"></script>
+    <script src="/src/pages/apache.js"></script>
+    <script src="/src/pages/databases.js"></script>
+    <script src="/src/pages/users.js"></script>
+    <script src="/src/database/page.js"></script>
+    <script src="/src/database/tables.js"></script>
+    <script src="/src/database/rows.js"></script>
+    <script src="/src/database/cells.js"></script>
+    <script src="/src/database/structure.js"></script>
+    <script src="/src/database/columns.js"></script>
+    <script src="/src/database/info.js"></script>
+    <script src="/src/database/sql.js"></script>
+    <script src="/src/database/complete.js"></script>
+    <script src="/src/database/export.js"></script>
+    <script src="/src/pages/logs.js"></script>
+    <script src="/src/core/paint.js"></script>
+    <script src="/src/core/editor.js"></script>
+    <script src="/src/core/clicks.js"></script>
+    <script src="/src/core/picker.js"></script>
+    <script src="/src/core/start.js"></script>
 </body>
 </html>

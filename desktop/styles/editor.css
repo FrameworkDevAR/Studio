@@ -1,0 +1,318 @@
+/* The config editor: its text, line numbers, colors, find bar and problems. */
+
+/* ---------------------------------------------------------- config editor */
+
+.editor {
+    width: min(920px, calc(100vw - 48px));
+    height: min(760px, calc(100vh - 48px));
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .45);
+    overflow: hidden;
+}
+.editor[open] { display: flex; flex-direction: column; animation: fade .18s ease-out; }
+.editor::backdrop {
+    background: color-mix(in srgb, var(--bg) 60%, transparent);
+    backdrop-filter: blur(3px);
+}
+/*
+ * The install dialog, dressed as npm's site: its red stripe on top, its logo,
+ * a wide search, and each package as npm lists one -- name, description,
+ * keywords, then who published what and when.
+ */
+.editor.npm { width: min(860px, calc(100vw - 48px)); height: min(720px, calc(100vh - 48px)); }
+.npm-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+}
+/* npm's wordmark keeps its own red; the rest of the dialog wears Studio's accent. */
+.npm-logo { flex: none; width: 64px; height: 25px; }
+.npm-logo-box  { fill: #cb3837; }
+.npm-logo-text { fill: #fff; }
+.npm-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-radius: 10px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+.npm-search:focus-within { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
+.npm-search svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-left: 12px;
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+.npm-search input {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    padding: 11px 12px;
+    font-size: 14px;
+}
+.npm-search input:focus { outline: none; box-shadow: none; }
+.npm-search button {
+    align-self: stretch;
+    border-radius: 0;
+    padding: 0 20px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+    transition: background .12s;
+}
+.npm-search button:hover {
+    filter: none;
+    background: color-mix(in srgb, var(--accent) 82%, var(--strong));
+}
+.npm-list { flex: 1; min-height: 0; overflow: auto; padding: 0 18px; }
+.npm-empty { padding: 60px 20px; text-align: center; color: var(--muted); }
+.npm-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 18px 2px;
+    border-bottom: 1px solid var(--border);
+}
+.npm-item:last-child { border-bottom: 0; }
+.npm-item-body { flex: 1; min-width: 0; }
+.npm-name { font-size: 17px; font-weight: 700; color: var(--strong); }
+a.npm-name:hover { color: var(--accent); text-decoration: underline; }
+.npm-item p { margin: 4px 0 8px; color: var(--text); font-size: 13.5px; line-height: 1.5; }
+.npm-keywords { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.npm-keywords span {
+    padding: 1px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--code-bg);
+}
+.npm-meta { font-size: 12.5px; color: var(--muted); }
+.npm-meta b { color: var(--text); font-weight: 600; }
+.npm-meta .sep { margin: 0 7px; font-style: normal; opacity: .6; }
+.npm-actions {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 2px;
+}
+.npm-here { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.npm-here b { color: var(--green); font-weight: 600; }
+.npm-buttons { display: flex; gap: 8px; }
+
+/*
+ * A package of an update, as it goes: a faint ring while it waits, a loader
+ * while npm works on it, then a tick, or a cross when it failed.
+ */
+.pkg.step { gap: 12px; }
+.step-mark {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+}
+.step.waiting .step-mark { border: 2px solid var(--border); }
+.step.running .step-mark {
+    border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+}
+.step.done .step-mark    { background: var(--green); }
+.step.done .step-mark::after {
+    content: "";
+    width: 4px;
+    height: 8px;
+    margin-top: -2px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    rotate: 45deg;
+}
+.step.failed .step-mark {
+    background: var(--red);
+    color: var(--bg);
+    font: 700 11px/1 -apple-system, system-ui, sans-serif;
+}
+.step.failed .step-mark::after { content: "✕"; }
+.step.waiting .pkg-text { color: var(--muted); }
+.step.done .pkg-version { color: var(--green); font-weight: 600; }
+.step.failed .pkg-text  { color: var(--red); }
+@keyframes spin { to { rotate: 360deg; } }
+.editor-status.progress { display: flex; align-items: center; gap: 12px; }
+.progress-bar {
+    flex: none;
+    width: 120px;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    overflow: hidden;
+}
+.progress-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width .3s;
+}
+.editor-status.progress.ok  { color: var(--green); font-weight: 600; }
+.editor-status.progress.ok .progress-bar i  { background: var(--green); }
+.editor-status.progress.bad { color: var(--red); font-family: inherit; font-size: 12.5px; }
+.editor-status.progress.bad .progress-bar i { background: var(--red); }
+
+/* A dialog that asks first, as tall as what it lists. */
+.editor.confirm {
+    width: min(520px, calc(100vw - 48px));
+    height: fit-content;
+    max-height: min(640px, calc(100vh - 48px));
+}
+.editor.confirm form { display: flex; flex-direction: column; min-height: 0; max-height: inherit; }
+.editor.confirm .editor-head { align-items: flex-start; padding: 18px 20px 14px; }
+.editor.confirm p { margin: 4px 0 0; font-size: 13.5px; }
+.editor.confirm .editor-foot { padding: 14px 20px; }
+.editor.confirm .editor-foot .actions { flex: none; flex-wrap: nowrap; }
+.editor.confirm .editor-status { flex: 1; min-width: 0; }
+/* With nothing to list, the dialog is one card, without the lines between parts. */
+.editor.confirm:has(#ask-body[hidden]) .editor-head { border-bottom: 0; padding-bottom: 6px; }
+.editor.confirm:has(#ask-body[hidden]) .editor-foot { border-top: 0; }
+.confirm-list { flex: 1; min-height: 0; overflow: auto; padding: 6px 20px; }
+.confirm-list .pkg:last-child { border-bottom-color: transparent; }
+.tag.red {
+    color: var(--red);
+    background: var(--red-bg);
+    border-color: color-mix(in srgb, var(--red) 40%, transparent);
+}
+.editor-head, .editor-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+}
+.editor-head { border-bottom: 1px solid var(--border); }
+/* The close button keeps its square when the title or its text runs long. */
+.editor-head .icon-btn { flex: none; }
+.editor-head h2 { font-size: 18px; margin-bottom: 2px; }
+.editor-head code { font-size: 11.5px; color: var(--muted); }
+.editor-foot { border-top: 1px solid var(--border); }
+
+/* The text and its line numbers, scrolling together. */
+.editor-body { flex: 1; min-height: 0; display: flex; background: var(--field); }
+.editor-lines, .editor-paint, .editor-body textarea {
+    margin: 0;
+    padding: 14px 0;
+    font: 13px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+    tab-size: 4;
+}
+.editor-lines {
+    flex: none;
+    width: 52px;
+    padding-right: 12px;
+    overflow: hidden;
+    text-align: right;
+    color: color-mix(in srgb, var(--muted) 60%, transparent);
+    user-select: none;
+    border-right: 1px solid var(--border);
+}
+/*
+ * The text is typed in a transparent area that shows only the caret and the
+ * selection; under it, the same text is painted in the colors of its parts,
+ * moved along as the area scrolls. As in the JSON project's text view.
+ */
+.editor-code { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.editor-paint, .editor-body textarea {
+    position: absolute;
+    inset: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+    white-space: pre;
+}
+.editor-paint { color: var(--strong); pointer-events: none; will-change: transform; }
+.editor-body textarea {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    resize: none;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--strong);
+    overflow: auto;
+}
+.editor-body textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.editor-body textarea:focus { outline: none; }
+
+/* The colors of a JSON's parts, from Tokyo Night. */
+.code-key    { color: var(--accent); }
+.code-string { color: var(--green); }
+.code-number { color: var(--orange); }
+.code-word   { color: var(--magenta); }
+.code-mark   { color: var(--muted); }
+
+/* The matches of the find bar, marked under the text: the current one stronger. */
+.editor-marks { color: transparent; }
+.editor-marks mark {
+    color: transparent;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+.editor-marks mark.current {
+    background: color-mix(in srgb, var(--amber) 60%, transparent);
+    box-shadow: 0 0 0 1px var(--amber);
+}
+.editor-find {
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 6px 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+.editor-find input { width: 220px; padding: 4px 8px; font-size: 12.5px; }
+.editor-find span {
+    min-width: 64px;
+    padding: 0 6px;
+    color: var(--muted);
+    font-size: 11.5px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+.editor-find .icon-btn { width: 24px; height: 24px; border-radius: 7px; }
+.editor-find .icon-btn svg { width: 13px; height: 13px; }
+/* The line a problem is on: its number in red. */
+.editor-lines .bad { color: var(--red); font-weight: 700; }
+.editor-status { font-size: 12.5px; color: var(--muted); }
+.editor-status[data-line] { cursor: pointer; }
+.editor-status[data-line]:hover { text-decoration: underline; }
+.editor-status.ok    { color: var(--green); }
+.editor-status.dirty { color: var(--amber); }
+.editor-status.bad {
+    color: var(--red);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+}
+.editor-foot kbd {
+    margin-left: 6px;
+    font: 600 10.5px/1 -apple-system, system-ui, sans-serif;
+    opacity: .7;
+}

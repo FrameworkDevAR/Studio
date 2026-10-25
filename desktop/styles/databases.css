@@ -1,0 +1,154 @@
+/* The Databases page: the databases and the users, as cards. */
+
+/* -------------------------------------------------------------- databases */
+
+/* The databases as cards, as many across as fit. */
+.db-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.db-list .pkg-none { grid-column: 1 / -1; }
+.db-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding: 14px 14px 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--field) 55%, transparent);
+    transition: border-color .15s;
+}
+.db-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.db-card-head { display: flex; align-items: center; gap: 12px; }
+.db-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--field));
+}
+.db-icon svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.db-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+/* Only as wide as the name, so the card around it is not a link. */
+.db-name {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 600;
+}
+.db-name:hover { color: var(--accent); text-decoration: none; }
+.db-title small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* The buttons show on hover, as they would crowd every card otherwise. */
+.db-actions { flex: none; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
+.db-card:hover .db-actions, .user-row:hover .db-actions, .db-actions:focus-within { opacity: 1; }
+.db-actions .icon-btn { width: 26px; height: 26px; border-radius: 8px; }
+.db-actions .icon-btn svg { width: 13px; height: 13px; }
+.db-actions .icon-btn:hover {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    background: var(--accent-bg);
+}
+.db-actions .icon-btn.remove:hover {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    background: var(--red-bg);
+}
+.db-card .meter { height: 4px; }
+.db-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+.db-encoding { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.db-encoding .tag {
+    flex: none;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 10.5px;
+}
+.db-collation {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px;
+}
+.db-people {
+    flex: none;
+    display: flex;
+    gap: 4px;
+    max-width: 50%;
+    overflow: hidden;
+    font-size: 12px;
+}
+.db-user {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 8px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--text);
+    background: color-mix(in srgb, var(--muted) 16%, transparent);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 400;
+}
+button.db-user:hover { filter: none; color: var(--accent); background: var(--accent-bg); }
+.user-facts .db-user { font-family: inherit; font-size: 11.5px; }
+.db-user.none { color: var(--red); background: var(--red-bg); }
+
+/* The users, as cards like the databases': who, where from, what it reaches and may do. */
+.user-badge {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, var(--field));
+    font-size: 14px;
+    font-weight: 650;
+}
+.user-card.admin .user-badge { color: var(--muted); background: var(--code-bg); }
+.user-card.admin .db-name { color: var(--muted); }
+.user-facts {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 12px;
+    margin: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+}
+.user-facts dt {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+.user-facts dd { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; }

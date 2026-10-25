@@ -1,0 +1,527 @@
+/* The settings panels, the inputs and selects, the Apache modules and the databases. */
+
+/* ----------------------------------------------------------- php settings */
+
+/*
+ * The setting groups, as a mosaic: columns of panels, laid out by the script,
+ * the last of each grown so every column ends on one line.
+ */
+.setting-groups { display: flex; align-items: stretch; gap: 18px; margin-bottom: 18px; }
+.mosaic-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.setting-groups .panel { margin: 0; }
+.setting-groups .panel.fill { flex: 1; }
+/*
+ * The unsaved changes, in a panel that stays in sight at the bottom of the
+ * window while the settings scroll: how many, each one, and Save for all.
+ */
+.panel.changes {
+    position: sticky;
+    bottom: 18px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+}
+.changes-text { min-width: 0; }
+.changes h2 { margin: 0 0 6px; }
+.changes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+.change code { color: var(--strong); }
+.change b { color: var(--accent); font-weight: 600; }
+.change i { color: var(--muted); font-style: normal; font-weight: 400; }
+.changes .actions { flex: none; flex-wrap: nowrap; }
+/*
+ * The name on a line of its own, whole; under it, what the setting is for
+ * and where its value comes from on the left, then the field, and after it,
+ * in a track every row keeps so the fields always line up, an override's x.
+ * A changed field is marked; the page's Save, in its header, saves them all.
+ */
+.setting {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 140px 24px;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 2px 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.setting:last-child { border-bottom: 0; padding-bottom: 0; }
+.setting-key {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--strong);
+    overflow-wrap: anywhere;
+}
+.setting-hint {
+    grid-row: 2;
+    grid-column: 1;
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.45;
+}
+.setting .unset { grid-row: 2; grid-column: 4; width: 24px; height: 24px; border-radius: 7px; }
+.setting .unset svg { width: 12px; height: 12px; }
+.setting .unset:hover {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    background: var(--red-bg);
+}
+.setting .field { grid-row: 2; grid-column: 3; min-width: 0; }
+.field input, .field select { width: 100%; }
+/* A size: its number and unit joined into one field. */
+.field.size { display: flex; }
+.field.size input {
+    flex: 1;
+    min-width: 0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.field.size select {
+    flex: none;
+    width: 54px;
+    padding: 0 8px;
+    margin-left: -1px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+}
+.field.size select:hover { color: var(--strong); }
+/* An override marked to go: its field shows the value it goes back to, dimmed, and the x is an
+   undo. */
+.setting.removing input, .setting.removing select { opacity: .55; border-style: dashed; }
+.setting.removing .unset {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    background: var(--accent-bg);
+}
+.setting.removing .unset:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: var(--accent-bg);
+}
+.setting.dirty input, .setting.dirty select { border-color: var(--accent); }
+/* A long value, as sql_mode's list, gets the row's whole width, under the hint. */
+.setting.wide .setting-hint { grid-column: 1 / 4; }
+.setting.wide .field { grid-row: 3; grid-column: 1 / 4; margin-top: 6px; }
+.field textarea {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input);
+    color: var(--strong);
+    font: 12px/1.5 "SF Mono", ui-monospace, Menlo, monospace;
+    resize: vertical;
+    word-break: break-all;
+}
+.field textarea:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.field textarea:focus {
+    outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: var(--accent);
+}
+.setting.dirty textarea { border-color: var(--accent); }
+.setting.wide .unset { grid-row: 3; margin-top: 6px; }
+
+input, select {
+    font: inherit;
+    font-size: 13px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--input);
+    color: var(--strong);
+    min-width: 0;
+    width: 100%;
+    transition: border-color .12s, background .12s;
+}
+/* The theme's muted text, a little faded, so a hint never reads as a value. */
+input::placeholder, textarea::placeholder {
+    color: color-mix(in srgb, var(--muted) 70%, transparent);
+    opacity: 1;
+}
+input:hover, select:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+input:focus, select:focus {
+    outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: var(--accent);
+}
+
+/*
+ * The select drops the browser's own control for one matching the inputs.
+ * The chevron is a mask on the wrapper, so it takes the theme's color.
+ */
+.select { position: relative; display: block; }
+.select select { appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer; }
+.select::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    background: var(--muted);
+    pointer-events: none;
+    -webkit-mask: url("../icons/chevron.svg") center / contain no-repeat;
+            mask: url("../icons/chevron.svg") center / contain no-repeat;
+    transition: background .12s;
+}
+.select:hover::after, .select:focus-within::after { background: var(--accent); }
+select option { background: var(--panel); color: var(--text); }
+
+/*
+ * The selects as buttons: the select stays, hidden, with its value; the
+ * button looks as it did, and opens its options in a list that searches.
+ */
+.select > select.picker-source {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+.picker {
+    display: block;
+    width: 100%;
+    height: 32px;
+    padding: 0 32px 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input);
+    color: var(--strong);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: border-color .12s;
+}
+.picker:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); filter: none; }
+.picker:focus-visible, .picker[aria-expanded="true"] {
+    outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: var(--accent);
+}
+.picker:disabled { opacity: .5; cursor: default; }
+.setting.dirty .picker { border-color: var(--accent); }
+.setting.removing .picker { opacity: .55; border-style: dashed; }
+.filter-rule .picker, .filter-query .picker {
+    height: 28px;
+    padding: 0 28px 0 9px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+/* The list: a popover, so over a dialog too, as the menus look. */
+.picker-box {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    display: none;
+    flex-direction: column;
+    max-width: min(480px, 90vw);
+    max-height: min(360px, 60vh);
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    background: color-mix(in srgb, var(--panel) 30%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+    box-shadow: 0 12px 32px rgb(0 0 0 / .18);
+    outline: none;
+}
+.picker-box:popover-open { display: flex; }
+.picker-box input { flex: none; height: 30px; margin-bottom: 5px; }
+.picker-list { overflow: auto; min-height: 0; }
+.picker-option {
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 13px;
+    cursor: default;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.picker-option.active { background: color-mix(in srgb, var(--strong) 10%, transparent); }
+.picker-option.picked { color: var(--accent); font-weight: 600; }
+.picker-option.off { color: var(--muted); opacity: .6; }
+/* A group's name, smaller and dimmer, its options under it, set in, as a select shows them. */
+.picker-group {
+    padding: 8px 10px 3px;
+    color: color-mix(in srgb, var(--muted) 65%, transparent);
+    font-size: 11.5px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.picker-option.in-group { padding-left: 24px; }
+.picker-list hr + .picker-group, .picker-group:first-child { padding-top: 6px; }
+.picker-list hr { margin: 4px; border: 0; border-top: 1px solid var(--border); }
+.picker-none { padding: 8px 10px; color: var(--muted); font-size: 12.5px; }
+
+.panel.problem {
+    color: var(--red);
+    background: var(--red-bg);
+    border-color: color-mix(in srgb, var(--red) 40%, transparent);
+}
+.panel.problem code { color: inherit; }
+.problem-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 13px;
+}
+.problem-line button { flex: none; }
+/*
+ * A list of packages or extensions, in columns read top to bottom, so the
+ * alphabetical order runs down each one. A line never splits across two.
+ */
+.pkg-list { columns: 230px; column-gap: 36px; }
+.pkg-list + .pkg-list { margin-top: 28px; }
+.pkg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 2px;
+    border-bottom: 1px solid var(--border);
+    break-inside: avoid;
+    font-size: 13px;
+}
+.pkg-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.pkg-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+}
+/*
+ * The packages are a table in two columns: name, size, version and buttons
+ * each in a track of its own, so they line up from row to row.
+ */
+#node-globals .pkg-list, .pkg-list.wide { columns: 2 440px; column-gap: 40px; }
+#node-globals .pkg, .pkg-list.wide .pkg {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 64px 132px 56px;
+    gap: 12px;
+}
+.pkg-size {
+    text-align: right;
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+#node-globals .pkg-version, .pkg-list.wide .pkg-version { margin-left: 0; text-align: right; }
+/* Update and remove keep their own places, so a row without one still lines up. */
+.pkg-actions { display: grid; grid-template-columns: 24px 24px; gap: 8px; }
+.pkg-actions .update { grid-column: 1; }
+.pkg-actions .remove { grid-column: 2; }
+/* An extension being built, before PHP loads it: a spinner where its buttons go. */
+.pkg-building { grid-column: 2; display: grid; place-items: center; width: 24px; height: 24px; }
+.pkg-building::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+.pkg-scope { color: var(--muted); }
+a.pkg-text:hover { color: var(--accent); text-decoration: none; }
+a.pkg-text:hover .pkg-scope { color: inherit; }
+.pkg.end { border-bottom-color: transparent; }
+#node-filter, #php-ext-filter, #db-filter, #user-filter { flex: none; width: 240px; }
+.pkg-none { padding: 24px 2px; color: var(--muted); }
+.pkg-latest { margin-left: 6px; color: var(--amber); font-weight: 600; }
+.pkg.outdated .pkg-version { color: var(--text); }
+#node-outdated b, #pecl-outdated b {
+    margin-right: 8px;
+    color: var(--amber);
+    font-size: 13px;
+    font-weight: 600;
+}
+/* Its count and button sit in the status's own row, one gap between all three. */
+#node-outdated, #pecl-outdated { display: contents; }
+#pecl-outdated { color: var(--muted); font-size: 13px; }
+/* A package to pick in the update dialog: the whole row toggles its box. */
+.pkg.pick { cursor: pointer; }
+/*
+ * The boxes are drawn here rather than left to the system: rounded, with a
+ * drawn tick, and a bar when only some of the list is picked.
+ */
+.pkg.pick input, input.box {
+    appearance: none;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    margin: 0 6px 0 0;
+    padding: 0;
+    border-radius: 6px;
+    border: 1.5px solid color-mix(in srgb, var(--muted) 70%, transparent);
+    background: color-mix(in srgb, var(--muted) 10%, transparent);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+}
+.pkg.pick:hover input, .check:hover input.box { border-color: var(--accent); }
+.pkg.pick input:checked, .pkg.pick input:indeterminate, input.box:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.pkg.pick input::after, input.box::after { content: ""; display: none; }
+.pkg.pick input:checked::after, input.box:checked::after {
+    display: block;
+    width: 5px;
+    height: 9px;
+    margin-top: -2px;
+    border: solid var(--on-accent);
+    border-width: 0 2px 2px 0;
+    rotate: 45deg;
+}
+.pkg.pick input:indeterminate::after {
+    display: block;
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--on-accent);
+}
+.pkg.pick input:focus-visible, input.box:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    outline-offset: 2px;
+}
+.pkg.pick.all { border-bottom-width: 2px; }
+.pkg.pick.all .pkg-text { color: var(--muted); font-family: inherit; font-weight: 600; }
+.pkg .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
+.pkg .icon-btn svg { width: 13px; height: 13px; }
+.pkg .icon-btn.update:hover {
+    color: var(--amber);
+    border-color: color-mix(in srgb, var(--amber) 50%, var(--border));
+    background: var(--amber-bg);
+}
+.pkg .icon-btn.remove:hover {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    background: var(--red-bg);
+}
+.pkg .icon-btn.busy svg { animation: rise 1s ease-in-out infinite; }
+@keyframes rise { 0%, 100% { translate: 0 2px; } 50% { translate: 0 -2px; } }
+.pkg-version {
+    margin-left: auto;
+    flex: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+.tag.blue {
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.tag.amber {
+    color: var(--amber);
+    background: var(--amber-bg);
+    border-color: color-mix(in srgb, var(--amber) 40%, transparent);
+}
+
+
+/* ---------------------------------------------------------- apache modules */
+
+.filters { display: flex; align-items: center; gap: 10px; }
+.filters input { width: 240px; }
+.modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 2px 18px;
+}
+.module {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+.module:hover { background: var(--hover); }
+.module .name {
+    flex: 1;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.module.off .name { color: var(--muted); }
+/* The config files Apache includes: a switch, the file and its note, and Edit. */
+.configs { columns: 2 360px; column-gap: 40px; }
+.config-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--border);
+    break-inside: avoid;
+}
+.config-row.end { border-bottom-color: transparent; }
+.config-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.config-text .name {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    color: var(--strong);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.config-text small { color: var(--muted); font-size: 11.5px; }
+.config-row.off .name { color: var(--muted); }
+
+.switch { position: relative; width: 30px; height: 18px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span {
+    position: absolute;
+    inset: 0;
+    border-radius: 9px;
+    background: var(--border);
+    cursor: pointer;
+    transition: background .15s;
+}
+.switch span::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--bg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+    transition: transform .15s;
+}
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::after { transform: translateX(12px); }
+.switch input:disabled + span { opacity: .45; cursor: not-allowed; }

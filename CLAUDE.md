@@ -3,18 +3,28 @@
 A local control panel for the Homebrew dev stack (Apache, MariaDB, PHP, Node.js, Redis), and
 the apps and servers of each project. See the README.
 
-- `backend/` is the server: `server.js` answers the page and the api, and each other file
-  covers one part (`apache.js`, `php.js`, `node.js`, `services.js`, `databases.js` with the
-  databases and users, `mariadb.js` with MariaDB's options, `tables.js` with a database's tables, rows, SQL,
-  export and import, `apps.js`, `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share, and
-  `jobs.js` running the npm and pecl installs the page follows as they go.
-- `backend/paths.js` holds the stack's paths, with their defaults, for the server and the
-  plugin both.
-- `desktop/` is the whole page: `index.html`, `style.css`, and its script in `src/`, a
-  file per page or part, as `settings.js`, the settings panels PHP and MariaDB share. They are plain scripts sharing one scope, loaded in order by
-  `index.html`, with `state.js` first and `start.js`, which calls into the others, last.
+- `backend/` is the server. `server.js` answers the page and the api; the rest is in folders
+  by what it covers, a file per part:
+  - `core/`: `system.js` with the paths and helpers the others share, `paths.js` with the
+    stack's paths and their defaults (for the plugin too), `config.js`, and `jobs.js`, which
+    runs the npm and pecl installs the page follows as they go.
+  - `stack/`: `services.js`, `apache.js`, PHP's `php.js` (settings and overrides), `ini.js`
+    (asking PHP, the ini files) and `pecl.js` (extensions), `node.js` and `logs.js`.
+  - `apps/`: the projects' apps and their icons.
+  - `database/`: `databases.js` (databases and users), `mariadb.js` (MariaDB's options), and
+    a database's own page: `client.js` (the mariadb client every query goes through),
+    `schema.js`, `rows.js`, `structure.js`, `tables.js`, `sql.js`, `exports.js`, `imports.js`.
+- `desktop/` is the whole page: `index.html`, its stylesheets in `styles/`, icons in `icons/`,
+  fonts in `fonts/`, and its script in
+  `src/`: `core/` (state, helpers, routes, the editor and the selects, clicks and start),
+  `pages/` (a file per page, with `settings.js`, the settings panels PHP and MariaDB share)
+  and `database/` (a database's own page, a file per part). They are plain scripts sharing
+  one scope, loaded in order by `index.html`, with `core/state.js` first and `core/start.js`,
+  which calls into the others, last. The stylesheets are loaded in order too, and the
+  cascade depends on it.
 - `swiftbar.10s.js` is the SwiftBar menu plugin, which SwiftBar runs through a link in
-  `~/Documents/SwiftBar/`.
+  `~/Documents/SwiftBar/`. It is the entry; its parts are in `swiftbar/`, which node finds
+  through the link.
 - `config/` holds the config and its example.
 
 ## Commits
@@ -34,6 +44,10 @@ the apps and servers of each project. See the README.
 - Match the surrounding code: 4-space indents, double quotes, the colons of object
   literals aligned, `const` first. Files read top down — entry, then what it calls,
   then helpers — under `// ---- section ---` dividers.
+- Lines are at most 100 characters, comments too. Requires are not aligned:
+  `const fs = require("fs");`.
+- A file that grows long (over about 600 lines) is split by what its parts cover, into
+  the folder it belongs in. Backend modules never require each other in a circle.
 - Comments say why, not what, in full sentences: a `/** */` above each function, and
   a block comment above any rule or step that would otherwise be "tidied away".
 - Keep names plain and one word where possible, like the user's other projects

@@ -1,0 +1,572 @@
+/* A database's own page: its tables, rows, structure, information and SQL. */
+
+/* --------------------------------------------------------- database page */
+
+h1 .crumb { color: var(--muted); }
+h1 .crumb:hover { color: var(--accent); text-decoration: none; }
+.crumb-sep { margin: 0 10px; color: var(--border); }
+/*
+ * The page fits the window, as the logs do, so only one thing scrolls: the
+ * grid of rows or tables inside its panel, or the tab's panels together.
+ */
+section[data-view="database"].active {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--top) - 24px);
+}
+main:has(section[data-view="database"].active) { padding-bottom: 24px; }
+section[data-view="database"] > .page-head { margin-bottom: 2px; }
+.browse {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 18px;
+}
+.browse.whole { grid-template-columns: minmax(0, 1fr); }
+.browse.whole .browse-aside { display: none; }
+.browse-aside { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+.browse-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+    margin: 0;
+    padding: 14px 10px 10px;
+}
+.table-info { flex: none; margin: 0; padding: 12px 14px; overflow: hidden; font-size: 12px; }
+.table-info dl { display: flex; flex-direction: column; gap: 5px; margin: 0; }
+.table-info dl > div { display: flex; gap: 12px; }
+.table-info dt { flex: none; color: var(--muted); }
+.table-info dd {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+/* An estimate of a table's rows, which counts them when clicked. */
+/* Inline text with a dashed underline, so a row is as tall as with the count in it. */
+.estimate {
+    display: inline;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    line-height: inherit;
+    text-decoration: underline dashed;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+.estimate:hover { color: var(--accent); }
+.estimate:disabled { text-decoration: none; cursor: default; }
+.table-info .none { color: var(--muted); opacity: .6; }
+.browse-side input { flex: none; }
+.browse-tables {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+/* The keys scroll a table clear of the list's 28px fades, not just into the box. */
+.table-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 8px;
+    color: var(--text);
+    scroll-margin: 28px 0;
+}
+.table-link:hover { background: var(--hover); text-decoration: none; }
+.table-link.active { background: color-mix(in srgb, var(--muted) 20%, transparent); }
+.table-link.active .table-name { color: var(--strong); }
+.focused .table-link.active { background: var(--accent-bg); }
+.focused .table-link.active .table-name { color: var(--accent); }
+.table-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+}
+.browse-tables .pkg-none { padding: 14px 10px; font-size: 13px; }
+.browse-main { min-width: 0; min-height: 0; overflow: auto; }
+.browse-main > .browse-fill { display: flex; flex-direction: column; height: 100%; margin: 0; }
+.browse-fill .grid-wrap { flex: 1; min-height: 0; }
+.browse-fill .panel-head, .browse-fill .pager, #rows-note { flex: none; }
+#overview-filter { width: 240px; }
+#browse-sql { margin: 0; }
+/* The columns and the indexes share the window, and each scrolls its own. */
+.browse-structure { display: flex; flex-direction: column; gap: 18px; height: 100%; }
+.browse-structure > .panel { display: flex; flex-direction: column; min-height: 0; margin: 0; }
+.browse-structure .panel-head { flex: none; }
+.structure-columns { flex: 1 1 0; min-height: 160px !important; }
+.structure-columns .grid-wrap { flex: 1; min-height: 0; }
+/* The indexes as tall as the table's information beside them, always, and as tight. */
+.table-info, .structure-indexes { height: 182px; }
+/* The indexes and the foreign keys side by side, under the columns. */
+.structure-keys { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.structure-keys.alone { grid-template-columns: 1fr; }
+.structure-keys > .panel { margin: 0; }
+.structure-keys .structure-indexes { display: flex; flex-direction: column; min-width: 0; }
+.fk-line { cursor: pointer; }
+.fk-text { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fk-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fk-map { color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.fk-text small { color: var(--muted); font-size: 11.5px; }
+.fk-line:hover .fk-map { color: var(--accent); }
+.fk-target {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+.fk-pairs { display: flex; flex-direction: column; gap: 8px; }
+.fk-pair { display: grid; grid-template-columns: 1fr auto 1fr 28px; align-items: center; gap: 8px; }
+.fk-arrow { color: var(--muted); }
+.fk-more { align-self: flex-start; }
+/* A foreign key's value, with the arrow to the row it refers to, shown on hover. */
+.data-grid td.linked { position: relative; padding-right: 30px; }
+.fk-follow {
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--muted);
+    translate: 0 -50%;
+    opacity: 0;
+    transition: opacity .12s;
+}
+.fk-follow svg {
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.data-grid tr:hover td.linked .fk-follow, .fk-follow:focus-visible { opacity: 1; }
+.fk-follow:hover {
+    filter: none;
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+.structure-indexes { flex: none; padding: 10px 14px 8px; }
+.structure-indexes .panel-head { margin-bottom: 4px; }
+.structure-indexes h2 { font-size: 15px; }
+/* The lists run to the panel's edges, so a line's highlight does, as a grid's row. */
+.structure-indexes .index-list { margin: 0 -14px; }
+.structure-indexes .structure-line { padding: 4px 16px; transition: background .12s; }
+.structure-indexes .structure-line:hover { background: var(--hover); }
+.index-list { min-height: 0; overflow: auto; }
+#structure-filter { width: 240px; }
+.head-tools { display: flex; align-items: center; gap: 8px; }
+/* A column being dragged, and the line where it would land. */
+#structure-grid tr.dragging td { opacity: .45; }
+#structure-grid tr.drop-above td { box-shadow: inset 0 2px 0 var(--accent); }
+#structure-grid tr.drop-below td { box-shadow: inset 0 -2px 0 var(--accent); }
+select.cell-input { padding: 0 4px; }
+.column-type { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
+.column-checks { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.column-checks[hidden] { display: none; }
+#rows-search { width: 240px; }
+#rows-note { margin: -4px 0 12px; }
+/*
+ * The filter rules, a line each, small to fit many, then the WHERE they
+ * make, with whether all or any hold, Filter and Clear beside it.
+ */
+.filter-bar { flex: none; display: flex; flex-direction: column; gap: 5px; margin: -4px 0 12px; }
+.filter-rules { display: flex; flex-direction: column; gap: 5px; }
+.filter-rule { display: flex; align-items: center; gap: 5px; }
+.filter-rule input, .filter-rule select, .filter-query select {
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+.filter-rule .field.select { flex: none; width: 170px; }
+.filter-rule .field.select.op { width: 132px; }
+.filter-rule .field.select select, .filter-query .field.select select { padding-right: 26px; }
+.filter-rule input:not(.box) {
+    flex: 1;
+    min-width: 80px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+}
+.filter-rule input.box {
+    width: 16px;
+    height: 16px;
+    margin: 0 4px 0 2px;
+    padding: 0;
+    border-radius: 5px;
+}
+.filter-rule.off > :not(.box) { opacity: .45; }
+.filter-rule .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
+.filter-rule .icon-btn svg { width: 12px; height: 12px; }
+.filter-rule:not(:last-child) [data-filter-add] { visibility: hidden; }
+.filter-and { flex: none; color: var(--muted); font-size: 12px; }
+/* The WHERE the rules make, in a dashed box, with the match, Filter and Clear beside it. */
+.filter-foot { display: flex; align-items: center; gap: 6px; }
+.filter-query {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px dashed color-mix(in srgb, var(--muted) 55%, var(--border));
+    border-radius: 8px;
+}
+.filter-sql {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0;
+    background: none;
+    font-size: 11.5px;
+}
+.filter-sql .muted { font-family: -apple-system, system-ui, sans-serif; }
+.filter-foot .field.select { flex: none; width: 108px; }
+.filter-foot button { flex: none; height: 28px; }
+.filter-bar.applied .filter-query {
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+
+/* A grid of rows, scrolling sideways when wide, its header in sight as it scrolls. */
+/* Solid, as the row buttons' column lies over the cells when the grid scrolls sideways. */
+.browse-main, .sql-result { --grid: color-mix(in srgb, var(--field) 55%, var(--panel)); }
+.grid-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--grid);
+}
+.grid-scroll { flex: 1; min-height: 0; overflow: auto; }
+/*
+ * A scrolling box fades out at the edges where more of it is hidden, which
+ * the script sets as it scrolls, and the fades come and go smoothly.
+ */
+@property --fade-top    { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-left   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-right  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-skip   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-edge   { syntax: "<color>"; inherits: false; initial-value: #000; }
+@property --fade-foot   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-floor  { syntax: "<color>"; inherits: false; initial-value: #000; }
+[data-fades] {
+    transition:
+        --fade-top .25s,
+        --fade-bottom .25s,
+        --fade-left .25s,
+        --fade-right .25s,
+        --fade-edge .25s,
+        --fade-floor .25s;
+    /* The bottom fade ends above a grid's totals, as the right one before its buttons. */
+    mask-image:
+        linear-gradient(to bottom, transparent, #000 var(--fade-top),
+            #000 calc(100% - var(--fade-foot) - var(--fade-bottom)),
+            var(--fade-floor) calc(100% - var(--fade-foot)), #000 calc(100% - var(--fade-foot))),
+        linear-gradient(to right, transparent, #000 var(--fade-left),
+            #000 calc(100% - var(--fade-skip) - var(--fade-right)),
+            var(--fade-edge) calc(100% - var(--fade-skip)), #000 calc(100% - var(--fade-skip)));
+    mask-composite: intersect;
+}
+/* As wide as its columns need, never stretched to fill the panel. */
+.data-grid {
+    width: max-content;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+}
+.data-grid th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0;
+    white-space: nowrap;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 12px;
+    background: var(--code-bg);
+}
+.data-grid th .sort, .data-grid th .th {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: var(--strong);
+    font: 600 12px "SF Mono", ui-monospace, Menlo, monospace;
+    text-align: left;
+    white-space: nowrap;
+}
+.data-grid th .sort:hover { filter: none; color: var(--accent); }
+.data-grid th .sort.active { color: var(--accent); }
+.sort-dir { font-family: -apple-system, system-ui, sans-serif; }
+.key { display: inline-flex; margin-right: 5px; color: var(--amber); vertical-align: -2px; }
+.key svg {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.data-grid td {
+    max-width: 320px;
+    padding: 6px 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+.data-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-grid th .sort.right { justify-content: flex-end; }
+.data-grid td.comment {
+    max-width: 260px;
+    color: var(--muted);
+    font-family: -apple-system, system-ui, sans-serif;
+}
+/* The tables' and the columns' grids as wide as their panel, the comment taking what the others
+   leave, cut to fit. */
+.data-grid.fill { width: 100%; }
+.data-grid.fill td.comment { width: 100%; min-width: 200px; max-width: 0; }
+.data-grid tfoot td {
+    position: sticky;
+    bottom: 0;
+    background: var(--code-bg);
+    color: var(--strong);
+    font-weight: 600;
+    border-top: 1px solid var(--border);
+    border-bottom: 0;
+}
+.grid-link { color: var(--strong); font-weight: 600; }
+.grid-link:hover { color: var(--accent); text-decoration: none; }
+.data-grid td.empty {
+    max-width: none;
+    padding: 26px 18px;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+}
+.data-grid td.empty.bad { color: var(--red); }
+.data-grid tbody tr:last-child td { border-bottom: 0; }
+/* Another table's rows come in; a new page or sort of the same one replaces them in place. */
+/* Columns dragged to a width keep it, and cut what does not fit. */
+.data-grid.fixed { table-layout: fixed; }
+.data-grid.fixed td { max-width: none; }
+.data-grid.fixed th .sort { overflow: hidden; }
+.col-resize {
+    position: absolute;
+    top: 0;
+    right: -4px;
+    bottom: 0;
+    z-index: 2;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+}
+.col-resize::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    left: 3px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .15s;
+}
+.data-grid th:hover .col-resize::after, body.resizing .col-resize::after { opacity: .6; }
+body.resizing { cursor: col-resize; user-select: none; }
+/*
+ * A column of timestamps has a clock in its header, drawn as the key is;
+ * hovering the column makes it a button, which shows them as dates.
+ */
+.data-grid th:has(.as-date) .sort { padding-right: 34px; }
+.as-date {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-color: transparent;
+    border-radius: 6px;
+    background: none;
+    color: var(--muted);
+    translate: 0 -50%;
+}
+.as-date svg { width: 13px; height: 13px; }
+.data-grid th:hover .as-date { border-color: var(--border); background: var(--panel); }
+.as-date.on { color: var(--cyan); }
+.data-grid th:hover .as-date.on {
+    border-color: color-mix(in srgb, var(--cyan) 45%, var(--border));
+    background: color-mix(in srgb, var(--cyan) 12%, var(--panel));
+}
+.data-grid td.date { color: var(--cyan); }
+/* A long value has a button to see it whole, on hover. */
+.data-grid td.long { position: relative; padding-right: 34px; }
+.cell-open {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--panel);
+    color: var(--muted);
+    translate: 0 -50%;
+    opacity: 0;
+    transition: opacity .12s;
+}
+.cell-open svg {
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.data-grid td.long:hover .cell-open, .cell-open:focus-visible { opacity: 1; }
+.cell-open:hover {
+    filter: none;
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+#ask[data-mode="view"] {
+    width: min(900px, calc(100vw - 48px));
+    max-height: min(800px, calc(100vh - 48px));
+}
+.value-view {
+    max-height: calc(min(800px, 100vh - 48px) - 190px);
+    margin: 6px 0;
+    padding: 14px 16px;
+    overflow: auto;
+    border-radius: 10px;
+    background: var(--code-bg);
+    color: var(--strong);
+    font: 12px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+/* Dimmed while the next page or a search is read, which can take seconds in a large table. */
+.data-grid.loading tbody { opacity: .5; transition: opacity .2s; }
+.data-grid tbody tr:hover td { background: var(--hover); }
+/* A cell changed in place: a field filling it, the row's height kept. */
+.data-grid td.editing { padding: 0 2px; }
+.cell-input { width: 100%; height: 26px; padding: 0 6px; border-radius: 6px; font: inherit; }
+.editor.form.wide {
+    width: min(900px, calc(100vw - 48px));
+    max-height: min(800px, calc(100vh - 48px));
+}
+/* A big value's text, as the editor's body, in a framed box of its own height. */
+.editor-body.value-code {
+    flex: none;
+    height: min(460px, 50vh);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.value-code:focus-within {
+    outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-color: var(--accent);
+}
+/* The marked row: the accent while its grid has the keys, grey otherwise. */
+.data-grid tbody tr.selected td { background: color-mix(in srgb, var(--muted) 20%, var(--grid)); }
+.data-grid.focused tbody tr.selected td { background: var(--accent-bg); }
+.null { color: var(--muted); font-style: italic; opacity: .75; }
+/* Under the rows: the column filter at the left, the pages at the right. */
+.rows-foot {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+}
+#column-filter { width: 200px; height: 28px; border-radius: 8px; font-size: 12px; }
+.pager {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    font-size: 12.5px;
+}
+.pager .muted { margin-right: 6px; font-variant-numeric: tabular-nums; }
+.pager:empty { display: none; }
+
+.data-grid.structure .key { margin: 0 0 0 6px; }
+.structure-line .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; opacity: 0; }
+.structure-line .icon-btn svg { width: 12px; height: 12px; }
+.structure-line:hover .icon-btn, .structure-line .icon-btn:focus-visible { opacity: 1; }
+.structure-line .icon-btn:hover {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    background: var(--red-bg);
+}
+/* The index's columns: each ticked one shows its place in it. */
+.index-columns .check { position: relative; }
+.index-columns .order { flex: none; margin-left: auto; font-style: normal; }
+.index-columns .order:not(:empty) {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    color: var(--accent);
+    background: var(--accent-bg);
+    font: 650 11px -apple-system, system-ui, sans-serif;
+}
+.structure-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+}
+.structure-line:last-child { border-bottom: 0; }
+.structure-line > span:not(.tag) {
+    flex: 1;
+    min-width: 0;
+    color: var(--muted);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+}
+.data-grid.structure td { max-width: 260px; }
+/* The CREATE TABLE opens by its title, the chevron turning as it does. */

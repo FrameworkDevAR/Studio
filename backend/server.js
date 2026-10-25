@@ -2,26 +2,37 @@
 
 "use strict";
 
-const fs   = require("fs");
+const fs = require("fs");
 const http = require("http");
 const path = require("path");
 
-const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, MYSQL_CNF, versionOf } = require("./system");
-const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
-const db                                                                    = require("./databases");
-const mariadb                                                               = require("./mariadb");
-const tables                                                                = require("./tables");
-const exporter                                                              = require("./exports");
-const importer                                                              = require("./imports");
+const {
+    ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, MYSQL_CNF, versionOf
+} = require("./core/system");
+const {
+    readServices, readDisk, serviceAction, startAll, restartAll, stopAll
+} = require("./stack/services");
+const db = require("./database/databases");
+const mariadb = require("./database/mariadb");
+const schema = require("./database/schema");
+const tableRows = require("./database/rows");
+const structure = require("./database/structure");
+const tables = require("./database/tables");
+const sql = require("./database/sql");
+const exporter = require("./database/exports");
+const importer = require("./database/imports");
 const { readModules, readListen, readVhosts, setModule, reloadApache, readIncludes, setInclude,
-        apacheFile, readApacheFile, checkApacheFile, saveApacheFile }       = require("./apache");
-const php                                                                   = require("./php");
-const { readNode, updatePackages, installPackage, uninstallPackage, searchPackages } = require("./node");
-const { readJob }                                                           = require("./jobs");
-const { readApps, startApp, stopApp, startGroup, startServer, stopServer } = require("./apps");
-const { readLogSizes, readLog, clearLog }                                   = require("./logs");
-const { readConfigFile, saveConfig, openFile }                              = require("./config");
-const { readIcons, iconFile }                                               = require("./icons");
+    apacheFile, readApacheFile, checkApacheFile, saveApacheFile } = require("./stack/apache");
+const php = require("./stack/php");
+const pecl = require("./stack/pecl");
+const {
+    readNode, updatePackages, installPackage, uninstallPackage, searchPackages
+} = require("./stack/node");
+const { readJob } = require("./core/jobs");
+const { readApps, startApp, stopApp, startGroup, startServer, stopServer } = require("./apps/apps");
+const { readLogSizes, readLog, clearLog } = require("./stack/logs");
+const { readConfigFile, saveConfig, openFile } = require("./core/config");
+const { readIcons, iconFile } = require("./apps/icons");
 
 
 
@@ -67,13 +78,16 @@ async function handle(request, response) {
             return sendIcon(response, url.searchParams.get("project"));
         }
         if (url.pathname === "/api/log" && request.method === "GET") {
-            return send(response, 200, readLog(url.searchParams.get("name"), Number(url.searchParams.get("lines")) || 200));
+            return send(response, 200, readLog(
+                url.searchParams.get("name"),
+                Number(url.searchParams.get("lines")) || 200,
+            ));
         }
         if (url.pathname === "/api/npm-search" && request.method === "GET") {
             return send(response, 200, await searchPackages(url.searchParams.get("q")));
         }
         if (url.pathname === "/api/pecl-search" && request.method === "GET") {
-            return send(response, 200, await php.searchExtensions(url.searchParams.get("q")));
+            return send(response, 200, await pecl.searchExtensions(url.searchParams.get("q")));
         }
         if (url.pathname === "/api/php-directives" && request.method === "GET") {
             return send(response, 200, await php.readDirectives());
@@ -82,7 +96,10 @@ async function handle(request, response) {
             return send(response, 200, php.readOverrides());
         }
         if (url.pathname === "/api/apache-file" && request.method === "GET") {
-            return send(response, 200, readApacheFile(url.searchParams.get("kind"), url.searchParams.get("file")));
+            return send(response, 200, readApacheFile(
+                url.searchParams.get("kind"),
+                url.searchParams.get("file"),
+            ));
         }
         if (url.pathname === "/api/charsets" && request.method === "GET") {
             return send(response, 200, await db.readCharsets());
@@ -94,22 +111,31 @@ async function handle(request, response) {
             return send(response, 200, mariadb.readOptionsFile());
         }
         if (url.pathname === "/api/db-tables" && request.method === "GET") {
-            return send(response, 200, await tables.readTables(url.searchParams.get("db")));
+            return send(response, 200, await schema.readTables(url.searchParams.get("db")));
         }
         if (url.pathname === "/api/db-structure" && request.method === "GET") {
-            return send(response, 200, await tables.readStructure(url.searchParams.get("db"), url.searchParams.get("table")));
+            return send(response, 200, await schema.readStructure(
+                url.searchParams.get("db"),
+                url.searchParams.get("table"),
+            ));
         }
         if (url.pathname === "/api/db-rows" && request.method === "GET") {
-            return send(response, 200, await tables.readRows(Object.fromEntries(url.searchParams)));
+            return send(response, 200, await tableRows.readRows(
+                Object.fromEntries(url.searchParams),
+            ));
         }
         if (url.pathname === "/api/engines" && request.method === "GET") {
-            return send(response, 200, await tables.readEngines());
+            return send(response, 200, await schema.readEngines());
         }
         if (url.pathname === "/api/db-counts" && request.method === "GET") {
-            return send(response, 200, await tables.countSmallTables(url.searchParams.get("db")));
+            return send(response, 200, await tableRows.countSmallTables(
+                url.searchParams.get("db"),
+            ));
         }
         if (url.pathname === "/api/db-count" && request.method === "GET") {
-            return send(response, 200, await tables.countRows(Object.fromEntries(url.searchParams)));
+            return send(response, 200, await tableRows.countRows(
+                Object.fromEntries(url.searchParams),
+            ));
         }
         // The export asked for in an action, by its id, as a download.
         if (url.pathname === "/api/db-export" && request.method === "GET") {
@@ -121,14 +147,20 @@ async function handle(request, response) {
             if (request.headers["x-studio"] !== "1") {
                 return send(response, 403, { error : "Forbidden" });
             }
-            return send(response, 200, await tables.importDatabase(request, Object.fromEntries(url.searchParams)));
+            return send(response, 200, await sql.importDatabase(
+                request,
+                Object.fromEntries(url.searchParams),
+            ));
         }
         // A CSV into a table, streamed as the import of a dump is, its options in the address.
         if (url.pathname === "/api/db-import-csv" && request.method === "POST") {
             if (request.headers["x-studio"] !== "1") {
                 return send(response, 403, { error : "Forbidden" });
             }
-            return send(response, 200, await importer.importCsv(request, Object.fromEntries(url.searchParams)));
+            return send(response, 200, await importer.importCsv(
+                request,
+                Object.fromEntries(url.searchParams),
+            ));
         }
         if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
@@ -187,7 +219,8 @@ function sendIcon(response, project) {
         return send(response, 404, { error : "Not found" });
     }
     response.writeHead(200, {
-        "Content-Type"            : MIME[path.extname(file).toLowerCase()] || "application/octet-stream",
+        "Content-Type"            : MIME[path.extname(file).toLowerCase()]
+            || "application/octet-stream",
         "Content-Security-Policy" : "default-src 'none'; style-src 'unsafe-inline'; img-src data:",
         "X-Content-Type-Options"  : "nosniff",
         "Cache-Control"           : "max-age=300",
@@ -216,7 +249,9 @@ function readBody(request) {
 
 /** Everything the page shows, gathered in parallel. */
 async function readState() {
-    const [ services, phpState, node, databases, options, { apps, servers, branches }, disk ] = await Promise.all([
+    const [
+        services, phpState, node, databases, options, { apps, servers, branches }, disk
+    ] = await Promise.all([
         readServices(),
         php.readPhp(),
         readNode(),
@@ -265,21 +300,27 @@ async function runAction(body) {
     case "start-all":     return startAll();
     case "restart-all":   return restartAll();
     case "stop-all":      return stopAll();
-    case "php-setting":   return php.setPhpSetting(String(body.key || ""), String(body.value ?? "").trim());
+    case "php-setting":   return php.setPhpSetting(
+        String(body.key || ""),
+        String(body.value ?? "").trim(),
+    );
     case "php-settings":  return php.setPhpSettings(body.changes);
     case "php-save":      return php.saveOverrides(body.text);
     case "php-check":     return php.checkOverrides(body.text);
-    case "pecl-install":  return php.installExtension(body.name);
-    case "pecl-update":   return php.updateExtensions(body.name);
-    case "pecl-rebuild":  return php.reinstallExtension(body.name);
-    case "pecl-remove":   return php.uninstallExtension(body.name);
+    case "pecl-install":  return pecl.installExtension(body.name);
+    case "pecl-update":   return pecl.updateExtensions(body.name);
+    case "pecl-rebuild":  return pecl.reinstallExtension(body.name);
+    case "pecl-remove":   return pecl.uninstallExtension(body.name);
     case "module":        return setModule(body.name, Boolean(body.enabled));
     case "reload":        return reloadApache();
     case "apache-check":  return checkApacheFile(body.kind, body.text, body.file);
     case "apache-save":   return saveApacheFile(body.kind, body.text, body.file);
     case "apache-include": return setInclude(String(body.file || ""), Boolean(body.enabled));
     // A file Apache includes opens by its path, once it is known to be one.
-    case "open-file":     return openFile(body.file, body.file === "apacheInclude" ? apacheFile("include", body.path) : "");
+    case "open-file":     return openFile(
+        body.file,
+        body.file === "apacheInclude" ? apacheFile("include", body.path) : "",
+    );
     case "db-create":     return db.createDatabase(body);
     case "db-change":     return db.changeDatabase(body);
     case "db-drop":       return db.dropDatabase(body);
@@ -289,15 +330,15 @@ async function runAction(body) {
     case "mariadb-options": return mariadb.setOptions(body.changes);
     case "mariadb-save":  return mariadb.saveOptionsFile(body.text);
     case "mariadb-check": return mariadb.checkOptions(body.text);
-    case "db-row":        return tables.readRow(body);
-    case "db-row-save":   return tables.saveRow(body);
-    case "db-row-delete": return tables.deleteRow(body);
-    case "db-rows-set":   return tables.setColumn(body);
-    case "db-sql":        return tables.runSql(body);
-    case "db-index-add":  return tables.addIndex(body);
-    case "db-index-drop": return tables.dropIndex(body);
-    case "db-fk-save":    return tables.saveForeignKey(body);
-    case "db-fk-drop":    return tables.dropForeignKey(body);
+    case "db-row":        return tableRows.readRow(body);
+    case "db-row-save":   return tableRows.saveRow(body);
+    case "db-row-delete": return tableRows.deleteRow(body);
+    case "db-rows-set":   return tableRows.setColumn(body);
+    case "db-sql":        return sql.runSql(body);
+    case "db-index-add":  return structure.addIndex(body);
+    case "db-index-drop": return structure.dropIndex(body);
+    case "db-fk-save":    return structure.saveForeignKey(body);
+    case "db-fk-drop":    return structure.dropForeignKey(body);
     case "db-table-change": return tables.changeTable(body);
     case "db-export":       return exporter.prepareExport(body);
     case "db-table-create": return tables.createTable(body);
@@ -306,9 +347,9 @@ async function runAction(body) {
     case "db-table-empty":  return tables.emptyTable(body);
     case "db-table-drop":   return tables.dropTable(body);
     case "db-table-upkeep": return tables.maintainTables(body);
-    case "db-column-save":  return tables.saveColumn(body);
-    case "db-column-move":  return tables.moveColumn(body);
-    case "db-column-drop":  return tables.dropColumn(body);
+    case "db-column-save":  return structure.saveColumn(body);
+    case "db-column-move":  return structure.moveColumn(body);
+    case "db-column-drop":  return structure.dropColumn(body);
     case "db-next-id":    return tables.nextId(body);
     case "save-config":   return saveConfig(body.text);
     case "clear-log":     return clearLog(body.name);

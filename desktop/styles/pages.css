@@ -1,0 +1,515 @@
+/* The overview, the services, the sites' tables and the apps. */
+
+/* ------------------------------------------------------------- overview */
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+/*
+ * Each tile has a tone, its color in the theme: the icon, the wash in the
+ * corner and the border on hover all come from it. A tile in trouble takes
+ * red instead.
+ */
+.tile {
+    --tone: var(--accent);
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background:
+        radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--tone) 16%, transparent),
+            transparent 60%),
+        var(--panel);
+    border: 1px solid color-mix(in srgb, var(--tone) 22%, var(--border));
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    color: var(--text);
+    transition: border-color .12s, transform .12s;
+}
+.tile:hover { border-color: var(--tone); text-decoration: none; transform: translateY(-1px); }
+.tile .label {
+    font-size: 12.5px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+.tile .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+.tile .icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.tile .value {
+    color: var(--strong);
+    font-size: 26px;
+    font-weight: 650;
+    letter-spacing: -.02em;
+    margin: 10px 0 2px;
+    font-variant-numeric: tabular-nums;
+}
+.tile .value small { font-size: 15px; color: var(--muted); font-weight: 500; }
+.tile .sub { font-size: 12.5px; color: var(--tone); font-weight: 500; }
+.tile.bad { --tone: var(--red); }
+.tile.bad .value { color: var(--red); }
+
+.tone-green   { --tone: var(--green); }
+.tone-cyan    { --tone: var(--cyan); }
+.tone-magenta { --tone: var(--magenta); }
+.tone-orange  { --tone: var(--orange); }
+.tone-blue    { --tone: var(--accent); }
+.tone-yellow  { --tone: var(--amber); }
+.tone-teal    { --tone: var(--teal); }
+.tone-red     { --tone: var(--red); }
+
+/* The headline's status, beside the title. */
+.status-pill {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-left: 10px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    vertical-align: 4px;
+    letter-spacing: 0;
+}
+.status-pill.on  { color: var(--green); background: var(--green-bg); }
+.status-pill.mid { color: var(--amber); background: var(--amber-bg); }
+.status-pill.off { color: var(--red);   background: var(--red-bg); }
+
+.recent { display: flex; flex-direction: column; gap: 6px; }
+.recent-line {
+    padding: 8px 12px;
+    border-radius: 12px;
+    border-left: 3px solid var(--red);
+    background: color-mix(in srgb, var(--red) 7%, var(--code-bg));
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+.recent-line.warn {
+    border-left-color: var(--amber);
+    background: color-mix(in srgb, var(--amber) 7%, var(--code-bg));
+}
+.recent-line time { display: block; color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+.recent-line.expandable { cursor: pointer; }
+.recent-line.expandable:hover { background: var(--hover); }
+.recent-line .trace {
+    display: none;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    white-space: pre-wrap;
+}
+.recent-line.open .trace { display: block; }
+.recent-ok {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 4px;
+    color: var(--muted);
+}
+
+.shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.shortcut {
+    --tone: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    color: var(--text);
+    text-align: left;
+    white-space: normal;
+}
+.shortcut .icon {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+}
+.shortcut .icon svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.shortcut div { display: flex; flex-direction: column; gap: 1px; }
+.shortcut:hover {
+    background: var(--hover);
+    border-color: var(--tone);
+    filter: none;
+    text-decoration: none;
+}
+.shortcut strong { font-size: 13px; font-weight: 600; }
+.shortcut span { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+
+/* -------------------------------------------------------------- services */
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+.service { display: flex; gap: 16px; align-items: flex-start; margin: 0; }
+.service-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: #fff;
+    /* A light ring inside every tile, which the darkest only showed before. */
+    box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .3);
+}
+.service-icon svg { width: 24px; height: 24px; fill: currentColor; }
+.service-body { flex: 1; min-width: 0; }
+.service-body h2 { display: flex; align-items: baseline; gap: 8px; }
+.service-body .version { font-size: 13px; color: var(--muted); font-weight: 400; }
+.service-body p { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+.service-state { font-size: 12px; font-weight: 600; }
+.service-state.on  { color: var(--green); }
+.service-state.off { color: var(--red); }
+
+
+/* ----------------------------------------------------------------- tables */
+
+table { width: 100%; border-collapse: collapse; }
+table.fixed { table-layout: fixed; }
+th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    background: var(--code-bg);
+    border-bottom-color: var(--border);
+}
+th, td { padding: 10px 18px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--hover); }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.path { color: var(--muted); font-size: 12.5px; word-break: break-all; }
+td strong { font-weight: 600; }
+.empty { color: var(--muted); padding: 22px 18px; text-align: center; }
+.size-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+.size-bar .meter { width: 120px; }
+
+/* ---------------------------------------------------------------- apps */
+
+#apps-pane { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+/*
+ * A project's block: a wash of its color from the corner behind the header,
+ * an accent line along the top, and the header's badge in the same color.
+ */
+.app-block {
+    position: relative;
+    overflow: hidden;
+    grid-column: span var(--span);
+    margin: 0;
+    padding: 18px 20px 20px;
+    border-color: color-mix(in srgb, var(--tone) 22%, var(--border));
+    background:
+        radial-gradient(70% 120px at 0% 0%, color-mix(in srgb, var(--tone) 13%, transparent),
+            transparent),
+        var(--panel);
+}
+.app-block::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background:
+        linear-gradient(90deg, var(--tone), color-mix(in srgb, var(--tone) 0%, transparent) 70%);
+}
+
+.block-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.block-badge {
+    width: 42px;
+    height: 42px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    /* The title font, as the project's name next to it. */
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 30%, transparent);
+}
+/* A project's own favicon, in its badge's tile. */
+.block-badge img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; }
+/* In dark mode the tile is a deep shade of the color, darker than the panel, with a brighter edge.
+   */
+@media (prefers-color-scheme: dark) {
+    .block-badge.icon {
+        background: color-mix(in srgb, var(--tone) 22%, #0b0c12);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 45%, transparent);
+    }
+}
+.block-title { flex: 1; min-width: 0; }
+.block-title h2 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.block-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--muted);
+}
+.block-meta .sep { margin: 0 -1px; font-size: 20px; font-weight: 700; line-height: 0; opacity: .7; }
+.branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 1px 8px 1px 6px;
+    border-radius: 7px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+.branch svg {
+    width: 12px;
+    height: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+/* The project's host, beside its branch: the Apache site its apps talk to. */
+.host {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.host svg {
+    width: 12px;
+    height: 12px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+a.host:hover { color: var(--tone); text-decoration: none; }
+
+.group-start { gap: 5px; }
+.group-start svg { width: 11px; height: 11px; fill: currentColor; }
+.group-start:hover {
+    color: var(--green);
+    border-color: color-mix(in srgb, var(--green) 50%, var(--border));
+    background: var(--green-bg);
+}
+
+/* One dot per app, green while it runs, and the count under them. */
+.block-state { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.state-dots { display: flex; gap: 4px; }
+.state-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+.state-dots i.on {
+    background: var(--green);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--green) 70%, transparent);
+}
+.state-dots i.mid { background: var(--amber); animation: pulse 1.1s ease-in-out infinite; }
+.state-text { font-size: 11.5px; color: var(--muted); }
+.state-text.on { color: var(--green); font-weight: 600; }
+/* A block's apps share its width: as many columns as it has apps, up to 4. */
+.app-block .app-cards { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+
+.app-cards { display: grid; gap: 12px; }
+
+/*
+ * One app: its kind's icon, its name and address, and its actions. A running
+ * app lifts off the block in its kind's color; a stopped one stays flat and
+ * grey, and only shows its color on hover.
+ */
+.app-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 12px 12px 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--field);
+    transition: border-color .15s, background .15s, transform .15s;
+}
+.app-card.on {
+    border-color: color-mix(in srgb, var(--tone) 35%, var(--border));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--tone) 11%, var(--field)),
+        var(--field) 70%);
+}
+.app-card.on:hover {
+    border-color: color-mix(in srgb, var(--tone) 70%, var(--border));
+    transform: translateY(-1px);
+}
+.app-card.idle { background: color-mix(in srgb, var(--field) 55%, transparent); }
+.app-card.idle:hover { border-color: color-mix(in srgb, var(--tone) 35%, var(--border)); }
+.app-card.mid { border-color: color-mix(in srgb, var(--amber) 45%, var(--border)); }
+
+.app-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    /* Monospaced, like the port under the name, to set it apart from the project's badge. */
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 17%, transparent);
+    transition: color .15s, background .15s;
+}
+.app-card.idle .app-icon { color: var(--muted); background: var(--code-bg); }
+.app-card.idle:hover .app-icon {
+    color: var(--tone);
+    background: color-mix(in srgb, var(--tone) 12%, transparent);
+}
+/* The status dot, on the icon's corner, ringed in the card's color. */
+.app-icon .dot {
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 11px;
+    height: 11px;
+    box-shadow: 0 0 0 3px var(--field);
+}
+.app-card.idle .app-icon .dot { display: none; }
+.app-card.mid .app-icon .dot { animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+
+.app-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.app-text strong { font-weight: 600; color: var(--strong); }
+.app-card.idle .app-text strong { color: var(--muted); font-weight: 500; }
+.app-text a, .app-text span {
+    font-size: 12px;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.app-text a { color: var(--tone); }
+.app-text .lock {
+    width: 11px;
+    height: 11px;
+    margin-left: 6px;
+    vertical-align: -1px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+}
+.app-card.mid .app-text span { color: var(--amber); font-family: inherit; }
+.app-card.idle .app-text span { opacity: .75; }
+
+.app-actions { display: flex; gap: 6px; }
+
+/* A square button holding just an icon, for the actions on the app cards. */
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .12s, background .12s, border-color .12s;
+}
+.icon-btn svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+/* Plain ones, like a dialog's x, darken as the buttons do; the others take their color below. */
+.icon-btn:hover {
+    filter: none;
+    text-decoration: none;
+    color: var(--strong);
+    background: var(--hover);
+    border-color: color-mix(in srgb, var(--muted) 45%, var(--border));
+}
+.icon-btn.start svg, .icon-btn.stop svg { fill: currentColor; stroke-width: 1.5; }
+.icon-btn.start:hover {
+    color: var(--green);
+    border-color: color-mix(in srgb, var(--green) 50%, var(--border));
+    background: var(--green-bg);
+}
+.icon-btn.open:hover {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    background: var(--accent-bg);
+}
+.icon-btn.stop:hover {
+    color: var(--red);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    background: var(--red-bg);
+}
+.icon-btn:disabled { opacity: .4; }
+
+#site-tabs em, #php-tabs em, #apache-tabs em, #db-tabs em {
+    font-style: normal;
+    margin-left: 4px;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+[hidden] { display: none !important; }
+.dot.idle { background: var(--border); }

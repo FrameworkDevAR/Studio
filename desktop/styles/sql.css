@@ -1,0 +1,285 @@
+/* A database's SQL console: the query, its painted text, the results and the menus. */
+
+/* The SQL console: the query, Run under it, then each result. */
+/* The SQL is typed in a clear box over its painted copy, as in the file editor. */
+.sql-box {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--input);
+}
+/* The text wraps, its lines numbered in a gutter at the left, as in the editor. */
+.sql-box::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 40px;
+    border-right: 1px solid var(--border);
+    background: color-mix(in srgb, var(--code-bg) 50%, transparent);
+}
+.sql-paint, .sql-box textarea {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px 14px 12px 52px;
+    font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+    tab-size: 4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.sql-paint {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--strong);
+    pointer-events: none;
+    counter-reset: sql-line;
+}
+.sql-line { position: relative; }
+.sql-line::before {
+    content: counter(sql-line);
+    counter-increment: sql-line;
+    position: absolute;
+    left: -52px;
+    width: 30px;
+    color: color-mix(in srgb, var(--muted) 60%, transparent);
+    text-align: right;
+}
+.sql-box textarea {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 160px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--strong);
+    resize: vertical;
+}
+.sql-box textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.sql-box textarea:focus { outline: none; }
+.sql-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 12px 0 0;
+}
+.sql-bar .editor-status { flex: 1; min-width: 0; }
+.sql-bar kbd {
+    margin-left: 6px;
+    font: 600 10.5px/1 -apple-system, system-ui, sans-serif;
+    opacity: .7;
+}
+.sql-result { margin-top: 18px; }
+.sql-result-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+}
+.sql-result-head code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-result-head .muted { margin-left: auto; white-space: nowrap; }
+.sql-bar .menu-wrap { flex: none; }
+.sql-bar [data-sql-current] { flex: none; }
+.menu.menu-left { right: auto; left: 0; }
+/* The history and the favorites: each query on a line, cut, with when or its name under it. */
+.sql-menu { width: 460px; max-height: min(420px, 60vh); overflow: auto; }
+.sql-menu > * { flex: none; }
+.sql-menu button[role=menuitem] {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 0;
+    text-align: left;
+}
+.sql-menu .sql-menu-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 12px "SF Mono", ui-monospace, Menlo, monospace;
+}
+.sql-menu small { color: var(--muted); font-size: 11px; }
+.sql-menu .sql-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-menu small.sql-menu-text { font-size: 11px; }
+.menu-row { display: flex; align-items: center; gap: 2px; }
+.menu-row > button[role=menuitem] { flex: 1; }
+.menu-row > .icon-btn {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    background: none;
+    opacity: .6;
+}
+.menu-row > .icon-btn:hover { opacity: 1; }
+.menu-none { padding: 8px 10px; color: var(--muted); font-size: 12.5px; }
+.data-grid.editable td { cursor: cell; }
+/* A file to pick, as a box to click or drop it on, with the one picked in it. */
+.file-drop {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    background: var(--input);
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+}
+.file-drop:hover, .file-drop:has(input:focus-visible), .file-drop.over {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--input));
+}
+.file-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.file-drop svg {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.file-drop.chosen svg { stroke: var(--accent); }
+.file-drop-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.file-drop-text strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font-weight: 500;
+}
+.file-drop-text small { color: var(--muted); font-size: 12px; }
+/* What MariaDB said of each table it optimized, analyzed, checked or repaired. */
+.upkeep-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
+.upkeep-row {
+    display: flex;
+    gap: 16px;
+    padding: 9px 0;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+}
+.upkeep-row:first-child { border-top: 0; }
+.upkeep-table {
+    flex: none;
+    width: 34%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+}
+.upkeep-said { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--muted); }
+.upkeep-said .status { color: var(--text); }
+.upkeep-row.ok .upkeep-said .status { color: var(--green); }
+.upkeep-said .warning, .upkeep-row.warn .status { color: var(--amber); }
+.upkeep-said .error, .upkeep-row.bad .status { color: var(--red); }
+/* The CSV's columns, each with its first values, and the table's column it goes to. */
+.csv-map { display: flex; flex-direction: column; max-height: 40vh; overflow: auto; }
+.csv-map:empty { display: none; }
+.csv-map-head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 2px 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+.csv-map-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+}
+.csv-map-file { display: flex; flex-direction: column; min-width: 0; }
+.csv-map-file strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--strong);
+    font: 500 12.5px "SF Mono", ui-monospace, Menlo, monospace;
+}
+.csv-map-file small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-size: 11.5px;
+}
+.result-value {
+    width: 100%;
+    min-height: 260px;
+    font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+    resize: vertical;
+}
+
+/* A row's fields in its dialog: the column and its type, the value, and NULL beside it. */
+.row-field .col-type {
+    margin-left: 4px;
+    color: var(--muted);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 400;
+}
+.row-field > span:first-child {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    color: var(--strong);
+}
+.row-value { display: flex; align-items: flex-start; gap: 10px; }
+.row-value > input, .row-value > textarea, .row-value > .field { flex: 1; min-width: 0; }
+.row-value textarea {
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input);
+    color: var(--strong);
+    font: 12.5px/1.5 "SF Mono", ui-monospace, Menlo, monospace;
+    resize: vertical;
+}
+.row-value .check { flex: none; padding-top: 6px; font-size: 12px; }
+.row-value :disabled { opacity: .5; }
+.export-form { display: flex; flex-direction: column; gap: 14px; padding: 10px 0; }
+.export-form > .form-row > span:first-child { display: flex; align-items: center; gap: 6px; }
+.export-all { margin-left: auto; margin-right: -6px; font-weight: 400; color: var(--muted); }
+.export-all button {
+    padding: 1px 6px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    cursor: pointer;
+}
+.export-all button:hover { background: var(--accent-bg); }
+.export-tables .check[hidden] { display: none; }
+.export-tables .check > span { flex-direction: row; align-items: center; gap: 6px; }
+/* The box keeps its border whole; the list in it scrolls and fades. */
+.export-tables-box {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--input);
+    overflow: hidden;
+}
+.export-tables-box .export-tables { border: 0; border-radius: 0; background: none; }
+.export-choices { display: flex; flex-direction: column; }
+input[type="radio"].box { border-radius: 50%; }
+input[type="radio"].box:checked::after {
+    width: 6px;
+    height: 6px;
+    margin: 0;
+    border: 0;
+    border-radius: 50%;
+    background: var(--on-accent);
+    rotate: 0deg;
+}
+.export-header { align-self: end; }
+.export-form .editor-status:empty { display: none; }

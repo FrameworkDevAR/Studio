@@ -4,8 +4,9 @@ A control panel for the local development stack, that runs in the browser: Apach
 MariaDB, PHP, Node.js and Redis from Homebrew, and the apps and servers of each
 project. It shows what is running, starts and stops it, changes the PHP settings and
 the Apache modules, installs PHP extensions with pecl and Node's global packages with
-npm, creates and changes the databases, their users and MariaDB's options, browses and edits their
-tables' rows, runs SQL, exports and imports them, and reads the logs, and everything stays on the machine.
+npm, creates and changes the databases, their users and MariaDB's options, browses and
+edits their tables, rows and structure, runs SQL, exports and imports them, and reads
+the logs, and everything stays on the machine.
 
 ## Running it
 
@@ -15,7 +16,7 @@ backend/server.js
 
 It answers on [http://localhost:9900](http://localhost:9900), and only there. It needs
 no packages: the code in `backend/` runs on Node's own http server, and the page is in
-`desktop/`.
+`desktop/`. See `CLAUDE.md` for how the code is laid out.
 
 The **🎛️ Studio** entry of the SwiftBar menu starts it when it is not running and
 opens its page.

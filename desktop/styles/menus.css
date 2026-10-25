@@ -1,0 +1,368 @@
+/* The toasts, the setting picker, the menus and the information dialogs. */
+
+/* ----------------------------------------------------------------- toasts */
+
+#toasts {
+    position: fixed;
+    inset: auto 24px 24px auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 440px;
+}
+#toasts:popover-open { display: flex; }
+.toast {
+    padding: 11px 15px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--green);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .16);
+    font-size: 13px;
+    animation: fade .2s ease-out;
+}
+.toast.error { border-left-color: var(--red); white-space: pre-wrap; }
+
+@media (max-width: 900px) {
+    .sidebar { position: static; width: auto; }
+    main { --gutter: 18px; --top: 24px; margin-left: 0; }
+    .grid-2 { grid-template-columns: 1fr; }
+    section[data-view="overview"].active { height: auto; }
+    #apps-pane { grid-template-columns: 1fr; }
+    .app-block { grid-column: auto; }
+    .app-block .app-cards { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    .page-head { flex-direction: column; }
+}
+
+
+/* ------------------------------------------------------ the setting picker */
+
+/*
+ * Every setting PHP knows, filtered as typed: a list to scroll, with the
+ * value of each beside it, and the picked one's value to change at the foot.
+ */
+.editor.pick { width: min(640px, calc(100vw - 48px)); height: min(640px, calc(100vh - 48px)); }
+.editor.pick .editor-head { align-items: flex-start; padding: 18px 20px 14px; }
+.editor.pick .editor-head p { margin: 4px 0 0; font-size: 13.5px; }
+.pick-filter { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.pick-filter input { width: 100%; }
+.pick-list { flex: 1; min-height: 0; overflow: auto; padding: 6px 12px; }
+/* Each group of settings under its title, apart from the next. */
+.pick-group + .pick-group { margin-top: 22px; }
+.pick-group-head {
+    position: sticky;
+    top: -6px;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+    padding: 10px 8px 7px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+}
+.pick-group-head span { color: var(--muted); font-weight: 500; letter-spacing: 0; }
+.pick-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    font-weight: 400;
+}
+.pick-row:hover { filter: none; background: var(--hover); }
+.pick-row.active { background: var(--accent-bg); }
+.pick-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--strong);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+}
+.pick-name .tag { font-family: -apple-system, system-ui, sans-serif; font-size: 10.5px; }
+.pick-value {
+    flex: none;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12px;
+}
+.pick-value i { font-family: -apple-system, system-ui, sans-serif; }
+.pick-foot { flex-wrap: wrap; justify-content: flex-start; gap: 10px; padding: 14px 20px; }
+.pick-foot label {
+    flex: none;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--muted);
+}
+.pick-foot label code { color: var(--strong); font-size: 12.5px; }
+.pick-foot label a { color: inherit; }
+.pick-foot label a:hover { color: var(--accent); }
+.pick-value-field { flex: 1; min-width: 120px; }
+.pick-value-field .field { display: block; }
+.pick-value-field .field.size { display: flex; }
+.pick-foot .editor-status { flex-basis: 100%; }
+
+/* PECL's dialog wears the npm dialog's layout, under PHP's logo. */
+.pecl-logo {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: var(--strong);
+}
+.pecl-logo .logo-tile {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #777bb4;
+}
+.pecl-logo svg { width: 22px; height: 22px; fill: #fff; }
+
+/* ---------------------------------------------------------------- menus --- */
+.menu-wrap { position: relative; }
+.menu-wrap > button .chevron, [data-table-menu] .chevron {
+    width: 14px;
+    height: 14px;
+    margin-right: -4px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: .7;
+}
+.menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 190px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    box-shadow: 0 12px 32px rgb(0 0 0 / .18);
+}
+.menu > button, .menu > a, .menu-row > button[role=menuitem] {
+    justify-content: flex-start;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+}
+.menu > button:hover, .menu > a:hover, .menu-row > button[role=menuitem]:hover {
+    background: var(--hover);
+    filter: none;
+    text-decoration: none;
+}
+.menu > button:disabled { background: none; opacity: .45; }
+.menu > button.danger-item { color: var(--red); }
+.menu > hr { margin: 5px 4px; border: 0; border-top: 1px solid var(--border); }
+/* A right click's menu, at the pointer, over everything: see-through and blurred, as macOS's. */
+.context-menu {
+    position: fixed;
+    top: 0;
+    right: auto;
+    z-index: 100;
+    min-width: 240px;
+    background: color-mix(in srgb, var(--panel) 30%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+}
+.context-menu > button:hover { background: color-mix(in srgb, var(--strong) 10%, transparent); }
+/* The database page's menus, under their buttons, look as its right-click menu does. */
+#browse-menu, .sql-menu {
+    background: color-mix(in srgb, var(--panel) 30%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+}
+#browse-menu > button:hover,
+#browse-menu > a:hover,
+.sql-menu > button:hover,
+.sql-menu .menu-row > button[role=menuitem]:hover {
+    background: color-mix(in srgb, var(--strong) 10%, transparent);
+}
+#browse-menu { min-width: 240px; }
+/* The database in the title, a button to switch to another; its list under it, filtered as typed.
+   */
+.db-switch { display: inline-block; }
+.db-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 4px;
+    margin: 0 -4px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+}
+.db-switch-btn:hover { background: var(--hover); filter: none; }
+.db-switch-btn .chevron {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: .5;
+}
+.db-switch-menu {
+    width: 340px;
+    padding: 6px;
+    font-family: -apple-system, system-ui, sans-serif;
+    letter-spacing: normal;
+    background: color-mix(in srgb, var(--panel) 30%, transparent);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    backdrop-filter: blur(24px) saturate(1.6);
+}
+.db-switch-menu input { width: 100%; margin-bottom: 6px; }
+.db-switch-list {
+    display: flex;
+    flex-direction: column;
+    max-height: min(400px, 60vh);
+    overflow: auto;
+}
+.db-switch-list > button {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+}
+.db-switch-list > button:hover, .db-switch-list > button.active {
+    background: color-mix(in srgb, var(--strong) 10%, transparent);
+    filter: none;
+}
+.db-switch-list > button.current .db-switch-name { color: var(--accent); }
+.db-switch-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+}
+.db-switch-list small { flex: none; color: var(--muted); font-size: 11.5px; font-weight: 400; }
+/* The words to complete, under the one typed: its name, and what it is, faint, at the right. */
+.sql-complete { width: 360px; max-height: 240px; overflow: auto; padding: 4px; }
+.sql-complete > button {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font: 12.5px "SF Mono", ui-monospace, Menlo, monospace;
+}
+.sql-complete > button.active { background: var(--accent-bg); color: var(--strong); }
+.sql-complete .complete-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sql-complete .complete-kind {
+    flex: none;
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted);
+    font: 11px -apple-system, system-ui, sans-serif;
+}
+
+/* ----------------------------------------------------------- information --- */
+/* As Sequel Ace's Table Information: labels on the right of their column, values beside them. */
+#browse-info .panel-head { margin-bottom: 10px; }
+.info-form { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.info-form dl {
+    margin: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.info-grid {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 280px) 130px minmax(0, 1fr);
+    gap: 4px 14px;
+    align-items: center;
+}
+.info-wide { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 14px; }
+.info-form dt { color: var(--muted); text-align: right; }
+.info-form dd { min-width: 0; margin: 0; color: var(--strong); font-variant-numeric: tabular-nums; }
+.info-form dd.none { color: var(--muted); opacity: .6; }
+.info-form .check small { display: block; }
+/* Smaller fields than a dialog's, and each line as tall as the next id's, so a table without one
+   lines up the same. */
+.info-form input, .info-form select { height: 28px; border-radius: 8px; font-size: 12.5px; }
+.info-form textarea { border-radius: 8px; }
+.info-stats { grid-auto-rows: 28px; }
+.info-next-field { display: flex; gap: 6px; }
+.info-next-field button { height: 28px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; }
+.info-next { width: 140px; }
+.info-wide textarea { font-family: inherit; font-size: 13px; }
+.info-create { flex: 1; min-height: 0; padding-bottom: 0 !important; border-bottom: 0 !important; }
+.info-create dt {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    padding-top: 8px;
+}
+.info-create dd { min-height: 0; display: flex; }
+.info-create pre {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 12px 14px;
+    overflow: auto;
+    border-radius: 10px;
+    background: var(--code-bg);
+    color: var(--text);
+    font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace;
+}
