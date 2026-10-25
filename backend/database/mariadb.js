@@ -47,12 +47,33 @@ const FIXED = new RegExp(
 /** The groups of a cnf file the server reads. */
 const SERVER_GROUP = /^(mysqld|server|mariadb|mariadbd|client-server)(-[\d.]+)?$/i;
 
+/**
+ * A variable as MariaDB has it: its value now and by default, its type, the values an enum
+ * takes, whether it can change as MariaDB runs, and what it is for.
+ * @typedef {{ value: string, defaultValue: string, type: string, list: string[],
+ *     dynamic: boolean, comment: string }} MariadbVariable
+ */
+
+/**
+ * MariaDB's variables by name, and, not enumerable, each collation with its character set.
+ * @typedef {Object<string, MariadbVariable> & { collations?: string[][] }} MariadbVariables
+ */
+
+/**
+ * An option as the page shows it, with where its value comes from and what it goes back to.
+ * @typedef {{ key: string, value: string, inFile: boolean, known: boolean,
+ *     options: string[], size: boolean, dynamic: boolean, base: string,
+ *     baseFrom: string, owner: string }} MariadbOption
+ */
+
 
 /**
  * The options as the page shows them: its own, then the options file's
  * others. One in the file shows the file's value; one that is not shows the
  * value MariaDB runs with, and says whether a file sets it or it is MariaDB's
  * default. What the file's value goes back to without it is said too.
+ * @returns {Promise<{ available: boolean, version: string, file: string,
+ *     settings: MariadbOption[], overrides: MariadbOption[] }>}
  */
 async function readMariadb() {
     const variables = await readVariables();
@@ -100,6 +121,8 @@ async function readMariadb() {
 /**
  * Every variable a file can set, with its value now, the choices it takes
  * and whether the options file has it, for the dialog that adds one.
+ * @returns {Promise<{ key: string, value: string, inFile: boolean, options: string[],
+ *     size: boolean, owner: string, comment: string }[]>}
  */
 async function readOptionList() {
     const variables = await readVariables();
@@ -126,6 +149,10 @@ async function readOptionList() {
  * 30s: the page asks every few seconds, and they change only as it is told.
  */
 let variableCache = { at : 0, data : null };
+/**
+ * MariaDB's variables, kept for 30s, or null when MariaDB does not answer.
+ * @returns {Promise<MariadbVariables>}
+ */
 async function readVariables() {
     if (Date.now() - variableCache.at < 30_000 && variableCache.data) {
         return variableCache.data;
@@ -148,6 +175,7 @@ async function readVariables() {
         return null;
     }
     const nothing = (value) => (value === "NULL" ? "" : value ?? "");
+    /** @type {MariadbVariables} */
     const data    = {};
     for (const [ key, value, preset, type, list, readOnly, comment ] of found) {
         data[key] = {
@@ -172,6 +200,10 @@ async function readVariables() {
  * The choices an option takes: a switch's ON and OFF, an enum's values, and
  * the collations of the server's character set. A set, as sql_mode, is
  * written as a list, so it has none.
+ * @param {string} key
+ * @param {MariadbVariable} known
+ * @param {MariadbVariables} variables
+ * @returns {string[]}
  */
 function optionsOf(key, known, variables) {
     if (!known) {
@@ -192,6 +224,10 @@ function optionsOf(key, known, variables) {
  * A value as the page shows it: a size in bytes as 256M when it divides
  * evenly, a switch as ON or OFF, as a file may write it 1, on or not at all,
  * and a number of seconds as 10, which MariaDB gives as 10.000000.
+ * @param {string} key
+ * @param {string} value
+ * @param {MariadbVariable} known
+ * @returns {string}
  */
 function displayValue(key, value, known) {
     const text = String(value ?? "");
@@ -212,8 +248,13 @@ function displayValue(key, value, known) {
     return text;
 }
 
-/** What an option is part of, to group the many the dialog lists. */
+/**
+ * What an option is part of, to group the many the dialog lists.
+ * @param {string} key
+ * @returns {string}
+ */
 function ownerOf(key) {
+    /** @type {[ RegExp, string ][]} */
     const groups = [
         [ /^innodb_/, "InnoDB" ], [ /^aria_/, "Aria" ], [ /^myisam_|^key_/, "MyISAM" ],
         [ /^performance_schema/, "Performance schema" ],
@@ -234,6 +275,9 @@ function ownerOf(key) {
  * them, once MariaDB reads the file without a complaint. A change MariaDB
  * can take as it runs is set at once; any other, or an option taken out,
  * restarts it, and should it not come back, the file before is put back.
+ * @param {{ key: string, value?: string, remove?: boolean }
+ *     | { key: string, value?: string, remove?: boolean }[]} changes
+ * @returns {Promise<{ message: string }>}
  */
 async function setOptions(changes) {
     const list = [].concat(changes || []).map((change) => ({
@@ -261,6 +305,8 @@ async function setOptions(changes) {
 /**
  * Saves the options file from the editor. What changed in it is not known
  * here, so MariaDB restarts to read it.
+ * @param {string} text
+ * @returns {Promise<{ message: string }>}
  */
 async function saveOptionsFile(text) {
     if (typeof text !== "string") {
@@ -273,6 +319,10 @@ async function saveOptionsFile(text) {
     };
 }
 
+/**
+ * The options file, whether it is there, and its text, for the editor.
+ * @returns {{ file: string, exists: boolean, text: string }}
+ */
 function readOptionsFile() {
     return { file : MYSQL_CNF, exists : fs.existsSync(MYSQL_CNF), text : readFile(MYSQL_CNF) };
 }
@@ -282,6 +332,8 @@ function readOptionsFile() {
  * it would start, and stops there, with --help: an unknown option, a value
  * it does not take or a broken group is an error, and a switch it does not
  * understand only a warning, which it would set to OFF, so that is one too.
+ * @param {string} text
+ * @returns {Promise<{ problems: string[] }>}
  */
 async function checkOptions(text) {
     // By its real path, /private/var/..., which is how MariaDB names it.
@@ -324,6 +376,9 @@ async function checkOptions(text) {
  * .bak. The changes given are set as MariaDB runs, each put back as it was
  * should one fail; without them, MariaDB restarts, and the file before comes
  * back when it does not start with this one.
+ * @param {string} text
+ * @param {{ key: string, value: string }[]} live
+ * @returns {Promise<string>}
  */
 async function writeOptions(text, live) {
     const { problems } = await checkOptions(text);
@@ -382,6 +437,12 @@ async function writeOptions(text, live) {
     }`);
 }
 
+/**
+ * Writes the options file, the one before kept as .bak, or its folder made when there was none.
+ * @param {string} text
+ * @param {string} before
+ * @returns {void}
+ */
 function writeFile(text, before) {
     if (before !== null) {
         fs.writeFileSync(`${MYSQL_CNF}.bak`, before);
@@ -391,7 +452,10 @@ function writeFile(text, before) {
     fs.writeFileSync(MYSQL_CNF, text);
 }
 
-/** Whether MariaDB answers, given up to 20s to start. */
+/**
+ * Whether MariaDB answers, given up to 20s to start.
+ * @returns {Promise<boolean>}
+ */
 async function answers() {
     for (let tries = 0; tries < 40; tries++) {
         if ((await run("mariadb", [ "-N", "-B", "-e", "SELECT 1" ], 5_000)).ok) {
@@ -402,7 +466,10 @@ async function answers() {
     return false;
 }
 
-/** The last error MariaDB logged, as it failed to start. */
+/**
+ * The last error MariaDB logged, as it failed to start.
+ * @returns {string}
+ */
 function startError() {
     const log = filesIn(MYSQL_DATA, "").find((file) => file.endsWith(".err"));
     if (!log) {
@@ -413,7 +480,11 @@ function startError() {
     return line.replace(/^.*?\[ERROR\]\s+(mariadbd:\s+)?/, "");
 }
 
-/** A value as SET GLOBAL needs it: a size's unit worked out, a word in quotes. */
+/**
+ * A value as SET GLOBAL needs it: a size's unit worked out, a word in quotes.
+ * @param {string} value
+ * @returns {string}
+ */
 function sqlValue(value) {
     const size = String(value).match(/^(\d+)([KMGT])$/i);
     if (size) {
@@ -430,8 +501,11 @@ function sqlValue(value) {
  * lowercase, with _ for -, and without the loose- that only says to skip it
  * quietly when unknown. A line with no = is a switch turned on. The last
  * line wins, as for MariaDB.
+ * @param {string} text
+ * @returns {Object<string, string>}
  */
 function cnfKeys(text) {
+    /** @type {Object<string, string>} */
     const values = {};
     let   group  = "";
     for (const line of text.split("\n")) {
@@ -448,14 +522,29 @@ function cnfKeys(text) {
     return values;
 }
 
+/**
+ * An option's name as MariaDB knows it: lowercase, with _ for -, and without loose_.
+ * @param {string} name
+ * @returns {string}
+ */
 function optionName(name) {
     return name.toLowerCase().replace(/-/g, "_").replace(/^loose_/, "");
 }
 
+/**
+ * A value without the comment after it.
+ * @param {string} value
+ * @returns {string}
+ */
 function stripComment(value) {
     return value.replace(/\s+[#;].*$/, "").trim();
 }
 
+/**
+ * A value without the quotes around it.
+ * @param {string} value
+ * @returns {string}
+ */
 function unquote(value) {
     return value.replace(/^(["'])(.*)\1$/, "$2");
 }
@@ -464,8 +553,10 @@ function unquote(value) {
  * The options the other cnf files set, each with the file that sets it last:
  * what an option goes back to once the options file no longer has it. They
  * are my.cnf and what it includes, in MariaDB's order.
+ * @returns {Object<string, { value: string, file: string }>}
  */
 function otherFiles() {
+    /** @type {Object<string, { value: string, file: string }>} */
     const found = {};
     for (const file of cnfFiles(MY_CNF, new Set())) {
         if (path.resolve(file) === path.resolve(MYSQL_CNF)) {
@@ -478,7 +569,12 @@ function otherFiles() {
     return found;
 }
 
-/** A cnf file and the ones it includes, each folder's .cnf files sorted by name. */
+/**
+ * A cnf file and the ones it includes, each folder's .cnf files sorted by name.
+ * @param {string} file
+ * @param {Set<string>} seen
+ * @returns {string[]}
+ */
 function cnfFiles(file, seen) {
     if (seen.has(file) || !fs.existsSync(file)) {
         return [];
@@ -501,6 +597,10 @@ function cnfFiles(file, seen) {
 /**
  * A cnf text with an option set: its line in a server group replaced, or a
  * line added at the end of the [mysqld] group, which is made when missing.
+ * @param {string} text
+ * @param {string} key
+ * @param {string} value
+ * @returns {string}
  */
 function withOption(text, key, value) {
     const line  = `${key} = ${/[#;\s]/.test(value) ? `"${value}"` : value}`;
@@ -534,7 +634,12 @@ function withOption(text, key, value) {
     return `${lines.join("\n")}\n`;
 }
 
-/** A cnf text without an option's lines in its server groups. */
+/**
+ * A cnf text without an option's lines in its server groups.
+ * @param {string} text
+ * @param {string} key
+ * @returns {string}
+ */
 function withoutOption(text, key) {
     let group = "";
     let found = false;
@@ -555,6 +660,9 @@ function withoutOption(text, key) {
     return kept.join("\n");
 }
 
+
+
+// The public API
 module.exports = {
     readMariadb,
     readOptionList,

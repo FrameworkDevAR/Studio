@@ -2,6 +2,18 @@
 
 // The Node.js page: Homebrew's node, with npm and corepack, and the global packages.
 
+/**
+ * A global package of npm's, as the server gives it: its version, the newest
+ * when that is newer, its size, and whether it is a link to a folder.
+ * @typedef {{ name: string, version: string, latest?: string, size?: number,
+ *     linked?: boolean }} NodePackage
+ */
+
+/**
+ * The page: node's version and tools, or what is wrong with it, then the
+ * global packages that hold the filter's text, the linked ones first.
+ * @returns {void}
+ */
 function renderNode() {
     const { node } = state;
     document.getElementById("node-version").textContent = node.version;
@@ -62,6 +74,8 @@ function renderNode() {
 /**
  * A row's buttons: update when there is a newer version, and remove, which
  * shows on hover. npm has no remove, since it is what removes the others.
+ * @param {NodePackage} pkg
+ * @returns {string}
  */
 function packageButtons(pkg) {
     const removing = updating.has(`remove:${pkg.name}`);
@@ -77,7 +91,11 @@ function packageButtons(pkg) {
     return (pkg.latest ? updateButton(pkg.name) : "") + remove;
 }
 
-/** The button that updates one package, busy while any update of it runs. */
+/**
+ * The button that updates one package, busy while any update of it runs.
+ * @param {string} name
+ * @returns {string}
+ */
 function updateButton(name) {
     const busy = updating.has(name);
     return `
@@ -95,7 +113,10 @@ let npmSearchTimer = null;
 let npmFound       = [];
 let npmAsked       = "";
 
-/** The install dialog, as npm's site: a search, then what it finds. */
+/**
+ * The install dialog, as npm's site: a search, then what it finds.
+ * @returns {void}
+ */
 function openNpmDialog() {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("npm-dialog"));
     const field  = /** @type {HTMLInputElement} */ (dialog.querySelector("input"));
@@ -108,6 +129,8 @@ function openNpmDialog() {
  * Searches npm as the field changes, a moment after the typing stops. Text
  * with a version, as eslint@9, is not searched: it is shown as itself, ready
  * to install, since its name is already known.
+ * @param {boolean=} now
+ * @returns {void}
  */
 function searchNpm(now = false) {
     const text = /** @type {HTMLInputElement} */ (document.querySelector("#npm-search input"))
@@ -138,7 +161,12 @@ function searchNpm(now = false) {
     }, now ? 0 : 250);
 }
 
-/** The results, laid out as npm's search shows them. */
+/**
+ * The results, laid out as npm's search shows them.
+ * @param {boolean=} loading
+ * @param {string=} failed
+ * @returns {void}
+ */
 function renderNpmList(loading = false, failed = "") {
     const box       = document.getElementById("npm-list");
     const installed = new Map(state.node.globals.map((pkg) => [ pkg.name, pkg ]));
@@ -190,6 +218,10 @@ function renderNpmList(loading = false, failed = "") {
  * which version is here, and the newest beside it when that is newer, with
  * Update for it and Uninstall. A linked package of the same name is the
  * user's own folder, not this one, so it is only named as such.
+ * @param {string} spec
+ * @param {string=} latest
+ * @param {NodePackage=} mine
+ * @returns {string}
  */
 function npmActions(spec, latest = "", mine = null) {
     if (updating.has(`install:${spec}`)) {
@@ -224,7 +256,12 @@ function npmActions(spec, latest = "", mine = null) {
     `;
 }
 
-/** Whether one version is past another, number by number. */
+/**
+ * Whether one version is past another, number by number.
+ * @param {string} version
+ * @param {string} than
+ * @returns {boolean}
+ */
 function isNewer(version, than) {
     const [ a, b ] = [ version, than ].map((one) => one.split(/[.-]/).slice(0, 3)
         .map((part) => parseInt(part, 10) || 0));
@@ -236,7 +273,11 @@ function isNewer(version, than) {
     return false;
 }
 
-/** How long ago a date was, in the largest unit that fits, as npm says it. */
+/**
+ * How long ago a date was, in the largest unit that fits, as npm says it.
+ * @param {string} date
+ * @returns {string}
+ */
 function ago(date) {
     const days = (Date.now() - Date.parse(date)) / 86_400_000;
     const say  = (count, unit) => `${count} ${unit}${count === 1 ? "" : "s"} ago`;
@@ -246,13 +287,22 @@ function ago(date) {
                 : say(Math.floor(days / 365), "year");
 }
 
+/**
+ * A count of downloads, short as npm writes it: 1.2M, 340K.
+ * @param {number} count
+ * @returns {string}
+ */
 function downloads(count) {
     return count >= 1e6 ? `${(count / 1e6).toFixed(count >= 1e7 ? 0 : 1)}M`
         : count >= 1e3 ? `${Math.round(count / 1e3)}K`
             : String(count);
 }
 
-/** Installs a package from the dialog, which stays open for the next one. */
+/**
+ * Installs a package from the dialog, which stays open for the next one.
+ * @param {string} spec
+ * @returns {Promise<void>}
+ */
 async function installNpm(spec) {
     if (updating.has(`install:${spec}`)) {
         return;
@@ -267,7 +317,11 @@ async function installNpm(spec) {
     }
 }
 
-/** Uninstalls a package, after asking, since its commands go with it. */
+/**
+ * Uninstalls a package, after asking, since its commands go with it.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function uninstallPackage(name) {
     const pkg = state.node.globals.find((one) => one.name === name);
     const sure = await ask(pkg?.linked
@@ -320,7 +374,12 @@ const UPDATE_KINDS = {
     },
 };
 
-/** One package or extension, or a count of them: "1 package", "3 extensions". */
+/**
+ * One package or extension, or a count of them: "1 package", "3 extensions".
+ * @param {number} count
+ * @param {string} noun
+ * @returns {string}
+ */
 function countOf(count, noun) {
     return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 }
@@ -328,6 +387,8 @@ function countOf(count, noun) {
 /**
  * Asks before updating outdated packages, in a dialog listing each with the
  * version it goes to, and which of them are major versions, to pick from.
+ * @param {"npm" | "pecl"=} kind
+ * @returns {Promise<void>}
  */
 async function confirmUpdateAll(kind = "npm") {
     const { noun } = UPDATE_KINDS[kind];
@@ -391,6 +452,9 @@ async function confirmUpdateAll(kind = "npm") {
 /**
  * Whether going from one version to another is a major change: the first
  * number changes, or the second while the first is 0, as semver counts it.
+ * @param {string} from
+ * @param {string} to
+ * @returns {boolean}
  */
 function isMajor(from, to) {
     const [ a, b ] = [ from, to ].map((version) => version.split(/[.+-]/).map(Number));
@@ -402,6 +466,9 @@ function isMajor(from, to) {
  * dialog as it goes: waiting, a loader while npm works on it, then a tick or
  * what went wrong. Closing the dialog leaves the update going, and the busy
  * Update button opens it again.
+ * @param {string[]} names
+ * @param {"npm" | "pecl"=} kind
+ * @returns {Promise<void>}
  */
 async function updatePackages(names, kind = "npm") {
     const { noun, action, key, list, render } = UPDATE_KINDS[kind];
@@ -438,10 +505,21 @@ async function updatePackages(names, kind = "npm") {
 
 // -------------------------------------------------------------------- jobs ---
 
+/**
+ * A job of the server's, each time it is asked about: where it stands, what it
+ * says at the end, and where each of its items stands.
+ * @typedef {{ state: string, message: string,
+ *     items: { state: string, error: string }[] }} StudioJob
+ */
+
 // The last update, which the update dialog shows while it runs and after.
 let updateJob = null;
 
-/** Whether an update of npm's packages, or of pecl's extensions, is running. */
+/**
+ * Whether an update of npm's packages, or of pecl's extensions, is running.
+ * @param {"npm" | "pecl"} kind
+ * @returns {boolean}
+ */
 function isUpdating(kind) {
     return Boolean(updateJob && updateJob.kind === kind
         && (updateJob.state === "waiting" || updateJob.state === "running"));
@@ -451,6 +529,9 @@ function isUpdating(kind) {
  * Asks npm or pecl for some work, then follows it to the end: the server answers at
  * once with a job, which is asked about every moment, each answer handed to
  * onChange. At the end it says how it went and redraws the page.
+ * @param {{ action: string, name: string | string[] }} body
+ * @param {(job: StudioJob) => void=} onChange
+ * @returns {Promise<void>}
  */
 async function followJob(body, onChange = null) {
     let started;
@@ -481,7 +562,10 @@ async function followJob(body, onChange = null) {
     }
 }
 
-/** Shows the update in the update dialog, opening it again if it was closed. */
+/**
+ * Shows the update in the update dialog, opening it again if it was closed.
+ * @returns {void}
+ */
 function showUpdateProgress() {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("ask"));
     dialog.dataset.mode = "progress";
@@ -491,7 +575,10 @@ function showUpdateProgress() {
     renderUpdateProgress();
 }
 
-/** Each package of the update, with its versions and where it stands. */
+/**
+ * Each package of the update, with its versions and where it stands.
+ * @returns {void}
+ */
 function renderUpdateProgress() {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("ask"));
     if (!updateJob || dialog.dataset.mode !== "progress") {

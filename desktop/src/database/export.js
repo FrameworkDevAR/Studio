@@ -10,7 +10,8 @@
  * picked. As SQL, with the structure, the data or both; as CSV, with its
  * separator and a line of column names; or as JSON. What to export is sent
  * first, and the file then comes as a download, so the page stays.
- * @param {{ tables? : string[], rows? : "all" | "filtered" | "picked" }} start
+ * @param {{ tables?: string[], rows?: "all" | "filtered" | "picked" }=} start
+ * @returns {void}
  */
 function openExportDialog({ tables = null, rows = null } = {}) {
     const fromRows = rows !== null && browse.rows;
@@ -207,6 +208,7 @@ function openExportDialog({ tables = null, rows = null } = {}) {
  * Imports a .sql or .sql.gz file into the database: it is sent as it is
  * read, with its progress, and MariaDB runs it as it arrives, stopping at
  * the first statement that fails.
+ * @returns {void}
  */
 function importDatabase() {
     formDialog({
@@ -253,7 +255,14 @@ function importDatabase() {
     });
 }
 
-/** A CSV's text read into rows, as the server reads it: up to as many as asked, quotes and all. */
+/**
+ * A CSV's text read into rows, as the server reads it: up to as many as asked, quotes and all.
+ * An empty field out of quotes is null.
+ * @param {string} text
+ * @param {string} separator
+ * @param {number=} most
+ * @returns {string[][]}
+ */
 function parseCsv(text, separator, most = Infinity) {
     const rows = [];
     let row = [], field = "", quoted = false, inQuotes = false;
@@ -297,7 +306,11 @@ function parseCsv(text, separator, most = Infinity) {
     return rows;
 }
 
-/** The separator a CSV's first line has most of, outside quotes. */
+/**
+ * The separator a CSV's first line has most of, outside quotes.
+ * @param {string} text
+ * @returns {string}
+ */
 function guessSeparator(text) {
     const line   = text.replace(/^\uFEFF/, "").split(/\r?\n/)[0].replace(/"(?:[^"]|"")*"/g, "");
     const counts = [ ",", ";", "\t", "|" ].map((one) => [ one, line.split(one).length - 1 ]);
@@ -310,6 +323,8 @@ function guessSeparator(text) {
  * columns matched to one of the table's, by name when it names them, else
  * in order, or left out, with its first values to tell; and what a row
  * whose key is there does. It runs in one transaction.
+ * @param {string} table
+ * @returns {Promise<void>}
  */
 async function openCsvImport(table) {
     let structure;
@@ -465,7 +480,9 @@ async function openCsvImport(table) {
 /**
  * A file box: the file picked or dropped shows by its name and size, and
  * goes to the function given, if any.
- * @param {HTMLElement} box @param {((file : File) => void) | null} [picked]
+ * @param {HTMLElement} box
+ * @param {((file: File) => void)=} picked
+ * @returns {void}
  */
 function setUpFileDrop(box, picked = null) {
     const input = /** @type {HTMLInputElement} */ (box.querySelector("input"));
@@ -496,7 +513,13 @@ function setUpFileDrop(box, picked = null) {
     });
 }
 
-/** Sends a file as a request's body, saying how much has gone; fetch cannot tell. */
+/**
+ * Sends a file as a request's body, saying how much has gone; fetch cannot tell.
+ * @param {string} url
+ * @param {File} file
+ * @param {(done: number) => void} progress The part sent, from 0 to 1.
+ * @returns {Promise<{ message: string }>}
+ */
 function upload(url, file, progress) {
     return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();

@@ -9,6 +9,16 @@ const { readTables, readStructure } = require("./schema");
 
 // ------------------------------------------------------------------ indexes ---
 
+/**
+ * A column as the column dialog gives it: its name and type, its collation, whether it takes
+ * NULL, what it starts with or is made from and the value or expression for it,
+ * auto_increment, ON UPDATE, and its comment.
+ * @typedef {{ name?: string, type?: string, nullable?: boolean,
+ *     value?: "none" | "null" | "value" | "expression" | "virtual" | "stored",
+ *     preset?: string, collation?: string, increment?: boolean, update?: boolean,
+ *     comment?: string }} ColumnDefinition
+ */
+
 /** The kinds of index the page makes, as ALTER TABLE writes each. */
 const INDEX_KINDS = {
     index    : "INDEX",
@@ -20,6 +30,9 @@ const INDEX_KINDS = {
 /**
  * Adds an index on the columns given, in their order. MariaDB builds it
  * at once, which in a large table takes a while, so it is given minutes.
+ * @param {{ db: string, table: string, name?: string,
+ *     kind: "index" | "unique" | "fulltext" | "primary", columns: string[] }} index
+ * @returns {Promise<{ message: string }>}
  */
 async function addIndex({ db, table, name, kind, columns }) {
     const structure = await readStructure(db, table);
@@ -51,6 +64,11 @@ async function addIndex({ db, table, name, kind, columns }) {
         : `the index ${label || list[0]}`} to ${structure.table}` };
 }
 
+/**
+ * Drops an index of a table, by its name, or the primary key, as PRIMARY.
+ * @param {{ db: string, table: string, name: string }} index
+ * @returns {Promise<{ message: string }>}
+ */
 async function dropIndex({ db, table, name }) {
     const structure = await readStructure(db, table);
     if (!structure.indexes.some((index) => index.name === name)) {
@@ -75,6 +93,8 @@ const FK_RULES = [ "RESTRICT", "CASCADE", "SET NULL", "NO ACTION" ];
 /**
  * A column's type as a foreign key compares it: ints without their display width, the rest as
  * they are.
+ * @param {import("./schema").TableColumn} column
+ * @returns {string}
  */
 function keyType(column) {
     return column.type
@@ -89,6 +109,10 @@ function keyType(column) {
  * database, and what a delete or an update there does here. What MariaDB
  * says vaguely -- errno 150, a row with no match -- is checked first, or
  * said plainly.
+ * @param {{ db: string, table: string, name?: string, columns?: string[],
+ *     refTable: string, refColumns?: string[], onDelete?: string, onUpdate?: string,
+ *     replace?: string }} key
+ * @returns {Promise<{ message: string }>}
  */
 async function saveForeignKey({
     db, table, name = "", columns = [], refTable, refColumns = [],
@@ -176,6 +200,11 @@ async function saveForeignKey({
         || `on ${list.join(", ")}`}` };
 }
 
+/**
+ * Drops a foreign key of a table, by its name.
+ * @param {{ db: string, table: string, name: string }} key
+ * @returns {Promise<{ message: string }>}
+ */
 async function dropForeignKey({ db, table, name }) {
     const structure = await readStructure(db, table);
     if (!structure.foreign.some((key) => key.name === name)) {
@@ -210,6 +239,8 @@ const TEXT_TYPE   = /^(char|varchar|tinytext|text|mediumtext|longtext|enum|set)\
  * A column's definition, from what the column dialog gives: its name and
  * type, its collation when it holds text, whether it takes NULL, what it
  * starts with or is made from, auto_increment, ON UPDATE, and its comment.
+ * @param {ColumnDefinition} definition
+ * @returns {Promise<string>}
  */
 async function columnSql({
     name, type, nullable, value = "none", preset = "", collation = "", increment, update,
@@ -278,6 +309,9 @@ async function columnSql({
 /**
  * Where a column goes: first, after another, or, given nothing, where it is, or at the end for a
  * new one.
+ * @param {import("./schema").TableStructure} structure
+ * @param {string | true} after
+ * @returns {string}
  */
 function placeOf(structure, after) {
     if (after === undefined || after === null || after === "") {
@@ -295,6 +329,9 @@ function placeOf(structure, after) {
 /**
  * Adds a column, or changes one, by its name as it was: its definition, name included, and its
  * place.
+ * @param {{ db: string, table: string, column?: string, definition: ColumnDefinition,
+ *     after?: string | true }} change
+ * @returns {Promise<{ message: string }>}
  */
 async function saveColumn({ db, table, column, definition, after }) {
     const structure = await readStructure(db, table);
@@ -317,6 +354,8 @@ async function saveColumn({ db, table, column, definition, after }) {
 /**
  * Moves a column, first or after another, with its definition as SHOW
  * CREATE TABLE gives it, so nothing of it is lost on the way.
+ * @param {{ db: string, table: string, column: string, after?: string | true }} move
+ * @returns {Promise<{ message: string }>}
  */
 async function moveColumn({ db, table, column, after }) {
     const structure = await readStructure(db, table);
@@ -337,6 +376,11 @@ async function moveColumn({ db, table, column, after }) {
     return { message : `Moved the column ${column}` };
 }
 
+/**
+ * Drops a column of a table, which keeps at least one.
+ * @param {{ db: string, table: string, column: string }} drop
+ * @returns {Promise<{ message: string }>}
+ */
 async function dropColumn({ db, table, column }) {
     const structure = await readStructure(db, table);
     if (!structure.columns.some((one) => one.name === column)) {
@@ -356,6 +400,8 @@ async function dropColumn({ db, table, column }) {
 }
 
 
+
+// The public API
 module.exports = {
     addIndex,
     dropIndex,

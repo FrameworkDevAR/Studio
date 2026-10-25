@@ -13,15 +13,21 @@
 /**
  * Also the filters, applied and as typed, the widths dragged and the
  * timestamp columns shown as dates, by table, and the SQL's last results.
- * @type {{ db : string, tables : any[], table : string, tab : string, page : number, sort : string,
- *          dir : string, rows : any, total : any, filters : any[], draft : any[], match : string,
- *          widths : Record<string, any>, dates : Record<string, string[]>, structure : any,
- *          results : any[], sql : Record<string, string> }}
+ * @type {{ db: string, tables: any[], table: string, tab: string, page: number, sort: string,
+ *          dir: string, rows: any, total: any, filters: any[], draft: any[], match: string,
+ *          widths: Record<string, any>, dates: Record<string, string[]>, structure: any,
+ *          results: any[], sql: Record<string, string> }}
  */
 let browse = { db : "", tables : [], table : "", tab : "tables", page : 1, sort : "", dir : "asc",
     rows : null, total : undefined, filters : [], draft : [], match : "all", widths : {},
     dates : {}, structure : null, results : [], sql : {} };
 
+/**
+ * The path of a tab of the database, with its table but for the Tables and SQL tabs.
+ * @param {string} tab
+ * @param {string=} table
+ * @returns {string}
+ */
 function browsePath(tab, table = browse.table) {
     if (tab === "tables") {
         return `/database/${encodeURIComponent(browse.db)}`;
@@ -30,7 +36,10 @@ function browsePath(tab, table = browse.table) {
     return `/${parts.map(encodeURIComponent).join("/")}`;
 }
 
-/** Shows the page for the path, reading the database's tables when it is another one. */
+/**
+ * Shows the page for the path, reading the database's tables when it is another one.
+ * @returns {Promise<void>}
+ */
 async function showBrowse() {
     // A table the keys were going to doesn't open over a page gone to since.
     clearTimeout(tableStep);
@@ -106,6 +115,10 @@ async function showBrowse() {
     }
 }
 
+/**
+ * Reads the database's tables again, and shows them wherever they show.
+ * @returns {Promise<void>}
+ */
 async function loadTables() {
     // The counts already exact stay while the list is read again, until counted anew, so the Rows
     // column keeps its width.
@@ -139,6 +152,7 @@ async function loadTables() {
 /**
  * The exact rows of the small InnoDB tables, asked for once the list
  * shows, so it shows at once: until then, they are estimates.
+ * @returns {Promise<void>}
  */
 async function countSmallTables() {
     const db = browse.db;
@@ -165,7 +179,10 @@ async function countSmallTables() {
     showCounts();
 }
 
-/** The rows of the tables again, wherever they show, once counted. */
+/**
+ * The rows of the tables again, wherever they show, once counted.
+ * @returns {void}
+ */
 function showCounts() {
     if (browse.tab === "tables") {
         renderOverview();
@@ -182,7 +199,10 @@ function showCounts() {
     }
 }
 
-/** phpMyAdmin's page of the database, from the page's state. */
+/**
+ * phpMyAdmin's page of the database, from the page's state.
+ * @returns {void}
+ */
 function renderBrowseHead() {
     const db = state?.databases.list.find((one) => one.name === browse.db);
     /** @type {HTMLAnchorElement} */ (document.getElementById("browse-pma")).href = db?.url
@@ -190,7 +210,10 @@ function renderBrowseHead() {
         || "#";
 }
 
-/** The tables by name, filtered as typed, to go to; what each holds is in the Tables tab. */
+/**
+ * The tables by name, filtered as typed, to go to; what each holds is in the Tables tab.
+ * @returns {void}
+ */
 function renderTableList() {
     const search = /** @type {HTMLInputElement} */ (document.getElementById("table-filter")).value
         .trim()
@@ -217,6 +240,8 @@ function renderTableList() {
  * The marked table's engine, encoding, rows, sizes, next id and dates,
  * under the list, as Sequel Ace's Table Information shows them. It
  * follows the mark as the keys move it, before the table opens.
+ * @param {string} name
+ * @returns {void}
  */
 function renderTableInfo(name) {
     const box   = document.getElementById("table-info");
@@ -266,8 +291,20 @@ function renderTableInfo(name) {
 }
 
 /**
+ * A table of the database as the server lists it: its rows, exact or an estimate, its engine,
+ * collation, sizes, next id, dates and comment. A count held from before keeps the estimate.
+ * @typedef {{ name: string, view: boolean, engine: string, rows: number, exact: boolean,
+ *             data: number, index: number, size: number, free: number, collation: string,
+ *             comment: string, format: string, next: number, average: number, most: number,
+ *             created: string, updated: string, estimate?: number, held?: boolean
+ *           }} BrowseTable
+ */
+
+/**
  * A table's rows: the count when it is exact, or the estimate as a button
  * that counts them, as phpMyAdmin does for a large InnoDB table.
+ * @param {BrowseTable} table
+ * @returns {string}
  */
 function rowsCell(table) {
     if (table.exact) {
@@ -284,7 +321,11 @@ function rowsCell(table) {
 /** The tables being counted, by database and name. */
 const counting = new Set();
 
-/** Counts a table's rows when only their estimate was known, and shows the count everywhere. */
+/**
+ * Counts a table's rows when only their estimate was known, and shows the count everywhere.
+ * @param {HTMLElement} button
+ * @returns {Promise<void>}
+ */
 async function countTable(button) {
     const db   = browse.db;
     const name = button.dataset.countTable;
@@ -311,6 +352,11 @@ async function countTable(button) {
  * on the way, or leaving each in the history.
  */
 let tableStep;
+/**
+ * Marks the table above or below the one marked, and opens it once the keys rest.
+ * @param {number} by
+ * @returns {void}
+ */
 function stepTable(by) {
     const links = /** @type {HTMLAnchorElement[]} */ ([
         ...document.querySelectorAll("#browse-tables .table-link"),
@@ -339,6 +385,11 @@ function stepTable(by) {
  * back.
  */
 let keysTo = "list";
+/**
+ * Gives the keys to the list, to a grid by its id, or to nothing, and shows the marks for it.
+ * @param {string} to
+ * @returns {void}
+ */
 function focusKeys(to) {
     keysTo = to;
     const front = document.hasFocus();
@@ -353,6 +404,11 @@ function focusKeys(to) {
  * isn't.
  */
 const marked = {};
+/**
+ * What a grid's rows are rows of: the rows asked for, the table, or the database.
+ * @param {string} id
+ * @returns {string}
+ */
 function gridContext(id) {
     return id === "rows-grid" ? JSON.stringify(rowsQuestion())
         : id === "structure-grid" ? tableKey()
@@ -362,7 +418,9 @@ function gridContext(id) {
 /**
  * Marks a row: it alone, or, in the rows grid, as Sequel Ace's, added or
  * taken out with ⌘, or all from the one marked first to it with ⇧.
- * @param {HTMLElement} tr @param {"" | "toggle" | "range"} how
+ * @param {HTMLElement} tr
+ * @param {("" | "toggle" | "range")=} how
+ * @returns {void}
  */
 function pickRow(tr, how = "") {
     const grid = tr.closest("table");
@@ -388,7 +446,10 @@ function pickRow(tr, how = "") {
     markRow(grid);
 }
 
-/** Every row of the rows grid on the page marked. */
+/**
+ * Every row of the rows grid on the page marked.
+ * @returns {void}
+ */
 function pickAllRows() {
     const grid = document.getElementById("rows-grid");
     const keys = [ ...grid.querySelectorAll("tbody tr[data-key]") ]
@@ -404,7 +465,10 @@ function pickAllRows() {
     }
 }
 
-/** The rows marked in the rows grid, by their place on the page, in order. */
+/**
+ * The rows marked in the rows grid, by their place on the page, in order.
+ * @returns {number[]}
+ */
 function pickedRows() {
     const one = marked["rows-grid"];
     if (!one || one.context !== gridContext("rows-grid") || !browse.rows) {
@@ -416,7 +480,10 @@ function pickedRows() {
         .sort((a, b) => a - b);
 }
 
-/** The tables marked in the Tables tab, by name, in the order they show. */
+/**
+ * The tables marked in the Tables tab, by name, in the order they show.
+ * @returns {string[]}
+ */
 function pickedTables() {
     const one = marked["overview-grid"];
     if (!one || one.context !== gridContext("overview-grid")) {
@@ -428,7 +495,11 @@ function pickedTables() {
         .filter((name) => names.has(name));
 }
 
-/** Marks a grid's rows again, once it is drawn again, and whether the grid has the keys. */
+/**
+ * Marks a grid's rows again, once it is drawn again, and whether the grid has the keys.
+ * @param {HTMLElement} grid
+ * @returns {void}
+ */
 function markRow(grid) {
     const one = marked[grid.id];
     for (const row of grid.querySelectorAll("tbody tr.selected")) {
@@ -443,8 +514,14 @@ function markRow(grid) {
     grid.classList.toggle("focused", keysTo === grid.id && document.hasFocus());
 }
 
-/** ↑ and ↓ in a grid: the row above or below is marked, and scrolled to. */
-/** With ⇧, in the rows grid, the rows marked reach to it. */
+/**
+ * ↑ and ↓ in a grid: the row above or below is marked, and scrolled to.
+ * With ⇧, in the rows grid, the rows marked reach to it.
+ * @param {HTMLElement} grid
+ * @param {number} by
+ * @param {boolean=} extend
+ * @returns {void}
+ */
 function stepRow(grid, by, extend = false) {
     const rows = /** @type {HTMLElement[]} */ ([ ...grid.querySelectorAll("tbody tr[data-key]") ]);
     if (!rows.length) {
@@ -462,7 +539,12 @@ function stepRow(grid, by, extend = false) {
     revealRow(grid, next);
 }
 
-/** Scrolls a grid's row clear of the header, the totals and the fades. */
+/**
+ * Scrolls a grid's row clear of the header, the totals and the fades.
+ * @param {HTMLElement & { tHead?: HTMLElement, tFoot?: HTMLElement }} grid
+ * @param {HTMLElement} tr
+ * @returns {void}
+ */
 function revealRow(grid, tr) {
     const box   = /** @type {HTMLElement} */ (grid.closest(".grid-scroll"));
     const row   = tr.getBoundingClientRect();
@@ -476,7 +558,11 @@ function revealRow(grid, tr) {
     }
 }
 
-/** Enter on a grid's row opens it: a table's rows, or a row to change. */
+/**
+ * Enter on a grid's row opens it: a table's rows, or a row to change.
+ * @param {HTMLElement} grid
+ * @returns {void}
+ */
 function openRow(grid) {
     const row = /** @type {HTMLElement} */ (grid.querySelector("tbody tr.selected"));
     if (!row) {
@@ -491,6 +577,12 @@ function openRow(grid) {
     }
 }
 
+/**
+ * The keys of the database page: ↑ and ↓ through the tables or a grid's rows, and Enter to
+ * open the row marked.
+ * @param {KeyboardEvent} event
+ * @returns {void}
+ */
 function tableKeys(event) {
     const target = /** @type {HTMLElement} */ (event.target);
     const typing = target.matches("input, textarea, select, [contenteditable]")
@@ -536,6 +628,10 @@ function tableKeys(event) {
  * name opens its rows.
  */
 let overviewSort = { key : "name", dir : 1 };
+/**
+ * Draws the Tables tab: the tables filtered as typed, in the order picked, with their totals.
+ * @returns {void}
+ */
 function renderOverview() {
     const search = /** @type {HTMLInputElement} */ (
         document.getElementById("overview-filter")
@@ -609,8 +705,13 @@ function renderOverview() {
     watchFades(/** @type {HTMLElement} */ (document.getElementById("overview-grid").parentElement));
 }
 
-/** Sorts the tables by a column, the other way when it already is; sizes start with the largest. */
+/**
+ * Sorts the tables by a column, the other way when it already is; sizes start with the largest.
+ * @param {string} key
+ * @returns {void}
+ */
 function sortOverview(key) {
+
     overviewSort = overviewSort.key === key
         ? { key, dir : -overviewSort.dir }
         : { key, dir : [ "name", "engine", "collation", "comment" ].includes(key) ? 1 : -1 };

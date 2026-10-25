@@ -71,12 +71,22 @@ const OWNER_NAMES = {
     "gd"      : "GD", "soap" : "SOAP", "mysqli" : "MySQLi", "pgsql" : "PostgreSQL",
     "sqlite3" : "SQLite3",
 };
+/**
+ * The plain name of what a setting is part of, or "" when PHP did not say.
+ * @param {string} key
+ * @param {Object<string, string>} owners
+ * @returns {string}
+ */
 function ownerOf(key, owners) {
     const owner = owners[key];
     return owner ? OWNER_NAMES[owner] || owner : "";
 }
 
-/** The switches: the list, and what the ini files write as On or Off. */
+/**
+ * The switches: the list, and what the ini files write as On or Off.
+ * @param {string} mainIni
+ * @returns {Set<string>}
+ */
 function readSwitches(mainIni) {
     const files = [
         mainIni,
@@ -133,9 +143,12 @@ const PHP_SCRIPT = `
  * leaves the file out, as if there were none, and a text stands in for it.
  * PHP reads every .ini file of a folder it is given, so it gets a folder of
  * its own with copies of the others and this one.
+ * @param {string=} overrides
+ * @returns {Promise<{ data: PhpInfo, problems: string[] }>}
  */
 async function askPhp(overrides = undefined) {
     let dir = "";
+    /** @type {Object<string, string>} */
     const env = {};
     if (overrides !== undefined) {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), "studio-php-"));
@@ -164,7 +177,26 @@ async function askPhp(overrides = undefined) {
     return { data, problems : startupProblems(lines.filter((line) => line !== json), dir) };
 }
 
-/** PHP, run by its Homebrew path, with some more of the environment. */
+/**
+ * What PHP's script gives, each part missing when PHP did not start.
+ * @typedef {{
+ *     version?: string,
+ *     values?: Object<string, string>,
+ *     extensions?: Object<string, string>,
+ *     owners?: Object<string, string>,
+ *     zend?: string[],
+ *     timezones?: string[],
+ *     extDir?: string,
+ *     mainIni?: string,
+ * }} PhpInfo
+ */
+
+/**
+ * PHP, run by its Homebrew path, with some more of the environment.
+ * @param {string[]} args
+ * @param {Object<string, string>=} env
+ * @returns {Promise<{ ok: boolean, stdout: string, stderr: string }>}
+ */
 function runPhp(args, env = {}) {
     return new Promise((resolve) => {
         execFile(path.join(PATHS.homebrew, "bin", "php"), args, {
@@ -185,6 +217,9 @@ function runPhp(args, env = {}) {
  * its error output as "PHP Warning:" and on its output as "Warning:". The
  * place, "in Unknown on line 0", says nothing, and a copy of the file in a
  * folder of Studio's is named as the overrides file.
+ * @param {string[]} lines
+ * @param {string} dir
+ * @returns {string[]}
  */
 function startupProblems(lines, dir) {
     const seen = new Set();
@@ -204,6 +239,11 @@ function startupProblems(lines, dir) {
  * so it is kept until then.
  */
 let baseCache = { key : "", values : {} };
+/**
+ * PHP's values without the overrides file, by setting, for the php.ini given.
+ * @param {string} mainIni
+ * @returns {Promise<Object<string, string>>}
+ */
 async function readBase(mainIni) {
     const key = `${mainIni}:${fileTime(mainIni)}`;
     if (baseCache.key !== key) {
@@ -213,7 +253,10 @@ async function readBase(mainIni) {
     return baseCache.values;
 }
 
-/** Forgets what the settings were without the overrides, as php.ini has just changed. */
+/**
+ * Forgets what the settings were without the overrides, as php.ini has just changed.
+ * @returns {void}
+ */
 function forgetBase() {
     baseCache.key = "";
 }
@@ -224,13 +267,18 @@ function forgetBase() {
 /**
  * Brew keeps a config folder per minor version (etc/php/8.5), so this follows
  * whichever one is linked, as the SwiftBar plugin does.
+ * @returns {string}
  */
 function phpIniFile() {
     const minor = versionOf("php").split(".").slice(0, 2).join(".");
     return PATHS.phpIni.replace("{php}", minor);
 }
 
-/** A setting's line in an ini file. */
+/**
+ * A setting's line in an ini file.
+ * @param {string} key
+ * @returns {RegExp}
+ */
 function settingLine(key) {
     return new RegExp(`^[ \\t]*${key.replace(/\./g, "\\.")}[ \\t]*=.*$`, "m");
 }
@@ -238,6 +286,8 @@ function settingLine(key) {
 /**
  * A value as an ini file needs it: quoted when it holds what the file would
  * read otherwise, as a ; that starts a comment.
+ * @param {string} value
+ * @returns {string}
  */
 function iniValue(value) {
     return /[;#=]|^\s|\s$/.test(value) && !value.includes("\"") ? `"${value}"` : value;
@@ -246,6 +296,10 @@ function iniValue(value) {
 /**
  * What PHP reports for a setting as the page shows it: its 1 and "" turned
  * back into On and Off for a setting that takes those.
+ * @param {string} key
+ * @param {*} value
+ * @param {Set<string>=} switches
+ * @returns {string}
  */
 function displayValue(key, value, switches = new Set()) {
     if (switches.has(key) || PHP_SETTINGS[key]?.options?.includes("On")) {
@@ -254,8 +308,13 @@ function displayValue(key, value, switches = new Set()) {
     return value === null || value === undefined ? "" : String(value);
 }
 
-/** The key = value lines of an ini text, its last line winning, as for PHP. */
+/**
+ * The key = value lines of an ini text, its last line winning, as for PHP.
+ * @param {string} text
+ * @returns {Object<string, string>}
+ */
 function iniKeys(text) {
+    /** @type {Object<string, string>} */
     const values = {};
     for (const line of text.split("\n")) {
         const found = line.match(/^\s*([\w.]+)\s*=\s*(.*?)\s*$/);
@@ -266,10 +325,19 @@ function iniKeys(text) {
     return values;
 }
 
+/**
+ * The settings of the overrides file, by name.
+ * @returns {Object<string, string>}
+ */
 function readIniFile() {
     return iniKeys(readFile(phpIniFile()));
 }
 
+/**
+ * When a file last changed, in ms, or 0 when it is missing.
+ * @param {string} file
+ * @returns {number}
+ */
 function fileTime(file) {
     try {
         return fs.statSync(file).mtimeMs;
@@ -278,6 +346,11 @@ function fileTime(file) {
     }
 }
 
+/**
+ * A file's size in bytes, or 0 when it is missing.
+ * @param {string} file
+ * @returns {number}
+ */
 function fileSize(file) {
     try {
         return fs.statSync(file).size;
@@ -287,6 +360,8 @@ function fileSize(file) {
 }
 
 
+
+// The public API
 module.exports = {
     PHP_SETTINGS,
     ownerOf,

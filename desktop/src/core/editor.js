@@ -111,6 +111,12 @@ let editorEdited = false;
 let editorCheck = { text : null, problem : "", timer : null };
 let editorFile  = "";
 
+/**
+ * Opens a file of EDITOR_FILES in the editor, read fresh from the server, the
+ * caret at its start.
+ * @param {string} kind
+ * @returns {Promise<void>}
+ */
 async function openEditor(kind) {
     editorKind = kind;
     const file = EDITOR_FILES[kind];
@@ -138,6 +144,10 @@ async function openEditor(kind) {
     text.scrollTop = 0;
 }
 
+/**
+ * Closes the editor, after asking when the text has changes not saved.
+ * @returns {Promise<void>}
+ */
 async function closeEditor() {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     if (text.value !== editorSaved && !await ask({
@@ -151,6 +161,11 @@ async function closeEditor() {
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
 }
 
+/**
+ * Saves the text with the file's action, closes the editor and refreshes the page.
+ * A failure stays open, in a toast.
+ * @returns {Promise<void>}
+ */
 async function saveEditor() {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("editor-save"));
@@ -176,7 +191,10 @@ async function saveEditor() {
     }
 }
 
-/** The line numbers and the colors under the text, and whether it reads. */
+/**
+ * The line numbers and the colors under the text, and whether it reads.
+ * @returns {void}
+ */
 function updateEditor() {
     const file   = EDITOR_FILES[editorKind];
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
@@ -222,6 +240,12 @@ function updateEditor() {
         = Boolean(error) || asking || !dirty;
 }
 
+/**
+ * Asks the server about a text, 400 ms after the typing stops, and keeps its
+ * first problem for that text.
+ * @param {string} value
+ * @returns {void}
+ */
 function checkOnServer(value) {
     const file = EDITOR_FILES[editorKind];
     clearTimeout(editorCheck.timer);
@@ -249,6 +273,9 @@ function checkOnServer(value) {
 /**
  * The line a problem names -- "line 12", or a JSON's "position 140" -- when
  * it is about this file: one naming another, an included .conf say, is not.
+ * @param {string} problem
+ * @param {string} value
+ * @returns {number}
  */
 function problemLine(problem, value) {
     if (!problem) {
@@ -266,7 +293,11 @@ function problemLine(problem, value) {
     return position ? value.slice(0, Number(position[1])).split("\n").length : 0;
 }
 
-/** Selects a line of the text and scrolls to it, as a problem's link does. */
+/**
+ * Selects a line of the text and scrolls to it, as a problem's link does.
+ * @param {number} line
+ * @returns {void}
+ */
 function goToLine(line) {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const lines = text.value.split("\n");
@@ -276,7 +307,11 @@ function goToLine(line) {
     reveal(start);
 }
 
-/** Scrolls the text so a place in it shows, a third of the way down. */
+/**
+ * Scrolls the text so a place in it shows, a third of the way down.
+ * @param {number} offset
+ * @returns {void}
+ */
 function reveal(offset) {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const style  = getComputedStyle(text);
@@ -299,6 +334,11 @@ function reveal(offset) {
 /**
  * Puts text in place of a part of the editor's, as typing would, so ⌘Z
  * undoes it, then selects from start to end of what was put.
+ * @param {number} from
+ * @param {number} to
+ * @param {string} value
+ * @param {number[]=} select
+ * @returns {void}
  */
 function replaceText(from, to, value, select = [ from + value.length, from + value.length ]) {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
@@ -315,6 +355,7 @@ function replaceText(from, to, value, select = [ from + value.length, from + val
  * ⌘/: comments out the selected lines, or the caret's, with the file's mark,
  * # or ;, or comments them back in when all of them already are. JSON has
  * no comments.
+ * @returns {void}
  */
 function toggleComment() {
     const mark = EDITOR_FILES[editorKind].mark;
@@ -345,6 +386,7 @@ function toggleComment() {
  * Apache <Section> it is indented one more, with the section closed under
  * it unless it already is; after a JSON { or [ the same, its closing moved
  * down when it was right after the caret.
+ * @returns {void}
  */
 function newLine() {
     const file   = EDITOR_FILES[editorKind];
@@ -397,6 +439,10 @@ function newLine() {
  */
 let findState = { matches : [], index : -1 };
 
+/**
+ * Opens the find bar, with the selected text in it when that is on one line.
+ * @returns {void}
+ */
 function openFind() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const bar   = document.getElementById("editor-find");
@@ -411,6 +457,11 @@ function openFind() {
     searchText(text.selectionStart);
 }
 
+/**
+ * Closes the find bar and clears its marks, the text focused again unless told not to.
+ * @param {boolean=} focus
+ * @returns {void}
+ */
 function closeFind(focus = true) {
     document.getElementById("editor-find").hidden = true;
     findState = { matches : [], index : -1 };
@@ -421,7 +472,11 @@ function closeFind(focus = true) {
     }
 }
 
-/** Finds every match, and goes to the first from a place in the text. */
+/**
+ * Finds every match, and goes to the first from a place in the text.
+ * @param {number=} from
+ * @returns {void}
+ */
 function searchText(from = 0) {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const needle = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"))
@@ -441,6 +496,11 @@ function searchText(from = 0) {
     showMatch();
 }
 
+/**
+ * Goes to the next match, or the one before, round the ends.
+ * @param {number} step 1 for the next, -1 for the one before
+ * @returns {void}
+ */
 function stepFind(step) {
     if (findState.matches.length) {
         findState.index = (findState.index + step + findState.matches.length)
@@ -449,6 +509,10 @@ function stepFind(step) {
     }
 }
 
+/**
+ * Selects the current match and shows it, with the count in the find bar.
+ * @returns {void}
+ */
 function showMatch() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const input = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"));
@@ -463,7 +527,10 @@ function showMatch() {
     renderMarks();
 }
 
-/** The matches marked in a copy of the text under the paint. */
+/**
+ * The matches marked in a copy of the text under the paint.
+ * @returns {void}
+ */
 function renderMarks() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const marks = document.getElementById("editor-marks");
@@ -482,7 +549,11 @@ function renderMarks() {
     marks.innerHTML = `${html}${escapeCode(text.value.slice(last))}\n`;
 }
 
-/** Opens a config file httpd.conf includes, by its path. */
+/**
+ * Opens a config file httpd.conf includes, by its path.
+ * @param {string} path
+ * @returns {Promise<void>}
+ */
 function openApacheConfig(path) {
     EDITOR_FILES.include = {
         ...EDITOR_FILES.httpd,
@@ -497,6 +568,7 @@ function openApacheConfig(path) {
 /**
  * Puts a setting picked in the setting dialog on a line of its own, after
  * the line the cursor is on, or replaces its line when the file has it.
+ * @returns {Promise<void>}
  */
 async function insertSetting() {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));

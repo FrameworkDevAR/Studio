@@ -4,7 +4,10 @@
 
 // ---------------------------------------------------------- changing columns ---
 
-/** Whether the table shown is a view, whose columns are only read. */
+/**
+ * Whether the table shown is a view, whose columns are only read.
+ * @returns {boolean}
+ */
 function structureIsView() {
     return Boolean(browse.tables.find((one) => one.name === browse.structure?.table)?.view);
 }
@@ -61,16 +64,10 @@ const TYPE_LENGTHS = {
 };
 
 /**
- * The dialog that adds a column or changes one, as Sequel Ace's columns
- * do: its name and type, whether it takes NULL, what it starts with -- a
- * value, NULL, an expression as current_timestamp() -- or what it is
- * generated from, auto_increment, ON UPDATE, its collation when it holds
- * text, its comment, and its place among the others. A copy starts as the
- * column it copies, after it.
- */
-/**
  * The types to pick from, grouped as phpMyAdmin's, the one given picked, under its own group when
  * it is none of them.
+ * @param {string} base
+ * @returns {string}
  */
 function typeOptions(base) {
     const known  = COLUMN_TYPES.some(([ , types ]) => types.includes(base.toLowerCase()));
@@ -89,7 +86,17 @@ function typeOptions(base) {
     }).join("")}</optgroup>`).join("")}`;
 }
 
-/** @param {string | null} [name] @param {{ copy?: boolean, after?: string | null }} [options] */
+/**
+ * The dialog that adds a column or changes one, as Sequel Ace's columns
+ * do: its name and type, whether it takes NULL, what it starts with -- a
+ * value, NULL, an expression as current_timestamp() -- or what it is
+ * generated from, auto_increment, ON UPDATE, its collation when it holds
+ * text, its comment, and its place among the others. A copy starts as the
+ * column it copies, after it.
+ * @param {string=} name
+ * @param {{ copy?: boolean, after?: string }=} options
+ * @returns {Promise<void>}
+ */
 async function openColumnDialog(name = null, { copy = false, after = null } = {}) {
     const structure = browse.structure;
     const old       = structure.columns.find((one) => one.name === name);
@@ -281,6 +288,10 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
 /**
  * A column's definition as it is, with some of it changed: what a change
  * in place or a move sends, so the rest of the column stays as it was.
+ * @param {DbStructureColumn} column
+ * @param {Object<string, *>=} changes
+ * @returns {{ name: string, type: string, nullable: boolean, value: string, preset: string,
+ *     increment: boolean, update: boolean, collation: string, comment: string }}
  */
 function columnDefinition(column, changes = {}) {
     const definition = {
@@ -310,6 +321,8 @@ function columnDefinition(column, changes = {}) {
 
 /**
  * A column's start as it is typed in its cell: nothing, NULL, or the value or expression itself.
+ * @param {DbStructureColumn} column
+ * @returns {string}
  */
 function defaultText(column) {
     return column.value.kind === "none" ? ""
@@ -320,6 +333,9 @@ function defaultText(column) {
 /**
  * What is typed in a default's cell: empty for none, NULL, a call as current_timestamp() for an
  * expression, else a value.
+ * @param {string} text
+ * @param {DbStructureColumn} column
+ * @returns {{ value: string, preset: string }}
  */
 function defaultOf(text, column) {
     if (text === defaultText(column)) {
@@ -341,6 +357,12 @@ function defaultOf(text, column) {
  * column's dialog.
  */
 let columnEdit = null;
+/**
+ * Opens a column's cell to change it in place, or the column's dialog for what the cell cannot
+ * change.
+ * @param {HTMLElement} td
+ * @returns {void}
+ */
 function editColumnCell(td) {
     if (columnEdit || structureIsView()) {
         return;
@@ -432,7 +454,11 @@ function editColumnCell(td) {
     input.addEventListener("blur", () => saveColumnCell(edit));
 }
 
-/** Marks a column's row, scrolls to it, and changes its cell. */
+/**
+ * Marks a column's row, scrolls to it, and changes its cell.
+ * @param {HTMLElement} td
+ * @returns {void}
+ */
 function changeColumnAt(td) {
     const tr = /** @type {HTMLElement} */ (td.closest("tr"));
     pickRow(tr);
@@ -443,8 +469,12 @@ function changeColumnAt(td) {
 /**
  * Saves a column's cell changed in place, if it is, with the rest of the column as it was, then
  * goes on, if asked.
+ * @param {{ name: string, field: string, old: string,
+ *     input: HTMLInputElement | HTMLSelectElement, done: boolean, at: number,
+ *     row: number }} edit
+ * @param {(() => void)=} then
+ * @returns {Promise<void>}
  */
-/** @param {(() => void) | null} [then] */
 async function saveColumnCell(edit, then = null) {
     if (edit.done) {
         return;
@@ -493,6 +523,13 @@ async function saveColumnCell(edit, then = null) {
  * moves it there, after the column before, or first.
  */
 let columnDrag = "";
+/**
+ * Moves the column dragged to the row it is dropped on, above it or below, unless that is where
+ * it is already.
+ * @param {HTMLElement} tr
+ * @param {boolean} below
+ * @returns {void}
+ */
 function dropColumnAt(tr, below) {
     const columns = browse.structure.columns.map((one) => one.name);
     const target  = tr.dataset.key;
@@ -524,6 +561,13 @@ function dropColumnAt(tr, below) {
  * drop it.
  */
 let columnMenu = "";
+/**
+ * Opens a column's menu where the pointer is.
+ * @param {string} name
+ * @param {number} x
+ * @param {number} y
+ * @returns {void}
+ */
 function openColumnMenu(name, x, y) {
     const columns = browse.structure.columns;
     const at      = columns.findIndex((one) => one.name === name);
@@ -546,6 +590,11 @@ function openColumnMenu(name, x, y) {
     showMenuAt(menu, x, y);
 }
 
+/**
+ * Does what was picked in a column's menu, to the column it was opened on.
+ * @param {string} act
+ * @returns {Promise<void>}
+ */
 async function columnAction(act) {
     const name    = columnMenu;
     const columns = browse.structure.columns;
@@ -583,6 +632,11 @@ async function columnAction(act) {
     loadStructure();
 }
 
+/**
+ * Drops a column, once the user is sure.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function dropColumn(name) {
     const sure = await ask({
         title  : `Drop the column ${name}?`,

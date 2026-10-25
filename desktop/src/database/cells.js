@@ -13,6 +13,11 @@
 const fadeSizes = new ResizeObserver((entries) => entries.forEach(
     (entry) => fadeEdges(/** @type {HTMLElement} */ (entry.target)),
 ));
+/**
+ * Fades a box's edges now, and again as it scrolls or changes size.
+ * @param {HTMLElement} box
+ * @returns {void}
+ */
 function watchFades(box) {
     if (!box.dataset.fades) {
         box.dataset.fades = "1";
@@ -22,6 +27,11 @@ function watchFades(box) {
     fadeEdges(box);
 }
 
+/**
+ * Sets a box's fades for where it is scrolled to now.
+ * @param {HTMLElement} box
+ * @returns {void}
+ */
 function fadeEdges(box) {
     const edge = (more) => (more ? "28px" : "0px");
     const head = box.querySelector("thead");
@@ -40,7 +50,11 @@ function fadeEdges(box) {
     box.style.setProperty("--fade-edge", right ? "transparent" : "#000");
 }
 
-/** A row's primary key, by column, which the server finds it by. */
+/**
+ * A row's primary key, by column, which the server finds it by.
+ * @param {number} index
+ * @returns {Object<string, string>}
+ */
 function rowKey(index) {
     const { structure, rows } = browse.rows;
     return Object.fromEntries(structure.primary.map((name) => [
@@ -55,8 +69,10 @@ function rowKey(index) {
  * fitting its type, a NULL box when it takes NULL, and binary columns are
  * kept as they are. A new row's empty fields get their column's default,
  * as an auto_increment id, which a copy leaves empty, as its binary values.
+ * @param {(number | null)=} index
+ * @param {(number | null)=} copy
+ * @returns {Promise<void>}
  */
-/** @param {number | null} index @param {number | null} copy */
 async function openRowDialog(index = null, copy = null) {
     const { structure } = browse.rows;
     const key = index === null ? null : rowKey(index);
@@ -144,7 +160,13 @@ async function openRowDialog(index = null, copy = null) {
     });
 }
 
-/** A column's field: its choices for an enum, a box for long text, a line otherwise. */
+/**
+ * A column's field: its choices for an enum, a box for long text, a line otherwise.
+ * @param {DbStructureColumn} column
+ * @param {string} value
+ * @param {boolean} adding
+ * @returns {string}
+ */
 function rowField(column, value, adding) {
     const name   = esc(column.name);
     const isNull = value === null;
@@ -186,8 +208,12 @@ function rowField(column, value, adding) {
     `;
 }
 
-/** Deletes a row once it is confirmed, from its dialog; gives whether it did. */
-/** Deletes rows, by their place on the page, once asked: one by its key, or how many. */
+/**
+ * Deletes a row once it is confirmed, from its dialog; gives whether it did.
+ * Deletes rows, by their place on the page, once asked: one by its key, or how many.
+ * @param {number[]} indexes
+ * @returns {Promise<boolean>}
+ */
 async function deleteRows(indexes) {
     const keys = indexes.map(rowKey);
     const sure = await ask({
@@ -230,6 +256,14 @@ async function deleteRows(indexes) {
  * has a key.
  */
 let rowMenu = { indexes : [ 0 ], at : -1 };
+/**
+ * Opens the rows' menu at a point, for the rows marked and the column clicked.
+ * @param {number[]} indexes
+ * @param {number} at
+ * @param {number} x
+ * @param {number} y
+ * @returns {void}
+ */
 function openRowMenu(indexes, at, x, y) {
     const { structure } = browse.rows;
     const keyed  = rowsKeyed() ? "" : "disabled";
@@ -270,7 +304,13 @@ function openRowMenu(indexes, at, x, y) {
     showMenuAt(menu, x, y);
 }
 
-/** Opens a right click's menu at the pointer, kept inside the window. */
+/**
+ * Opens a right click's menu at the pointer, kept inside the window.
+ * @param {HTMLElement} menu
+ * @param {number} x
+ * @param {number} y
+ * @returns {void}
+ */
 function showMenuAt(menu, x, y) {
     closeMenus(menu);
     menu.dataset.from = "";
@@ -279,7 +319,11 @@ function showMenuAt(menu, x, y) {
     menu.style.top  = `${Math.max(8, Math.min(y, innerHeight - menu.offsetHeight - 8))}px`;
 }
 
-/** Does what was picked in a row's menu. */
+/**
+ * Does what was picked in a row's menu.
+ * @param {string} act
+ * @returns {Promise<boolean | void>}
+ */
 async function rowAction(act) {
     const { indexes, at } = rowMenu;
     if (act === "edit") {
@@ -369,7 +413,10 @@ async function rowAction(act) {
 
 // -------------------------------------------------------- changing in place ---
 
-/** Whether the rows shown can be changed: a table's, with a primary key to find each by. */
+/**
+ * Whether the rows shown can be changed: a table's, with a primary key to find each by.
+ * @returns {boolean}
+ */
 function rowsKeyed() {
     const { structure } = browse.rows;
     return structure.primary.length > 0
@@ -384,6 +431,11 @@ function rowsKeyed() {
  * value changes in a dialog instead, and a binary one only in the row's.
  */
 let editing = null;
+/**
+ * Changes a cell where it is, or in a dialog when its value is big or binary.
+ * @param {HTMLElement} td
+ * @returns {void}
+ */
 function editCell(td) {
     if (!rowsKeyed() || editing) {
         return;
@@ -435,8 +487,13 @@ function editCell(td) {
     input.addEventListener("blur", () => saveCell(edit));
 }
 
-/** Saves a cell changed in place, if it is, then goes on to the cell asked for, if any. */
-/** @param {(() => void) | null} [then] */
+/**
+ * Saves a cell changed in place, if it is, then goes on to the cell asked for, if any.
+ * @param {{ index: number, at: number, old: string, input: HTMLInputElement,
+ *     done: boolean }} edit
+ * @param {(() => void)=} then
+ * @returns {Promise<void>}
+ */
 async function saveCell(edit, then = null) {
     if (edit.done) {
         return;
@@ -464,6 +521,10 @@ async function saveCell(edit, then = null) {
 /**
  * The cell after or before one, as shown, on to the next row or the one before at either end,
  * to change; binary ones are passed.
+ * @param {number} index
+ * @param {number} at
+ * @param {number} by
+ * @returns {void}
  */
 function nextCell(index, at, by) {
     const columns = browse.rows.structure.columns;
@@ -479,7 +540,13 @@ function nextCell(index, at, by) {
     }
 }
 
-/** The cell of the same column in the row above or below, to change. */
+/**
+ * The cell of the same column in the row above or below, to change.
+ * @param {number} index
+ * @param {number} at
+ * @param {number} by
+ * @returns {void}
+ */
 function cellBelow(index, at, by) {
     const rows = /** @type {HTMLElement[]} */ ([
         ...document.querySelectorAll("#rows-grid tbody tr[data-row]"),
@@ -491,7 +558,11 @@ function cellBelow(index, at, by) {
     }
 }
 
-/** Marks a cell's row, scrolls to it, and changes the cell. */
+/**
+ * Marks a cell's row, scrolls to it, and changes the cell.
+ * @param {HTMLElement} td
+ * @returns {void}
+ */
 function changeAt(td) {
     const tr = /** @type {HTMLElement} */ (td.closest("tr"));
     pickRow(tr);
@@ -503,6 +574,10 @@ function changeAt(td) {
  * Saves one value of a row, found by its key as it was, and shows it at
  * once; then reads the row again, for what MariaDB made of it, as a
  * number trimmed or a date put in its form.
+ * @param {number} index
+ * @param {number} at
+ * @param {string} value
+ * @returns {Promise<void>}
  */
 async function saveValue(index, at, value) {
     const { structure, rows } = browse.rows;
@@ -537,8 +612,12 @@ async function saveValue(index, at, value) {
  * line numbers and JSON or HTML painted: the whole of it, read first if
  * the grid cut it, JSON laid out to read and saved back as compact as it
  * was, and NULL as a box when the column takes it. ⌘S saves.
+ * @param {number} index
+ * @param {number} at
+ * @returns {Promise<void>}
  */
 async function editValue(index, at) {
+
     const { structure, rows, cut } = browse.rows;
     const column = structure.columns[at];
     let value = rows[index][at];

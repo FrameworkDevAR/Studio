@@ -3,6 +3,32 @@
 // The Databases page: the databases, the users that reach them, and MariaDB's
 // options, with the dialogs that create, change and drop the first two.
 
+/**
+ * A database as the page lists it, as the server reads it.
+ * @typedef {import("../../../backend/database/databases").DatabaseEntry} DbPageEntry
+ */
+
+/**
+ * A user as the server reads it, one per host.
+ * @typedef {import("../../../backend/database/databases").DatabaseUser} DbPageUser
+ */
+
+/**
+ * A user as the page lists it: its name@host, and the hosts an admin has.
+ * @typedef {DbPageUser & { key: string, hosts: string[] }} DbPageAccount
+ */
+
+/**
+ * A character set of MariaDB's, with its collations and the one it uses unless told.
+ * @typedef {{ name: string, description: string, collations: string[],
+ *     collation: string }} DbPageCharset
+ */
+
+/**
+ * The page: MariaDB's version, the counts on the tabs, then the databases,
+ * the users and the options.
+ * @returns {void}
+ */
 function renderDatabases() {
     const { databases, mariadb, phpmyadmin } = state;
     /** @type {HTMLAnchorElement} */ (document.getElementById("phpmyadmin-link")).href
@@ -32,7 +58,10 @@ function renderDatabases() {
     }
 }
 
-/** The line under the title, about the tab shown. */
+/**
+ * The line under the title, about the tab shown.
+ * @returns {void}
+ */
 function renderDbText() {
     const file = state.mariadb.file.split("/").pop();
     document.getElementById("db-text").innerHTML = {
@@ -52,6 +81,7 @@ function renderDbText() {
  * tables and size, with a bar against the largest, its encoding, and its
  * users. An encoding other than utf8mb4 is marked, as it cannot hold every
  * character, emoji among them.
+ * @returns {void}
  */
 function renderDbList() {
     const { databases } = state;
@@ -117,6 +147,7 @@ function renderDbList() {
  * change, its hosts, the databases it reaches and what it may do there.
  * root, on its three hosts, and Studio's own user show as one card each,
  * without buttons, as they look after MariaDB.
+ * @returns {void}
  */
 function renderUsers() {
     const search = /** @type {HTMLInputElement} */ (document.getElementById("user-filter")).value
@@ -174,7 +205,10 @@ function renderUsers() {
                 databases.</div>`;
 }
 
-/** The users as the page lists them: the admins one line per name, every other one per host. */
+/**
+ * The users as the page lists them: the admins one line per name, every other one per host.
+ * @returns {DbPageAccount[]}
+ */
 function accountRows() {
     const rows = [];
     for (const user of state.databases.users) {
@@ -193,6 +227,10 @@ function accountRows() {
 
 /** The character sets and their collations, asked once, when a dialog first needs them. */
 let charsetList = null;
+/**
+ * The character sets, from the server the first time, then as kept.
+ * @returns {Promise<DbPageCharset[]>}
+ */
 async function loadCharsets() {
     charsetList = charsetList || await api("/api/charsets");
     return charsetList;
@@ -203,6 +241,8 @@ async function loadCharsets() {
  * cannot change later, its encoding, and its users. A new one can have a
  * user made for it, named after it, with a password made up, or be given
  * to one there already.
+ * @param {string=} name
+ * @returns {Promise<void>}
  */
 async function openDatabaseDialog(name = "") {
     let charsets;
@@ -289,6 +329,9 @@ async function openDatabaseDialog(name = "") {
  * Who may use a database: a box for each user given databases one by one.
  * The ones that reach every database are only named under it, as they are
  * changed in Users.
+ * @param {DbPageEntry} db
+ * @param {DbPageUser[]} accounts
+ * @returns {string}
  */
 function databaseUsersField(db, accounts) {
     const some = accounts.filter((user) => !user.all);
@@ -316,7 +359,11 @@ function databaseUsersField(db, accounts) {
     `;
 }
 
-/** A new database's user: none, a new one, or one there already. */
+/**
+ * A new database's user: none, a new one, or one there already.
+ * @param {DbPageUser[]} accounts
+ * @returns {string}
+ */
 function newUserField(accounts) {
     return `
         <div class="form-row">
@@ -350,6 +397,9 @@ function newUserField(accounts) {
  * The fields' listeners: the collations follow the character set, the
  * conversion is offered once the encoding changes, and a new user's name
  * follows the database's, as shop_user, until it is typed over.
+ * @param {HTMLElement} fields
+ * @param {DbPageEntry} db
+ * @returns {void}
  */
 function setUpDatabaseFields(fields, db) {
     const set     = /** @type {HTMLSelectElement} */ (fields.querySelector("[name=charset]"));
@@ -390,7 +440,11 @@ function setUpDatabaseFields(fields, db) {
     }
 }
 
-/** Shows the fields of the user picked for a new database, and makes them the ones sent. */
+/**
+ * Shows the fields of the user picked for a new database, and makes them the ones sent.
+ * @param {HTMLElement} button
+ * @returns {void}
+ */
 function pickUserMode(button) {
     const form = button.closest("form");
     setActive(button);
@@ -407,6 +461,8 @@ function pickUserMode(button) {
 /**
  * Drops a database once it is confirmed, offering to drop its users with it:
  * none is ticked, since a user may serve another site too.
+ * @param {string} name
+ * @returns {Promise<void>}
  */
 async function dropDatabase(name) {
     const db    = state.databases.list.find((one) => one.name === name);

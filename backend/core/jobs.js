@@ -19,6 +19,31 @@ const { spawn } = require("child_process");
 const jobs   = new Map();
 const queues = new Map();
 let jobCount = 0;
+/**
+ * A job the page follows: its id, each step's state and error, its own state,
+ * and what it says once done.
+ * @typedef {{
+ *     id: string,
+ *     items: { name: string, state: string, error: string }[],
+ *     state: string,
+ *     message: string,
+ * }} StudioJob
+ */
+/**
+ * A step of a job: the package it is for, and the arguments of its run.
+ * @typedef {{ name: string, args: string[] }} JobStep
+ */
+/**
+ * Queues the steps as a new job, and gives its id at once.
+ * @param {string} queue
+ * @param {JobStep[]} steps
+ * @param {{
+ *     runStep: (step: JobStep) => Promise<string>,
+ *     after?: (worked: string[]) => Promise<string | void>,
+ *     done: (worked: string[]) => string,
+ * }} handlers
+ * @returns {{ job: string }}
+ */
 function runJob(queue, steps, { runStep, after = async () => {}, done }) {
     const job = {
         id      : String(++jobCount),
@@ -60,6 +85,11 @@ function runJob(queue, steps, { runStep, after = async () => {}, done }) {
     return { job : job.id };
 }
 
+/**
+ * The job of an id, as it goes, for the page that follows it.
+ * @param {string} id
+ * @returns {StudioJob}
+ */
 function readJob(id) {
     const job = jobs.get(String(id));
     if (!job) {
@@ -72,6 +102,15 @@ function readJob(id) {
  * Runs a command and hands on each line it writes, as it writes it, for the
  * error when it fails. Gives its exit code. Input, when given, is written to
  * it at once, for a tool that asks questions as it goes.
+ * @param {string} command
+ * @param {string[]} args
+ * @param {{
+ *     env?: NodeJS.ProcessEnv,
+ *     input?: string,
+ *     timeout?: number,
+ *     onLine: (line: string) => void,
+ * }} options
+ * @returns {Promise<number>}
  */
 function spawnLines(command, args, {
     env = process.env, input = "", timeout = 10 * 60_000, onLine
@@ -100,6 +139,9 @@ function spawnLines(command, args, {
     });
 }
 
+
+
+// The public API
 module.exports = {
     runJob,
     readJob,

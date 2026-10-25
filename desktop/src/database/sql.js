@@ -5,7 +5,19 @@
 
 // --------------------------------------------------------------------- sql ---
 
-/** The console: the SQL typed for this database, or a SELECT of the table to start from. */
+/**
+ * A result of the SQL run: its statement, its columns and its rows, null for NULL, whether there
+ * were more than these, and, when its rows change in place, its table, its primary key and each
+ * column as the table's.
+ * @typedef {{ statement: string, columns: string[], rows: string[][], more: boolean,
+ *     edit: { db: string, table: string, primary: string[], columns: { name: string,
+ *     binary: boolean, dataType: string, generated: boolean }[] } }} SqlResultSet
+ */
+
+/**
+ * The console: the SQL typed for this database, or a SELECT of the table to start from.
+ * @returns {void}
+ */
 function openSql() {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
     text.value = browse.sql[browse.db]
@@ -28,6 +40,8 @@ const SQL_WORDS = new Set(`
 /**
  * SQL painted: comments, texts in quotes, names in backticks, numbers and
  * the words it is written with, the rest as typed.
+ * @param {string} text
+ * @returns {string}
  */
 function paintSql(text) {
     const parts = new RegExp(
@@ -55,6 +69,7 @@ function paintSql(text) {
  * for a selection. The paint is a block per line, wrapped as the box wraps
  * the text, numbered in the gutter by its own CSS counter; a comment or a
  * string going on past a line has its color closed there and opened again.
+ * @returns {void}
  */
 function paintSqlBox() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
@@ -78,6 +93,8 @@ function paintSqlBox() {
 /**
  * The statements in the SQL, by where each starts and ends: split at each
  * ; outside quotes, backticks and comments, the empty ones left out.
+ * @param {string} text
+ * @returns {{ start: number, end: number }[]}
  */
 function statementsOf(text) {
     const list = [];
@@ -106,7 +123,10 @@ function statementsOf(text) {
     return list.filter((one) => text.slice(one.start, one.end).trim());
 }
 
-/** The statement the cursor is in, or, after the last one, that one. */
+/**
+ * The statement the cursor is in, or, after the last one, that one.
+ * @returns {string}
+ */
 function currentStatement() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
     const caret = text.selectionStart;
@@ -123,7 +143,8 @@ function currentStatement() {
  * the last statement's changed rows and the time in the status. The SQL run
  * goes in the history; the tables are read again after, as it may have
  * made or dropped one.
- * @param {"all" | "current" | "explain"} how
+ * @param {("all" | "current" | "explain")=} how
+ * @returns {Promise<void>}
  */
 async function runSql(how = "all") {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
@@ -175,6 +196,7 @@ async function runSql(how = "all") {
 /**
  * The results, a grid each; the rows of a plain SELECT of one table change in place, as in
  * Sequel Ace.
+ * @returns {void}
  */
 function renderResults() {
     document.getElementById("sql-results").innerHTML = browse.results.map((result, index) => `
@@ -221,7 +243,11 @@ const READS = new RegExp(
     "i",
 );
 
-/** A result's rows, all of them, as the query gives them again, as CSV or JSON. */
+/**
+ * A result's rows, all of them, as the query gives them again, as CSV or JSON.
+ * @param {number} index
+ * @returns {void}
+ */
 function openResultExport(index) {
     const result = browse.results[index];
     formDialog({
@@ -278,7 +304,13 @@ function openResultExport(index) {
     });
 }
 
-/** A result's value, as its table's column shows it when the result is of one. */
+/**
+ * A result's value, as its table's column shows it when the result is of one.
+ * @param {SqlResultSet} result
+ * @param {string} value
+ * @param {number} at
+ * @returns {string}
+ */
 function resultCell(result, value, at) {
     const column = result.edit?.columns[at];
     return cellOf(
@@ -293,7 +325,12 @@ function resultCell(result, value, at) {
 
 let resultEdit = null;
 
-/** A result's row, by its primary key, as the server finds it. */
+/**
+ * A result's row, by its primary key, as the server finds it.
+ * @param {SqlResultSet} result
+ * @param {number} r
+ * @returns {Object<string, string>}
+ */
 function resultKey(result, r) {
     return Object.fromEntries(result.edit.primary
         .map((name) => [ name, result.rows[r][result.columns.indexOf(name)] ]));
@@ -303,6 +340,8 @@ function resultKey(result, r) {
  * Changes a value of an editable result where it is: Enter or leaving it
  * saves, Escape doesn't, Tab goes on to the next. A long value changes in
  * a dialog; binary and generated ones only with SQL.
+ * @param {HTMLElement} td
+ * @returns {void}
  */
 function editResultCell(td) {
     const tr     = /** @type {HTMLElement} */ (td.closest("tr[data-result]"));
@@ -366,7 +405,14 @@ function editResultCell(td) {
     input.addEventListener("blur", () => saveResultCell(edit));
 }
 
-/** @param {(() => void) | null} [then] */
+/**
+ * Saves a result's value changed in place, if it is, and draws its cell again, then goes on, if
+ * asked. One MariaDB refuses stays open, to fix.
+ * @param {{ result: SqlResultSet, r: number, at: number, td: HTMLElement,
+ *     input: HTMLInputElement, done: boolean }} edit
+ * @param {(() => void)=} then
+ * @returns {Promise<void>}
+ */
 async function saveResultCell(edit, then = null) {
     if (edit.done) {
         return;
@@ -397,7 +443,14 @@ async function saveResultCell(edit, then = null) {
     then?.();
 }
 
-/** Saves a value of a result's row, then reads the row back, for what MariaDB made of it. */
+/**
+ * Saves a value of a result's row, then reads the row back, for what MariaDB made of it.
+ * @param {SqlResultSet} result
+ * @param {number} r
+ * @param {number} at
+ * @param {string} value
+ * @returns {Promise<void>}
+ */
 async function saveResultValue(result, r, at, value) {
     const { db, table } = result.edit;
     await api("/api/action", {
@@ -422,7 +475,13 @@ async function saveResultValue(result, r, at, value) {
     }
 }
 
-/** A long value of a result, changed in a dialog, in full. */
+/**
+ * A long value of a result, changed in a dialog, in full.
+ * @param {SqlResultSet} result
+ * @param {number} r
+ * @param {number} at
+ * @returns {void}
+ */
 function editResultValue(result, r, at) {
     formDialog({
         title  : `Change ${result.columns[at]}`,
@@ -446,6 +505,12 @@ function editResultValue(result, r, at) {
 const SQL_HISTORY   = "studio.sql.history";
 const SQL_FAVORITES = "studio.sql.favorites";
 
+/**
+ * The list kept in the browser under a key, or an empty one when there is none or it does not
+ * read.
+ * @param {string} key
+ * @returns {Object<string, *>[]}
+ */
 function readStored(key) {
     try {
         return JSON.parse(localStorage.getItem(key) || "[]");
@@ -454,7 +519,11 @@ function readStored(key) {
     }
 }
 
-/** The SQL run goes first in the history, once, and the oldest go past 200. */
+/**
+ * The SQL run goes first in the history, once, and the oldest go past 200.
+ * @param {string} sql
+ * @returns {void}
+ */
 function rememberSql(sql) {
     const text = sql.trim();
     const list = readStored(SQL_HISTORY)
@@ -463,14 +532,24 @@ function rememberSql(sql) {
     localStorage.setItem(SQL_HISTORY, JSON.stringify(list.slice(0, 200)));
 }
 
-/** A query's first line, as a menu shows it, its whole in the title. */
+/**
+ * A query's first line, as a menu shows it, its whole in the title.
+ * @param {string} sql
+ * @param {string} data The button's data attribute.
+ * @param {string} meta
+ * @returns {string}
+ */
 function sqlItem(sql, data, meta) {
     const line = sql.replace(/\s+/g, " ").trim();
     return `<button role="menuitem" ${data} title="${esc(sql)}"><span
         class="sql-menu-text">${esc(line)}</span><small>${esc(meta)}</small></button>`;
 }
 
-/** How long ago, in a word or two. */
+/**
+ * How long ago, in a word or two.
+ * @param {number} time
+ * @returns {string}
+ */
 function agoOf(time) {
     const minutes = Math.round((Date.now() - time) / 60_000);
     return minutes < 1 ? "just now"
@@ -479,7 +558,10 @@ function agoOf(time) {
         : new Date(time).toLocaleDateString();
 }
 
-/** The two menus, drawn as they open: this database's history, and the favorites. */
+/**
+ * The two menus, drawn as they open: this database's history, and the favorites.
+ * @returns {void}
+ */
 function renderSqlMenus() {
     const history = readStored(SQL_HISTORY).filter((one) => one.db === browse.db).slice(0, 50);
     document.getElementById("sql-history").innerHTML = history.length
@@ -508,7 +590,11 @@ function renderSqlMenus() {
     `;
 }
 
-/** Puts a query from the history or the favorites in the box, in place of what is there. */
+/**
+ * Puts a query from the history or the favorites in the box, in place of what is there.
+ * @param {string} from
+ * @returns {void}
+ */
 function useSql(from) {
     const [ kind, which ] = from.split(":");
     const one  = kind === "history"
@@ -524,7 +610,10 @@ function useSql(from) {
     text.focus();
 }
 
-/** Keeps the query in the box, or the part selected, as a favorite, by a name. */
+/**
+ * Keeps the query in the box, or the part selected, as a favorite, by a name.
+ * @returns {void}
+ */
 function keepSql() {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
     const sql  = (text.selectionStart !== text.selectionEnd
@@ -553,6 +642,11 @@ function keepSql() {
     });
 }
 
+/**
+ * Takes a favorite out, by its place, and draws the menus again.
+ * @param {string} at
+ * @returns {void}
+ */
 function forgetSql(at) {
     const list = readStored(SQL_FAVORITES);
     list.splice(Number(at), 1);
@@ -560,6 +654,10 @@ function forgetSql(at) {
     renderSqlMenus();
 }
 
+/**
+ * Forgets the queries run in this database, once the user is sure; the favorites stay.
+ * @returns {Promise<void>}
+ */
 async function clearSqlHistory() {
     if (await ask({
         title  : `Clear ${browse.db}'s history?`,

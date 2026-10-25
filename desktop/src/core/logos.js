@@ -123,7 +123,11 @@ const LOGOS = {
     },
 };
 
-/** A logo as an SVG, white on its brand color where it is drawn. */
+/**
+ * A logo as an SVG, white on its brand color where it is drawn.
+ * @param {string} key
+ * @returns {string}
+ */
 function logoSvg(key) {
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${LOGOS[key].path}"/></svg>`;
 }

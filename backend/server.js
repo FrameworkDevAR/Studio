@@ -60,7 +60,12 @@ http.createServer(handle).listen(PORT, HOST, () => {
     console.log(`Studio on http://localhost:${PORT}/`);
 });
 
-/** Answers one request: the api, or a file of the page. */
+/**
+ * Answers one request: the api, or a file of the page.
+ * @param {import("http").IncomingMessage} request
+ * @param {import("http").ServerResponse} response
+ * @returns {Promise<void>}
+ */
 async function handle(request, response) {
     if (!isLocalHost(request.headers.host)) {
         return send(response, 403, { error : "Forbidden" });
@@ -180,10 +185,22 @@ async function handle(request, response) {
     }
 }
 
+/**
+ * Whether a request's Host header is Studio's own address, so no other site can ask.
+ * @param {string} host
+ * @returns {boolean}
+ */
 function isLocalHost(host) {
     return host === `localhost:${PORT}` || host === `127.0.0.1:${PORT}`;
 }
 
+/**
+ * Sends some data as JSON, never cached.
+ * @param {import("http").ServerResponse} response
+ * @param {number} status
+ * @param {*} data
+ * @returns {void}
+ */
 function send(response, status, data) {
     response.writeHead(status, {
         "Content-Type"  : "application/json; charset=utf-8",
@@ -195,6 +212,9 @@ function send(response, status, data) {
 /**
  * A file of the page, never one outside desktop/. A path with no extension is
  * one of the page's views, like /sites/apache, so it gets the page itself.
+ * @param {import("http").ServerResponse} response
+ * @param {string} pathname
+ * @returns {void}
  */
 function sendFile(response, pathname) {
     const file = path.join(DESKTOP, path.extname(pathname) ? pathname : "index.html");
@@ -212,6 +232,9 @@ function sendFile(response, pathname) {
  * A project's favicon. It is another project's file served from Studio's
  * address, where an SVG opened on its own could run scripts, so it is sent
  * with a policy that lets it be nothing but an image.
+ * @param {import("http").ServerResponse} response
+ * @param {string} project
+ * @returns {void}
  */
 function sendIcon(response, project) {
     const file = iconFile(project || "");
@@ -228,6 +251,11 @@ function sendIcon(response, project) {
     fs.createReadStream(file).pipe(response);
 }
 
+/**
+ * A request's body, read as JSON; {} when it is empty.
+ * @param {import("http").IncomingMessage} request
+ * @returns {Promise<*>}
+ */
 function readBody(request) {
     return new Promise((resolve, reject) => {
         let body = "";
@@ -247,7 +275,10 @@ function readBody(request) {
 
 // ------------------------------------------------------------------- state ---
 
-/** Everything the page shows, gathered in parallel. */
+/**
+ * Everything the page shows, gathered in parallel.
+ * @returns {Promise<Object<string, *>>}
+ */
 async function readState() {
     const [
         services, phpState, node, databases, options, { apps, servers, branches }, disk
@@ -293,7 +324,11 @@ async function readState() {
 
 // ----------------------------------------------------------------- actions ---
 
-/** Performs one change asked for by the page. */
+/**
+ * Performs one change asked for by the page.
+ * @param {*} body
+ * @returns {Promise<*>}
+ */
 async function runAction(body) {
     switch (body.action) {
     case "service":       return serviceAction(body.service, body.op);

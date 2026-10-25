@@ -25,6 +25,12 @@ const TABLE_AFTER =
 
 /** The columns of the tables asked for, read once each, by database and table. */
 const columnCache = new Map();
+/**
+ * A table's columns, once they are read; none until then, and the list is shown again when they
+ * come.
+ * @param {string} table
+ * @returns {DbStructureColumn[]}
+ */
 function columnsOf(table) {
     const key = `${browse.db}.${table}`;
     if (!columnCache.has(key)) {
@@ -43,7 +49,12 @@ function columnsOf(table) {
     return columnCache.get(key) || [];
 }
 
-/** Whether the cursor is in a text in quotes or a comment, where nothing is offered. */
+/**
+ * Whether the cursor is in a text in quotes or a comment, where nothing is offered.
+ * @param {string} text
+ * @param {number} caret
+ * @returns {boolean}
+ */
 function inQuoteOrComment(text, caret) {
     for (let at = 0; at < caret; at++) {
         const char = text[at];
@@ -76,6 +87,8 @@ function inQuoteOrComment(text, caret) {
 /**
  * The tables a statement names, by themselves and by their aliases: FROM t, JOIN t AS x,
  * UPDATE t x.
+ * @param {string} statement
+ * @returns {Map<string, string>}
  */
 function tablesIn(statement) {
     const names = new Map();
@@ -108,7 +121,8 @@ let completion = null;
  * of x, by its name or alias; after FROM and the like, the tables; else the
  * columns of the statement's tables, then the tables, the words and the
  * functions, the ones starting with what is typed first.
- * @param {boolean} [asked] With ⌃Space, offered even before anything is typed.
+ * @param {boolean=} asked With ⌃Space, offered even before anything is typed.
+ * @returns {void}
  */
 function showCompletion(asked = false) {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
@@ -201,7 +215,12 @@ function showCompletion(asked = false) {
     placeCompletion(text, completion.from);
 }
 
-/** Puts the list under the word, from where the text box draws it, kept in the window. */
+/**
+ * Puts the list under the word, from where the text box draws it, kept in the window.
+ * @param {HTMLTextAreaElement} text
+ * @param {number} at
+ * @returns {void}
+ */
 function placeCompletion(text, at) {
     const box    = document.getElementById("sql-complete");
     const mirror = document.createElement("div");
@@ -243,11 +262,20 @@ function placeCompletion(text, at) {
         : y + 4}px`;
 }
 
+/**
+ * Closes the list.
+ * @returns {void}
+ */
 function hideCompletion() {
     completion = null;
     document.getElementById("sql-complete").hidden = true;
 }
 
+/**
+ * Marks the item a step down the list, or up, round from one end to the other.
+ * @param {number} by
+ * @returns {void}
+ */
 function stepCompletion(by) {
     const box = document.getElementById("sql-complete");
     completion.at = (completion.at + by + completion.items.length) % completion.items.length;
@@ -260,6 +288,8 @@ function stepCompletion(by) {
 /**
  * Puts the item picked in place of the word typed: a name in backticks when it needs them, a
  * function's cursor in its brackets.
+ * @param {number=} at
+ * @returns {void}
  */
 function acceptCompletion(at = completion.at) {
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("sql-text"));
@@ -280,6 +310,8 @@ function acceptCompletion(at = completion.at) {
 /**
  * The keys while the list shows: ↑ and ↓ move in it, Enter and Tab take the
  * one marked, Escape closes it; ⌃Space opens it. True when the key was its.
+ * @param {KeyboardEvent} event
+ * @returns {boolean}
  */
 function completionKeys(event) {
     if (event.ctrlKey && event.code === "Space") {

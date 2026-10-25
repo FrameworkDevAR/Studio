@@ -17,8 +17,12 @@ const SERVICES = {
     redis   : { name : "Redis",   process : [ "-x", "redis-server" ], start : "start" },
 };
 
-/** Each service: whether it runs, and the version installed. */
+/**
+ * Each service: whether it runs, and the version installed.
+ * @returns {Promise<Object<string, { name: string, running: boolean, version: string }>>}
+ */
 async function readServices() {
+    /** @type {Object<string, { name: string, running: boolean, version: string }>} */
     const services = {};
     for (const [ formula, service ] of Object.entries(SERVICES)) {
         const found = await run("pgrep", service.process);
@@ -31,7 +35,10 @@ async function readServices() {
     return services;
 }
 
-/** Free and total space of the data volume, in bytes. */
+/**
+ * Free and total space of the data volume, in bytes.
+ * @returns {Promise<{ total: number, free: number }>}
+ */
 async function readDisk() {
     const result  = await run("df", [ "-k", DISK ]);
     const columns = result.stdout.trim().split("\n").pop().split(/\s+/);
@@ -41,7 +48,12 @@ async function readDisk() {
     };
 }
 
-/** Starts, stops or restarts one service. */
+/**
+ * Starts, stops or restarts one service.
+ * @param {string} formula
+ * @param {"start" | "stop" | "restart"} op
+ * @returns {Promise<{ message: string }>}
+ */
 async function serviceAction(formula, op) {
     const service = SERVICES[formula];
     if (!service || ![ "start", "stop", "restart" ].includes(op)) {
@@ -64,7 +76,10 @@ async function serviceAction(formula, op) {
     };
 }
 
-/** Apache and MariaDB, as start all in the SwiftBar menu. */
+/**
+ * Apache and MariaDB, as start all in the SwiftBar menu.
+ * @returns {Promise<{ message: string }>}
+ */
 async function startAll() {
     await run(BREW, [ "services", "run", "httpd" ], 60_000);
     await run(BREW, [ "services", "run", "mariadb" ], 60_000);
@@ -72,14 +87,20 @@ async function startAll() {
     return { message : "Apache and MariaDB started" };
 }
 
-/** Apache and MariaDB again, when both are already running. */
+/**
+ * Apache and MariaDB again, when both are already running.
+ * @returns {Promise<{ message: string }>}
+ */
 async function restartAll() {
     await serviceAction("httpd", "restart");
     await serviceAction("mariadb", "restart");
     return { message : "Apache and MariaDB restarted" };
 }
 
-/** Everything, Redis too, as stop all in the SwiftBar menu. */
+/**
+ * Everything, Redis too, as stop all in the SwiftBar menu.
+ * @returns {Promise<{ message: string }>}
+ */
 async function stopAll() {
     for (const formula of [ "redis", "httpd", "mariadb" ]) {
         await run(BREW, [ "services", "stop", formula ], 60_000);
@@ -87,6 +108,9 @@ async function stopAll() {
     return { message : "All services stopped" };
 }
 
+
+
+// The public API
 module.exports = {
     readServices,
     readDisk,

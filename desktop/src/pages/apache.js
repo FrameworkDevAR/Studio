@@ -2,6 +2,11 @@
 
 // The Apache page: its modules and the config files it includes, and turning one on or off.
 
+/**
+ * The Apache page: its modules, filtered by the search and by on or off, each
+ * with its switch, and the config files it includes.
+ * @returns {void}
+ */
 function renderModules() {
     if (!state) {
         return;
@@ -36,6 +41,7 @@ function renderModules() {
 /**
  * The config files httpd.conf includes, in its order: a switch for each, its
  * note, the module it waits for, and Edit, which opens it in the editor.
+ * @returns {void}
  */
 function renderConfigs() {
     const { includes } = state;
@@ -65,6 +71,9 @@ function renderConfigs() {
 /**
  * Turns an included file on or off. Turning off the vhosts asks first, since
  * every site is in them.
+ * @param {MouseEvent} event
+ * @param {HTMLInputElement} input
+ * @returns {Promise<void>}
  */
 async function toggleInclude(event, input) {
     const enabled = input.checked;
@@ -86,6 +95,9 @@ async function toggleInclude(event, input) {
 /**
  * Asks first before turning off a module the sites use. The switch stays on
  * while the dialog is open, and turns off only once it is confirmed.
+ * @param {MouseEvent} event
+ * @param {HTMLInputElement} input
+ * @returns {Promise<void>}
  */
 async function toggleModule(event, input) {
     const enabled = input.checked;

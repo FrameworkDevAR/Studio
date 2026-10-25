@@ -49,7 +49,45 @@ const PRIVILEGES = [
     [ "GRANT OPTION",            "Grant_priv",               "Grant" ],
 ].map(([ name, column, group, only = "" ]) => ({ name, column, group, only }));
 
-/** The privileges one database or every one can be given, by name. */
+/**
+ * A user as the page has it: its name and host, whether it reaches every database, the ones
+ * granted to it, what it may do, whether its databases were given different privileges, and
+ * whether it looks after MariaDB.
+ * @typedef {{ name: string, host: string, all: boolean, databases: string[],
+ *     privileges: string[], mixed: boolean, admin: boolean }} DatabaseUser
+ */
+
+/**
+ * A database as the page lists it: its size, table count, encoding, users and phpMyAdmin link.
+ * @typedef {{ name: string, size: number, tables: number, charset: string,
+ *     collation: string, users: string[], url: string }} DatabaseEntry
+ */
+
+/**
+ * What readDatabases gives: the databases and users, and the server's encoding and the
+ * privileges on offer, which are left out when MariaDB does not answer.
+ * @typedef {{ available: boolean, list: DatabaseEntry[], users: DatabaseUser[],
+ *     charset?: string, collation?: string,
+ *     privileges?: { name: string, group: string, only: string }[] }} DatabaseList
+ */
+
+/**
+ * An account checked: its user and host, its name@host, and how a statement names it.
+ * @typedef {{ name: string, host: string, key: string, sql: string }} DatabaseAccount
+ */
+
+/**
+ * What the page sends to make or change a user: the user and host, its password, and every
+ * database or the ones listed, with the privileges picked.
+ * @typedef {{ name: string, host?: string, password?: string, all?: boolean,
+ *     databases?: string[], privileges?: string[] }} DatabaseUserForm
+ */
+
+/**
+ * The privileges one database or every one can be given, by name.
+ * @param {boolean} all
+ * @returns {string[]}
+ */
 function privilegesFor(all) {
     return PRIVILEGES.filter((one) => one.only !== (all ? "database" : "server"))
         .map((one) => one.name);
@@ -61,6 +99,10 @@ function privilegesFor(all) {
  * with this many tables, so the answer is kept for 30s.
  */
 let databaseCache = { at : 0, data : null, version : 0 };
+/**
+ * The databases and users as the page shows them, kept for 30s.
+ * @returns {Promise<DatabaseList>}
+ */
 async function readDatabases() {
     if (Date.now() - databaseCache.at < 30_000 && databaseCache.data) {
         return databaseCache.data;
@@ -144,6 +186,9 @@ async function readDatabases() {
  * it, as shop_us or shop_user for shop_db, when that one may reach every
  * database, as the users XAMPP made could. A user named exactly as a
  * database belongs to that one only. Each is given as name@host.
+ * @param {string[]} databases
+ * @param {DatabaseUser[]} accounts
+ * @returns {(database: string) => string[]}
  */
 function usersOf(databases, accounts) {
     const stem = (name) => name.replace(/_[^_]+$/, "");
@@ -156,7 +201,10 @@ function usersOf(databases, accounts) {
     };
 }
 
-/** Drops the kept answer, after a service starts or stops, or anything changes. */
+/**
+ * Drops the kept answer, after a service starts or stops, or anything changes.
+ * @returns {void}
+ */
 function forgetDatabases() {
     databaseCache.at = 0;
     databaseCache.version++;
@@ -165,6 +213,8 @@ function forgetDatabases() {
 /**
  * The character sets MariaDB knows, each with its collations and the one it
  * uses unless told, for the dialogs that create and change a database.
+ * @returns {Promise<{ name: string, description: string, collations: string[],
+ *     collation: string }[]>}
  */
 async function readCharsets() {
     const [ sets, collations ] = await Promise.all([
@@ -199,6 +249,10 @@ async function readCharsets() {
  * Creates a database with its encoding, the server's unless given, and, when
  * asked, a user for it: a new one, or one there already, given everything
  * on it alone.
+ * @param {{ name: string, charset?: string, collation?: string,
+ *     user?: { mode: "new" | "existing", name?: string, host?: string,
+ *     password?: string, account?: string } }} database
+ * @returns {Promise<{ message: string }>}
  */
 async function createDatabase({ name, charset, collation, user }) {
     name = databaseName(name);
@@ -229,6 +283,9 @@ async function createDatabase({ name, charset, collation, user }) {
  * Changes a database's encoding, and its tables' too when asked, since
  * MariaDB gives the new one only to the tables made after; then who may use
  * it. MariaDB cannot rename a database, so its name stays.
+ * @param {{ name: string, charset?: string, collation?: string, convert?: boolean,
+ *     users?: string[] }} database
+ * @returns {Promise<{ message: string }>}
  */
 async function changeDatabase({ name, charset, collation, convert, users }) {
     name = await existingDatabase(name);
@@ -275,6 +332,8 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
 /**
  * Drops a database, and what was granted on it, which MariaDB would keep;
  * then the users asked to go with it.
+ * @param {{ name: string, users?: string[] }} database
+ * @returns {Promise<{ message: string }>}
  */
 async function dropDatabase({ name, users }) {
     name = await existingDatabase(name);
@@ -298,6 +357,9 @@ async function dropDatabase({ name, users }) {
 /**
  * Takes back what an account was given on a database: the grant naming it
  * exactly, as written, which a pattern like shop\_% is not.
+ * @param {{ name: string, host: string }} account
+ * @param {string} name
+ * @returns {Promise<string[]>}
  */
 async function revokeSteps(account, name) {
     const found = await rows(`SELECT Db FROM mysql.db
@@ -316,6 +378,8 @@ async function revokeSteps(account, name) {
  * Creates a user with its password, given every database, or the ones
  * listed, each on its own, with the privileges picked: all of them unless
  * the dialog's advanced part says otherwise.
+ * @param {DatabaseUserForm} user
+ * @returns {Promise<{ message: string }>}
  */
 async function createUser({ name, host, password : secret, all, databases, privileges }) {
     const account = accountOf(name, host);
@@ -331,6 +395,8 @@ async function createUser({ name, host, password : secret, all, databases, privi
  * Changes a user: its name and host, which MariaDB renames in place with
  * its grants, its password when a new one is given, and what it may reach
  * and do. Those are given again from nothing, only when they changed.
+ * @param {DatabaseUserForm & { account: string }} user
+ * @returns {Promise<{ message: string }>}
  */
 async function changeUser({
     account : key, name, host, password : secret, all, databases, privileges
@@ -365,6 +431,11 @@ async function changeUser({
     return { message : `Saved ${account.name}` };
 }
 
+/**
+ * Drops a user, by its name@host, unless it looks after MariaDB.
+ * @param {{ account: string }} user
+ * @returns {Promise<{ message: string }>}
+ */
 async function dropUser({ account : key }) {
     const account = await existingAccount(key);
     if (account.admin) {
@@ -374,7 +445,14 @@ async function dropUser({ account : key }) {
     return { message : `Dropped ${account.name}` };
 }
 
-/** What gives an account every database, or each of the ones listed, with the privileges picked. */
+/**
+ * What gives an account every database, or each of the ones listed, with the privileges picked.
+ * @param {DatabaseAccount} account
+ * @param {boolean} all
+ * @param {string[]} databases
+ * @param {string[]} privileges
+ * @returns {Promise<string[]>}
+ */
 async function accessSteps(account, all, databases, privileges) {
     if (all) {
         return [ grantStep(account, "*.*", privileges, true) ];
@@ -388,6 +466,11 @@ async function accessSteps(account, all, databases, privileges) {
  * A GRANT of the privileges picked, of the ones that scope takes; without a
  * pick, every one but GRANT OPTION. Every one is written ALL PRIVILEGES,
  * and GRANT OPTION as WITH GRANT OPTION, as MariaDB has them.
+ * @param {DatabaseAccount} account
+ * @param {string} scope
+ * @param {string[]} privileges
+ * @param {boolean} all
+ * @returns {string}
  */
 function grantStep(account, scope, privileges, all) {
     const offered = privilegesFor(all).filter((one) => one !== "GRANT OPTION");
@@ -404,7 +487,11 @@ function grantStep(account, scope, privileges, all) {
 
 // ----------------------------------------------------------------- helpers ---
 
-/** The rows of a query, each a list of its columns, or null when MariaDB does not answer. */
+/**
+ * The rows of a query, each a list of its columns, or null when MariaDB does not answer.
+ * @param {string} query
+ * @returns {Promise<string[][]>}
+ */
 async function rows(query) {
     const result = await run("mariadb", [ "-N", "-B", "-e", query ]);
     return result.ok
@@ -415,6 +502,9 @@ async function rows(query) {
 /**
  * Runs statements in one go, given on stdin, so a password never shows in
  * the process list. The client stops at the first that fails, and says why.
+ * @param {string[]} steps
+ * @param {number=} timeout
+ * @returns {Promise<void>}
  */
 async function execute(steps, timeout = 60_000) {
     const result = await run("mariadb", [ "-N", "-B" ], timeout, steps.join("\n"));
@@ -425,12 +515,20 @@ async function execute(steps, timeout = 60_000) {
     }
 }
 
-/** The databases and users as they are now, never the ones kept for 30s. */
+/**
+ * The databases and users as they are now, never the ones kept for 30s.
+ * @returns {Promise<DatabaseList>}
+ */
 function fresh() {
     forgetDatabases();
     return readDatabases();
 }
 
+/**
+ * A database there now, by its name.
+ * @param {string} name
+ * @returns {Promise<string>}
+ */
 async function existingDatabase(name) {
     const { list } = await readDatabases();
     if (!list.some((db) => db.name === name)) {
@@ -439,7 +537,11 @@ async function existingDatabase(name) {
     return name;
 }
 
-/** An account there now, by its name@host, which the page names it by. */
+/**
+ * An account there now, by its name@host, which the page names it by.
+ * @param {string} key
+ * @returns {Promise<DatabaseAccount & DatabaseUser>}
+ */
 async function existingAccount(key) {
     const { users } = await readDatabases();
     const found     = users.find((user) => `${user.name}@${user.host}` === key);
@@ -452,6 +554,8 @@ async function existingAccount(key) {
 /**
  * A database name, as one a site would use: letters, digits, _, - and $,
  * which every client and phpMyAdmin take without trouble.
+ * @param {string} name
+ * @returns {string}
  */
 function databaseName(name) {
     name = String(name || "").trim();
@@ -464,7 +568,12 @@ function databaseName(name) {
     return name;
 }
 
-/** A user and host, checked, with how a statement names them. */
+/**
+ * A user and host, checked, with how a statement names them.
+ * @param {string} name
+ * @param {string=} host
+ * @returns {DatabaseAccount}
+ */
 function accountOf(name, host) {
     name = String(name || "").trim();
     host = String(host || "localhost").trim();
@@ -480,6 +589,11 @@ function accountOf(name, host) {
     return { name, host, key : `${name}@${host}`, sql : `${quote(name)}@${quote(host)}` };
 }
 
+/**
+ * The password given, which a user cannot be without.
+ * @param {string} secret
+ * @returns {string}
+ */
 function password(secret) {
     secret = String(secret || "");
     if (!secret) {
@@ -488,7 +602,12 @@ function password(secret) {
     return secret;
 }
 
-/** The CHARACTER SET and COLLATE of a statement, each checked as a name. */
+/**
+ * The CHARACTER SET and COLLATE of a statement, each checked as a name.
+ * @param {string} charset
+ * @param {string=} collation
+ * @returns {string}
+ */
 function encoding(charset, collation) {
     const word = (value) => {
         if (!/^\w{1,64}$/.test(String(value))) {
@@ -499,17 +618,29 @@ function encoding(charset, collation) {
     return ` CHARACTER SET ${word(charset)}${collation ? ` COLLATE ${word(collation)}` : ""}`;
 }
 
-/** A name in backticks, with any backtick in it doubled. */
+/**
+ * A name in backticks, with any backtick in it doubled.
+ * @param {string} name
+ * @returns {string}
+ */
 function ident(name) {
     return `\`${String(name).replace(/`/g, "``")}\``;
 }
 
-/** A string in quotes, with its backslashes and quotes escaped. */
+/**
+ * A string in quotes, with its backslashes and quotes escaped.
+ * @param {*} value
+ * @returns {string}
+ */
 function quote(value) {
     return `'${String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
 }
 
-/** A grant's database, where _ and % are wildcards unless escaped, as a RegExp. */
+/**
+ * A grant's database, where _ and % are wildcards unless escaped, as a RegExp.
+ * @param {string} pattern
+ * @returns {RegExp}
+ */
 function likeRegex(pattern) {
     let source = "";
     for (let i = 0; i < pattern.length; i++) {
@@ -523,10 +654,18 @@ function likeRegex(pattern) {
     return new RegExp(`^${source}$`);
 }
 
+/**
+ * Text with every character a RegExp gives a meaning escaped, to match as it is.
+ * @param {string} text
+ * @returns {string}
+ */
 function escapeRegex(text) {
     return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+
+
+// The public API
 module.exports = {
     readDatabases,
     forgetDatabases,

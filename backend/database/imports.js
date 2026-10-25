@@ -20,6 +20,9 @@ const BATCH = 500;
  * unquoted is null, so NULL and '' come apart; one in quotes is text. A
  * quote or a \r at the end of a piece waits for the next, which tells
  * whether it is doubled, or a \r\n.
+ * @param {string} separator
+ * @param {(row: string[]) => *} onRow
+ * @returns {{ write: (text: string) => Promise<void>, end: () => Promise<void> }}
  */
 function csvReader(separator, onRow) {
     let row = [], field = "", quoted = false, inQuotes = false, carry = "", first = true;
@@ -93,6 +96,9 @@ function csvReader(separator, onRow) {
  * Imports the CSV in the request into a table: the table's column for each
  * of the file's, null to leave one out; its first line skipped when it
  * holds names; and what a row whose key is there does: error, skip or update.
+ * @param {import("http").IncomingMessage} request
+ * @param {{ db?: string, table?: string, spec?: string }} file
+ * @returns {Promise<{ message: string, read: number, changed: number }>}
  */
 async function importCsv(request, { db, table, spec = "{}" }) {
     let options;
@@ -220,4 +226,7 @@ async function importCsv(request, { db, table, spec = "{}" }) {
     return { message, read, changed };
 }
 
+
+
+// The public API
 module.exports = { importCsv, csvReader };

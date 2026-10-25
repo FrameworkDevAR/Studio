@@ -98,6 +98,7 @@ const GREY  = "#888888";
 /**
  * This machine's settings, from config/config.json or the file in
  * STUDIO_CONFIG. Without one the menu still works, with no projects.
+ * @returns {Object<string, *>}
  */
 function readConfig() {
     const file = process.env.STUDIO_CONFIG || path.join(__dirname, "..", "config", "config.json");
@@ -108,7 +109,11 @@ function readConfig() {
     }
 }
 
-/** Runs a command and returns its trimmed output, or "" if it failed. */
+/**
+ * Runs a command and returns its trimmed output, or "" if it failed.
+ * @param {string} command
+ * @returns {string}
+ */
 function sh(command) {
     try {
         return execSync(command, {
@@ -123,6 +128,8 @@ function sh(command) {
 /**
  * The installed version of a formula, from where its opt link points, which
  * is cheaper than running the binaries every 10s.
+ * @param {string} formula
+ * @returns {string}
  */
 function versionOf(formula) {
     try {
@@ -134,6 +141,8 @@ function versionOf(formula) {
 }
 
 
+
+// The public API
 module.exports = {
     APACHE_LOG,
     VHOSTS,

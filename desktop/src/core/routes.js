@@ -2,22 +2,35 @@
 
 // Which view shows, from the path.
 
+/**
+ * The view in the path, or the overview when it names none.
+ * @returns {string}
+ */
 function currentView() {
     const view = location.pathname.split("/")[1];
     return VIEWS.includes(view) ? view : "overview";
 }
 
-/** The tab of the Sites page, from /sites/apache; the apps otherwise. */
+/**
+ * The tab of the Sites page, from /sites/apache; the apps otherwise.
+ * @returns {"apache" | "apps"}
+ */
 function sitesTab() {
     return location.pathname.split("/")[2] === "apache" ? "apache" : "apps";
 }
 
-/** The tab of the Apache page, from /apache/configs; the modules otherwise. */
+/**
+ * The tab of the Apache page, from /apache/configs; the modules otherwise.
+ * @returns {"configs" | "modules"}
+ */
 function apacheTab() {
     return location.pathname.split("/")[2] === "configs" ? "configs" : "modules";
 }
 
-/** The tab of the PHP page, from /php/extensions; the overrides otherwise. */
+/**
+ * The tab of the PHP page, from /php/extensions; the overrides otherwise.
+ * @returns {"extensions" | "settings"}
+ */
 function phpTab() {
     return location.pathname.split("/")[2] === "extensions" ? "extensions" : "settings";
 }
@@ -25,13 +38,18 @@ function phpTab() {
 /**
  * The tab of the Databases page, from /databases/users or /databases/options; the databases
  * otherwise.
+ * @returns {"users" | "options" | "databases"}
  */
 function dbTab() {
     const tab = location.pathname.split("/")[2];
     return tab === "users" || tab === "options" ? tab : "databases";
 }
 
-/** Goes to a path of the page without reloading it. */
+/**
+ * Goes to a path of the page without reloading it.
+ * @param {string} pathname
+ * @returns {void}
+ */
 function navigate(pathname) {
     if (pathname !== location.pathname) {
         history.pushState(null, "", pathname);
@@ -39,7 +57,10 @@ function navigate(pathname) {
     route();
 }
 
-/** Shows the view in the path, and loads what only that view needs. */
+/**
+ * Shows the view in the path, and loads what only that view needs.
+ * @returns {void}
+ */
 function route() {
     const view = currentView();
     for (const section of /** @type {NodeListOf<HTMLElement>} */ (
@@ -79,6 +100,10 @@ function route() {
     }
 }
 
+/**
+ * Shows the tab of the Databases page in the path, with its actions.
+ * @returns {void}
+ */
 function showDbTab() {
     const tab = dbTab();
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
@@ -97,6 +122,10 @@ function showDbTab() {
     }
 }
 
+/**
+ * Shows the tab of the Apache page in the path, with the text that goes with it.
+ * @returns {void}
+ */
 function showApacheTab() {
     const tab = apacheTab();
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
@@ -115,6 +144,10 @@ function showApacheTab() {
             Apache rejects it.`;
 }
 
+/**
+ * Shows the tab of the PHP page in the path, with its actions.
+ * @returns {void}
+ */
 function showPhpTab() {
     const tab = phpTab();
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
@@ -131,6 +164,10 @@ function showPhpTab() {
     }
 }
 
+/**
+ * Shows the tab of the Sites page in the path, with its button and its text.
+ * @returns {void}
+ */
 function showSitesTab() {
     const tab = sitesTab();
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (

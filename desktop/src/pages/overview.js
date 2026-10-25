@@ -2,6 +2,10 @@
 
 // The sidebar's badges and the Overview page.
 
+/**
+ * Draws every page and the sidebar again, from the state.
+ * @returns {void}
+ */
 function render() {
     renderSidebar();
     renderOverview();
@@ -14,7 +18,10 @@ function render() {
     renderLogMeta();
 }
 
-/** The status under the title, the counts by each link, and the disk meter. */
+/**
+ * The status under the title, the counts by each link, and the disk meter.
+ * @returns {void}
+ */
 function renderSidebar() {
     const { services, disk, php, node, databases } = state;
     const apps = allApps();
@@ -46,20 +53,34 @@ function renderSidebar() {
     document.getElementById("disk-text").textContent = `${bytes(disk.free)} free`;
 }
 
+/**
+ * The count by a page's link in the sidebar, and its color: "ok", "bad" or none.
+ * @param {string} view
+ * @param {string} text
+ * @param {string=} kind
+ * @returns {void}
+ */
 function setBadge(view, text, kind = "") {
     const badge = document.getElementById(`badge-${view}`);
     badge.textContent = text;
     badge.className   = kind;
 }
 
-/** on when Apache and MariaDB are both up, mid with one, off with neither. */
+/**
+ * on when Apache and MariaDB are both up, mid with one, off with neither.
+ * @returns {"on" | "mid" | "off"}
+ */
 function stackHealth() {
     const { httpd, mariadb } = state.services;
     return httpd.running && mariadb.running ? "on"
         : httpd.running || mariadb.running ? "mid" : "off";
 }
 
-/** Start all becomes Restart all once Apache and MariaDB are both up. */
+/**
+ * Start all becomes Restart all once Apache and MariaDB are both up.
+ * @param {"on" | "mid" | "off"} health
+ * @returns {void}
+ */
 function renderStartButtons(health) {
     const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (
         document.querySelectorAll(`[data-action="start-all"], [data-action="restart-all"]`)
@@ -73,6 +94,11 @@ function renderStartButtons(health) {
     }
 }
 
+/**
+ * The Overview page: what is running, in a sentence and a pill, and a tile for
+ * each part of the stack, the apps, the databases and the disk.
+ * @returns {void}
+ */
 function renderOverview() {
     const { services, databases, disk, php, node } = state;
     const apps = allApps();
@@ -167,7 +193,17 @@ const DISK_ICON = `<svg viewBox="0 0 24 24"><path
     d="M22 12H2M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/><path
     d="M6 16h.01M10 16h.01"/></svg>`;
 
-/** A summary tile, wearing its page's icon from the sidebar, or its own, and its tone. */
+/**
+ * A summary tile, wearing its page's icon from the sidebar, or its own, and its tone.
+ * @param {string} view
+ * @param {string} label
+ * @param {string} value HTML
+ * @param {string} sub HTML
+ * @param {boolean} bad
+ * @param {string} tone
+ * @param {string=} ownIcon
+ * @returns {string}
+ */
 function tile(view, label, value, sub, bad, tone, ownIcon = "") {
     const icon = ownIcon || (view === "overview" ? DISK_ICON
         : document.querySelector(`nav a[data-view="${view}"] svg`).outerHTML);
@@ -180,6 +216,11 @@ function tile(view, label, value, sub, bad, tone, ownIcon = "") {
     `;
 }
 
+/**
+ * The Apache log's recent errors, each with its time, and its stack trace
+ * when it has one, shown on a click.
+ * @returns {void}
+ */
 function renderRecentErrors() {
     const box = document.getElementById("recent-errors");
     if (!recentErrors.length) {

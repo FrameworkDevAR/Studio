@@ -23,7 +23,12 @@ const {
 
 // ----------------------------------------------------------------- actions ---
 
-/** Performs the action behind a clicked menu item. */
+/**
+ * Performs the action behind a clicked menu item.
+ * @param {string} action
+ * @param {string=} argument
+ * @returns {void}
+ */
 function runAction(action, argument) {
     switch (action) {
     case "start-apache": sh(`${BREW} services run httpd`);     break;
@@ -220,6 +225,8 @@ function runAction(action, argument) {
  * Opens a page in the browser of the config, or the Mac's default one. A
  * browser built on Chrome (Chrome, Brave, Edge, Vivaldi) shows the tab already
  * on the page instead of opening another; any other just opens it.
+ * @param {string} url
+ * @returns {void}
  */
 function openInBrowser(url) {
     if (!BROWSER) {
@@ -233,7 +240,12 @@ function openInBrowser(url) {
     }
 }
 
-/** Focuses the tab of a Chrome-like browser already on this URL, or opens one if there is none. */
+/**
+ * Focuses the tab of a Chrome-like browser already on this URL, or opens one if there is none.
+ * @param {string} browser
+ * @param {string} url
+ * @returns {void}
+ */
 function focusTab(browser, url) {
     execFileSync("/usr/bin/osascript", [ "-", browser, url ], {
         stdio : [ "pipe", "ignore", "ignore" ],
@@ -271,6 +283,8 @@ end run
 }
 
 
+
+// The public API
 module.exports = {
     runAction,
 };

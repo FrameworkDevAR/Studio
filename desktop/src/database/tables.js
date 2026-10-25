@@ -12,7 +12,14 @@
  */
 let tableMenu = "";
 let tableMenuNames = [];
-/** @param {string[]} [names] The tables marked with it, for what is done to several. */
+/**
+ * Opens a table's menu at a point, for it alone or for the tables marked with it.
+ * @param {string} name
+ * @param {number} x
+ * @param {number} y
+ * @param {string[]=} names The tables marked with it, for what is done to several.
+ * @returns {void}
+ */
 function openTableMenu(name, x, y, names = [ name ]) {
     const table = browse.tables.find((one) => one.name === name);
     const here  = name === browse.table ? browse.tab : "";
@@ -65,13 +72,21 @@ function openTableMenu(name, x, y, names = [ name ]) {
     showMenuAt(menu, x, y);
 }
 
-/** The button in a table's tabs that opens its menu, under it. */
+/**
+ * The button in a table's tabs that opens its menu, under it.
+ * @returns {string}
+ */
 function tableMenuButton() {
     return `<button class="ghost" data-table-menu
         aria-haspopup="menu">Table<svg class="chevron"
         viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>`;
 }
 
+/**
+ * Opens the table's menu under its button, or closes it when the button opened it.
+ * @param {HTMLElement} button
+ * @returns {void}
+ */
 function toggleTableMenu(button) {
     const menu = document.getElementById("row-menu");
     if (!menu.hidden && menu.dataset.from === "button") {
@@ -88,6 +103,11 @@ function toggleTableMenu(button) {
     menu.dataset.from = "button";
 }
 
+/**
+ * Does what was picked in a table's menu, to the table or to the tables marked.
+ * @param {string} act
+ * @returns {Promise<void>}
+ */
 async function tableAction(act) {
     const name  = tableMenu;
     const names = tableMenuNames;
@@ -137,7 +157,9 @@ async function tableAction(act) {
  * Optimizes, analyzes, checks or repairs tables, as MariaDB does each, and
  * shows what it said of each: OK, or its note, warning or error. The sizes
  * are read again after, as optimizing gives space back.
- * @param {"optimize" | "analyze" | "check" | "repair"} op @param {string[]} names
+ * @param {string} op "optimize", "analyze", "check" or "repair".
+ * @param {string[]} names
+ * @returns {Promise<void>}
  */
 async function maintainTables(op, names) {
     const doing = {
@@ -200,6 +222,7 @@ async function maintainTables(op, names) {
  * A new table, as Sequel Ace starts one: its name and a first column, an
  * id by default, with the primary key on it, then its engine, collation
  * and comment. Its structure opens next, to add the rest.
+ * @returns {Promise<void>}
  */
 async function openTableDialog() {
     let charsets, engines;
@@ -309,7 +332,12 @@ async function openTableDialog() {
     });
 }
 
-/** A table's new name, or its copy's, with its rows or not; a view copies as its query. */
+/**
+ * A table's new name, or its copy's, with its rows or not; a view copies as its query.
+ * @param {string} name
+ * @param {boolean} copy
+ * @returns {void}
+ */
 function openTableNameDialog(name, copy) {
     const view = browse.tables.find((one) => one.name === name)?.view;
     formDialog({
@@ -347,6 +375,11 @@ function openTableNameDialog(name, copy) {
     });
 }
 
+/**
+ * Empties a table once asked, and reads the tables and its rows again.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function emptyTable(name) {
     const table = browse.tables.find((one) => one.name === name);
     const sure  = await ask({
@@ -376,6 +409,11 @@ async function emptyTable(name) {
     }
 }
 
+/**
+ * Drops a table or a view once asked.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function dropTable(name) {
     const view = browse.tables.find((one) => one.name === name)?.view;
     const sure = await ask({
@@ -405,6 +443,9 @@ async function dropTable(name) {
  * The tables read again after one is renamed, copied or dropped; the
  * page showing a table renamed follows it, and one dropped goes back to
  * the Tables tab.
+ * @param {string} old The table renamed or dropped, or null for a copy.
+ * @param {string} name The table's new name, or null when it is dropped.
+ * @returns {Promise<void>}
  */
 async function tableGone(old, name) {
     const open = old !== null && browse.table === old;
@@ -431,6 +472,10 @@ async function tableGone(old, name) {
  * its size and tables, the one open marked. ↑ and ↓ move, Enter goes.
  */
 let switchAt = 0;
+/**
+ * Opens the databases to switch to, with the filter empty, or closes them.
+ * @returns {void}
+ */
 function toggleDbSwitch() {
     const menu = document.getElementById("db-switch");
     if (!menu.hidden) {
@@ -445,13 +490,22 @@ function toggleDbSwitch() {
     filter.focus();
 }
 
+/**
+ * The databases whose name has what is typed in the filter.
+ * @returns {{ name: string, size: number, tables: number, charset: string,
+ *             collation: string, users: string[], url: string }[]}
+ */
 function switchList() {
     const search = /** @type {HTMLInputElement} */ (document.getElementById("db-switch-filter"))
         .value.trim().toLowerCase();
     return (state?.databases.list || []).filter((one) => one.name.toLowerCase().includes(search));
 }
 
-/** @param {number | null} [at] The one marked, by its place, or the database open. */
+/**
+ * Draws the databases to switch to, one of them marked.
+ * @param {(number | null)=} at The one marked, by its place, or the database open.
+ * @returns {void}
+ */
 function renderDbSwitch(at = null) {
     const list = switchList();
     switchAt   = at ?? Math.max(0, list.findIndex((one) => one.name === browse.db));
@@ -471,6 +525,8 @@ function renderDbSwitch(at = null) {
 /**
  * Opens another database: in the SQL tab when there, else its tables, as the table open is this
  * one's.
+ * @param {string} name
+ * @returns {void}
  */
 function switchDatabase(name) {
     closeMenus();
@@ -481,7 +537,13 @@ function switchDatabase(name) {
     }
 }
 
+/**
+ * The keys of the databases to switch to: ↑ and ↓ move, Enter goes, Escape closes.
+ * @param {KeyboardEvent} event
+ * @returns {void}
+ */
 function dbSwitchKeys(event) {
+
     const list = switchList();
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();

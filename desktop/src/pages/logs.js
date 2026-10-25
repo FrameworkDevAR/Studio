@@ -5,9 +5,28 @@
 let logKey = "";
 
 /**
+ * A request of Apache's requests log: the method and path, the size of the
+ * answer, the time it took, and the client when it is not this Mac.
+ * @typedef {{ method: string, target: string, size: number, ms: number,
+ *     client: string }} StudioLogRequest
+ */
+
+/**
+ * A log line read into an entry: its time, its level as a tone and a label,
+ * its source and message, and for a PHP error its place and stack trace.
+ * The count is that of the lines it stands for, once repeats are collapsed.
+ * @typedef {{ raw: string, date: Date, time: string, tone: string, label: string,
+ *     source: string, message: string, client?: string, referer?: string,
+ *     copy?: string, frames?: string[], thrown?: string, location?: string,
+ *     count?: number, request?: StudioLogRequest }} StudioLogEntry
+ */
+
+/**
  * Loads a log and draws it as entries. Skipped when nothing changed, and the
  * open stack traces are opened again after a redraw, so following a log never
  * snaps a trace shut while it is being read.
+ * @param {boolean=} jumpToEnd
+ * @returns {Promise<void>}
  */
 async function loadLog(jumpToEnd = false) {
     const query  = /** @type {HTMLInputElement} */ (document.getElementById("log-search")).value
@@ -50,13 +69,20 @@ async function loadLog(jumpToEnd = false) {
     showLogBottom();
 }
 
-/** The Latest button, shown while the log is scrolled up from its end. */
+/**
+ * The Latest button, shown while the log is scrolled up from its end.
+ * @returns {void}
+ */
 function showLogBottom() {
     const box = document.getElementById("log");
     document.getElementById("log-bottom").hidden = box.scrollTop + box.clientHeight
         >= box.scrollHeight - 40;
 }
 
+/**
+ * Scrolls the log to its end, smoothly.
+ * @returns {void}
+ */
 function scrollLogToBottom() {
     const box = document.getElementById("log");
     box.scrollTo({ top : box.scrollHeight, behavior : "smooth" });
@@ -66,6 +92,9 @@ function scrollLogToBottom() {
  * Marks every match of the search in the drawn log, by wrapping it in its
  * text nodes, so the markup around it stays whole. A stack trace holding a
  * match is opened, or the match would be hidden.
+ * @param {HTMLElement} box
+ * @param {string} query
+ * @returns {void}
  */
 function highlightMatches(box, query) {
     const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
@@ -133,6 +162,7 @@ const PHP_KINDS = {
 /**
  * What sits under the Logs title: the shown log's file and size, with what
  * its rotated copies take, and a Clear for it.
+ * @returns {void}
  */
 function renderLogMeta() {
     const sizes = state?.logs;
@@ -154,7 +184,12 @@ function renderLogMeta() {
     `;
 }
 
-/** Empties a log, after asking, and draws it again. */
+/**
+ * Empties a log, after asking, and draws it again.
+ * @param {string} name
+ * @param {HTMLElement} button
+ * @returns {Promise<void>}
+ */
 async function clearLog(name, button) {
     const log   = state.logs[name];
     const label = {
@@ -182,6 +217,9 @@ async function clearLog(name, button) {
 /**
  * One log line, taken apart into time, level, source and message, for the
  * three logs there are. A line in no known shape is kept as it is.
+ * @param {string} name
+ * @param {string} line
+ * @returns {StudioLogEntry}
  */
 function parseLogLine(name, line) {
     const entry = {
@@ -300,6 +338,11 @@ function parseLogLine(name, line) {
     return entry;
 }
 
+/**
+ * A level as a log writes it, as a tone and a label; an unknown one is info.
+ * @param {string} level
+ * @returns {{ tone: string, label: string }}
+ */
 function levelOf(level) {
     const [ tone, label ] = LEVELS[String(level).toLowerCase()] || [ "info", level ];
     return { tone, label };
@@ -309,6 +352,8 @@ function levelOf(level) {
  * A PHP error inside an Apache line: its kind becomes the level, and its stack
  * trace, which Apache writes on the same line with literal \n, is split into
  * frames. Apache also doubles the backslashes, which are halved back here.
+ * @param {StudioLogEntry} entry
+ * @returns {void}
  */
 function readPhpError(entry) {
     const found = entry.message.match(/^PHP ([A-Z][a-z]+(?: error)?):\s+(.*)$/);
@@ -330,7 +375,11 @@ function readPhpError(entry) {
     entry.location = place ? `${place[2]}:${place[3] || place[4]}` : "";
 }
 
-/** Lines repeating the one before, but for time and client, become one with a count. */
+/**
+ * Lines repeating the one before, but for time and client, become one with a count.
+ * @param {StudioLogEntry[]} entries
+ * @returns {StudioLogEntry[]}
+ */
 function collapseRepeats(entries) {
     const result = [];
     for (const entry of entries) {
@@ -349,7 +398,11 @@ function collapseRepeats(entries) {
     return result;
 }
 
-/** The entries, with a divider whenever the day changes. */
+/**
+ * The entries, with a divider whenever the day changes.
+ * @param {StudioLogEntry[]} entries
+ * @returns {string}
+ */
 function renderLogEntries(entries) {
     let day = "";
     return entries.map((entry, index) => {
@@ -371,6 +424,8 @@ function renderLogEntries(entries) {
 /**
  * A request, on one line: its status as the pill, the method and path, and
  * at the end the site that answered, the size and the time it took.
+ * @param {StudioLogEntry} entry
+ * @returns {string}
  */
 function renderRequest(entry) {
     const { method, target, size, ms, client } = entry.request;
@@ -402,6 +457,11 @@ const COPY_ICONS = {
     done : `<path d="M5 12.5l4.5 4.5L19 7"/>`,
 };
 
+/**
+ * The button that copies an entry: its line as written, a PHP trace on lines of its own.
+ * @param {StudioLogEntry} entry
+ * @returns {string}
+ */
 function copyButton(entry) {
     return `
         <button class="icon-btn copy" title="Copy" aria-label="Copy"
@@ -411,7 +471,11 @@ function copyButton(entry) {
     `;
 }
 
-/** Puts an entry on the clipboard, and shows a tick on its button for a moment. */
+/**
+ * Puts an entry on the clipboard, and shows a tick on its button for a moment.
+ * @param {HTMLElement} button
+ * @returns {Promise<void>}
+ */
 async function copyLogEntry(button) {
     try {
         await navigator.clipboard.writeText(button.dataset.copy);
@@ -428,6 +492,14 @@ async function copyLogEntry(button) {
     }, 1500));
 }
 
+/**
+ * One entry: its time, level and message, with where it happened, who asked
+ * and from where, and a PHP error's stack trace to open. A request has its own
+ * line, and a line in no known shape shows as it is.
+ * @param {StudioLogEntry} entry
+ * @param {number} index
+ * @returns {string}
+ */
 function renderLogEntry(entry, index) {
     if (entry.request) {
         return renderRequest(entry);
@@ -477,6 +549,8 @@ function renderLogEntry(entry, index) {
  * Escapes a message and marks what is worth finding in it: file paths, cut to
  * the home folder with the file name and line standing out, quoted names, and
  * Apache's AH codes.
+ * @param {string} text
+ * @returns {string}
  */
 function formatLogText(text) {
     return esc(text)

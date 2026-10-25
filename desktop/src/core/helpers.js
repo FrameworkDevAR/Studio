@@ -7,6 +7,8 @@
  * by watching the tabs' classes, and their sizes too: a tab's width changes
  * with its count, and a control on a hidden page has no size until shown.
  * The first placement does not slide, so the thumb never flies in from 0.
+ * @param {(Document | Element)=} root
+ * @returns {void}
  */
 function setUpPillTabs(root = document) {
     for (const control of root.querySelectorAll(".segmented:not(.has-thumb)")) {
@@ -54,6 +56,11 @@ const mosaicSizes  = new ResizeObserver((entries) => entries.forEach((entry) => 
     }
 }));
 
+/**
+ * Lays a box's panels out in as many columns as fit, and keeps it laid out.
+ * @param {HTMLElement} box
+ * @returns {void}
+ */
 function mosaic(box) {
     const panels = /** @type {HTMLElement[]} */ ([
         ...box.querySelectorAll(":scope > .panel, :scope > .mosaic-col > .panel"),
@@ -88,11 +95,20 @@ function mosaic(box) {
     columns.forEach((column) => column.lastElementChild?.classList.add("fill"));
 }
 
-/** Whether a toggle button is on. */
+/**
+ * Whether a toggle button is on.
+ * @param {string} id
+ * @returns {boolean}
+ */
 function isPressed(id) {
     return document.getElementById(id).getAttribute("aria-pressed") === "true";
 }
 
+/**
+ * Marks a button active, and every other one beside it not.
+ * @param {Element} button
+ * @returns {void}
+ */
 function setActive(button) {
     for (const sibling of button.parentElement.children) {
         sibling.classList.toggle("active", sibling === button);
@@ -101,6 +117,12 @@ function setActive(button) {
 
 // ----------------------------------------------------------------- helpers ---
 
+/**
+ * Shows a message for a few seconds, longer and in red for an error.
+ * @param {string} message
+ * @param {boolean=} isError
+ * @returns {void}
+ */
 function toast(message, isError = false) {
     const box     = document.getElementById("toasts");
     const element = document.createElement("div");
@@ -125,19 +147,36 @@ function toast(message, isError = false) {
  * Apache logs this whenever it lists a folder holding an .htaccess, which it
  * hides from the listing. The site check asks for those listings every minute,
  * so it would bury the real errors.
+ * @param {string} line
+ * @returns {boolean}
  */
 function isListingNoise(line) {
     return /AH01630: client denied by server configuration: .*\/\.ht\w*$/.test(line);
 }
 
+/**
+ * Whether a log line is an error, by its level.
+ * @param {string} line
+ * @returns {boolean}
+ */
 function isErrorLine(line) {
     return /\b(error|fatal|alert|crit|emerg)\b/i.test(line);
 }
 
+/**
+ * A path with the home folder as ~.
+ * @param {string} dir
+ * @returns {string}
+ */
 function shortPath(dir) {
     return dir.replace(/^\/Users\/[^/]+/, "~");
 }
 
+/**
+ * A size in bytes, in the largest unit that fits, up to TB: "1.5 MB".
+ * @param {number} value
+ * @returns {string}
+ */
 function bytes(value) {
     const units = [ "B", "KB", "MB", "GB", "TB" ];
     let size = value;
@@ -162,6 +201,11 @@ const TAG_TIPS = {
  * @babel/ dimmed so the name itself stands out, a link when given, and its tag; then, when
  * given, the size, the version with the newest one after it, and buttons.
  * A version's build part, as in 8.2.2+cordova.8.2.1, shows on hover only.
+ * @param {{
+ *     name: string, url?: string, tag?: string, size?: number, version?: string,
+ *     latest?: string, actions?: string,
+ * }} pkg
+ * @returns {string}
  */
 function packageRow({
     name,
@@ -198,6 +242,8 @@ function packageRow({
  * Marks the last line of each column of the lists in a box, which drops its
  * rule. CSS columns cannot select it, so it is found by where each line
  * sits, again whenever the box changes size.
+ * @param {Element} box
+ * @returns {void}
  */
 function markColumnEnds(box) {
     for (const list of box.querySelectorAll(".pkg-list, .configs")) {
@@ -218,6 +264,11 @@ function markColumnEnds(box) {
  * with a red button. A dialog to pick from closes with an x at the top
  * instead of a Cancel beside its button. With stay, OK leaves the dialog
  * open, for the caller to show what follows in it.
+ * @param {{
+ *     title: string, text?: string, body?: string, note?: string, ok?: string,
+ *     danger?: boolean, closeX?: boolean, stay?: boolean,
+ * }} question
+ * @returns {Promise<boolean>}
  */
 function ask({
     title,
@@ -276,6 +327,13 @@ function ask({
  * ready gets the fields once they are in, for listeners of their own. A
  * remove, as a row's Delete, is a red button at the left, which closes the
  * dialog when what it runs gives true.
+ * @param {{
+ *     title: string, text?: string, body: string, ok: string, danger?: boolean,
+ *     submit: (form: HTMLFormElement) => Promise<{ message: string }>,
+ *     ready?: (fields: HTMLElement) => void,
+ *     remove?: { label: string, run: () => Promise<boolean> },
+ * }} dialogSpec
+ * @returns {void}
  */
 function formDialog({
     title,
@@ -337,13 +395,22 @@ function formDialog({
     )?.focus();
 }
 
+/**
+ * A value as text safe to put in HTML or an attribute, nothing for null or undefined.
+ * @param {*} value
+ * @returns {string}
+ */
 function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&" : "&amp;", "<" : "&lt;", ">" : "&gt;", "\"" : "&quot;", "'" : "&#39;",
     })[char]);
 }
 
-/** Opens a button's menu, or closes it; any other open menu closes. */
+/**
+ * Opens a button's menu, or closes it; any other open menu closes.
+ * @param {HTMLElement} button
+ * @returns {void}
+ */
 function toggleMenu(button) {
     const menu = document.getElementById(button.dataset.menu);
     closeMenus(menu);
@@ -351,7 +418,11 @@ function toggleMenu(button) {
     button.setAttribute("aria-expanded", String(!menu.hidden));
 }
 
-/** Closes the open menus, but the one given. @param {Element | null} [keep] */
+/**
+ * Closes the open menus, but the one given.
+ * @param {Element=} keep
+ * @returns {void}
+ */
 function closeMenus(keep = null) {
     for (const menu of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll(".menu:not([hidden])")

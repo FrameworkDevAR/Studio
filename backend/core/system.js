@@ -49,6 +49,11 @@ const PATH = `${path.dirname(process.execPath)}:${PATHS.homebrew}/bin:${
  * Runs a command without a shell. Never throws: ok says how it went. An input
  * goes to its stdin, which keeps what it holds, a password say, out of the
  * process list.
+ * @param {string} command
+ * @param {string[]=} args
+ * @param {number=} timeout
+ * @param {string=} input
+ * @returns {Promise<{ ok: boolean, stdout: string, stderr: string }>}
  */
 function run(command, args = [], timeout = 15_000, input = null) {
     return new Promise((resolve) => {
@@ -70,7 +75,11 @@ function run(command, args = [], timeout = 15_000, input = null) {
     });
 }
 
-/** The installed version of a formula, read off where its opt link points. */
+/**
+ * The installed version of a formula, read off where its opt link points.
+ * @param {string} formula
+ * @returns {string}
+ */
 function versionOf(formula) {
     try {
         return path.basename(fs.realpathSync(path.join(PATHS.homebrew, "opt", formula)))
@@ -80,7 +89,12 @@ function versionOf(formula) {
     }
 }
 
-/** The last lines of a file, reading only its end, since logs grow large. */
+/**
+ * The last lines of a file, reading only its end, since logs grow large.
+ * @param {string} file
+ * @param {number} count
+ * @returns {string[]}
+ */
 function tailOf(file, count) {
     const size   = fs.statSync(file).size;
     const length = Math.min(size, count * 400);
@@ -91,6 +105,13 @@ function tailOf(file, count) {
     return buffer.toString("utf8").split("\n").filter(Boolean).slice(-count);
 }
 
+/**
+ * The paths of the files in a folder whose names start with a prefix, or none
+ * when the folder is missing.
+ * @param {string} dir
+ * @param {string} prefix
+ * @returns {string[]}
+ */
 function filesIn(dir, prefix) {
     try {
         return fs.readdirSync(dir)
@@ -101,7 +122,11 @@ function filesIn(dir, prefix) {
     }
 }
 
-/** A JSON file's contents, or {} when it is missing or broken. */
+/**
+ * A JSON file's contents, or {} when it is missing or broken.
+ * @param {string} file
+ * @returns {*}
+ */
 function readJson(file) {
     try {
         return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -110,6 +135,11 @@ function readJson(file) {
     }
 }
 
+/**
+ * A text file's contents, or "" when it is missing.
+ * @param {string} file
+ * @returns {string}
+ */
 function readFile(file) {
     try {
         return fs.readFileSync(file, "utf8");
@@ -118,6 +148,11 @@ function readFile(file) {
     }
 }
 
+/**
+ * A size in bytes as people read it: 512 B, 1.5 KB, 20 MB.
+ * @param {number} value
+ * @returns {string}
+ */
 function formatBytes(value) {
     const units = [ "B", "KB", "MB", "GB" ];
     let size = value;
@@ -129,6 +164,9 @@ function formatBytes(value) {
     return `${size.toFixed(size < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`;
 }
 
+
+
+// The public API
 module.exports = {
     ROOT,
     HOME,

@@ -2,6 +2,11 @@
 
 // The PHP page: its settings, where each comes from, and the extensions.
 
+/**
+ * The PHP page: its version, the count of settings saved here, the line under
+ * the title, its problems, settings and extensions, and the PECL dialog when it is open.
+ * @returns {void}
+ */
 function renderPhp() {
     const { php } = state;
     document.getElementById("php-version").textContent = php.version || "";
@@ -18,7 +23,10 @@ function renderPhp() {
     }
 }
 
-/** The line under the title, about the tab shown. */
+/**
+ * The line under the title, about the tab shown.
+ * @returns {void}
+ */
 function renderPhpText() {
     const { php } = state;
     const file    = php.iniFile.split("/").pop();
@@ -35,6 +43,7 @@ function renderPhpText() {
  * What PHP complained about as it started, and the extensions php.ini or pecl
  * ask for that it could not load: after a new minor version, each has to be
  * built again for it.
+ * @returns {void}
  */
 function renderPhpProblems() {
     const { php } = state;
@@ -61,7 +70,10 @@ function renderPhpProblems() {
         : `<b>PHP has something to say as it starts</b>${[ ...missing, ...problems ].join("")}`;
 }
 
-/** The settings, in groups, with the timezones date.timezone suggests. */
+/**
+ * The settings, in groups, with the timezones date.timezone suggests.
+ * @returns {void}
+ */
 function renderSettings() {
     const { php } = state;
     renderSettingGroups("php", SETTING_GROUPS, php.settings, php.overrides,
@@ -75,6 +87,7 @@ function renderSettings() {
 /**
  * The extensions: first the ones added to PHP, with their versions, sizes
  * and buttons, then, apart, the ones that come with it.
+ * @returns {void}
  */
 function renderExtensions() {
     const { php } = state;
@@ -132,7 +145,12 @@ function renderExtensions() {
     markColumnEnds(document.getElementById("php-extensions"));
 }
 
-/** An added extension's buttons: update when newer, and remove, for pecl's. */
+/**
+ * An added extension's buttons: update when newer, and remove, for pecl's.
+ * @param {{ name: string, version: string, added: boolean, pecl: boolean, latest: string,
+ *           size: number }} ext
+ * @returns {string}
+ */
 function extensionButtons(ext) {
     if (!ext.pecl) {
         return "";
@@ -157,6 +175,11 @@ function extensionButtons(ext) {
     `;
 }
 
+/**
+ * Uninstalls an extension pecl added, after asking, and follows the job.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function uninstallExtension(name) {
     if (!await ask({
         title  : `Uninstall ${name}?`,
@@ -176,7 +199,11 @@ async function uninstallExtension(name) {
     }
 }
 
-/** Builds an extension again for this PHP version, as pecl install does. */
+/**
+ * Builds an extension again for this PHP version, as pecl install does.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function rebuildExtension(name) {
     updating.add(`pecl:${name}`);
     renderPhp();
@@ -194,6 +221,10 @@ let peclSearchTimer = null;
 let peclFound       = [];
 let peclAsked       = "";
 
+/**
+ * Opens the dialog that searches PECL for an extension to install, its field selected.
+ * @returns {void}
+ */
 function openPeclDialog() {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("pecl-dialog"));
     dialog.querySelector(".logo-tile").innerHTML = logoSvg("php");
@@ -202,7 +233,11 @@ function openPeclDialog() {
     renderPeclList();
 }
 
-/** Searches PECL as the field changes, a moment after the typing stops. */
+/**
+ * Searches PECL as the field changes, a moment after the typing stops.
+ * @param {boolean=} now
+ * @returns {void}
+ */
 function searchPecl(now = false) {
     const text = /** @type {HTMLInputElement} */ (document.querySelector("#pecl-search input"))
         .value.trim();
@@ -235,6 +270,9 @@ function searchPecl(now = false) {
  * The results, as the npm dialog shows its own. An extension whose newest
  * release is years old likely does not build on a PHP this new, which it
  * says beside the date.
+ * @param {boolean=} loading
+ * @param {string=} failed
+ * @returns {void}
  */
 function renderPeclList(loading = false, failed = "") {
     const box = document.getElementById("pecl-list");
@@ -277,6 +315,9 @@ function renderPeclList(loading = false, failed = "") {
 /**
  * What a result offers: Install, or for one here its version, Update when
  * PECL has a newer one, and Uninstall. One that comes with PHP says so.
+ * @param {{ name: string, version: string, stable: boolean, summary: string,
+ *           license: string, date: string }} ext
+ * @returns {string}
  */
 function peclActions(ext) {
     const id   = ext.name.toLowerCase();
@@ -316,6 +357,8 @@ function peclActions(ext) {
  * Builds and installs an extension from the dialog, which stays open. A
  * PECL release that is only a beta is named with its version, since pecl
  * installs stable ones by name alone.
+ * @param {string} name
+ * @returns {Promise<void>}
  */
 async function installPecl(name) {
     const id  = name.toLowerCase();

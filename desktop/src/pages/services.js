@@ -2,6 +2,11 @@
 
 // The Services page.
 
+/**
+ * The Services page: a card for each service, with its buttons, and for PHP,
+ * phpMyAdmin and Node.js, which run with them.
+ * @returns {void}
+ */
 function renderServices() {
     const { services, php, node, phpmyadmin } = state;
     const cards = Object.entries(services).map(([ formula, service ]) => {
@@ -54,6 +59,13 @@ function renderServices() {
     document.getElementById("service-cards").innerHTML = cards.join("");
 }
 
+/**
+ * A service's card: its logo, name and version, a line on what it does, whether
+ * it is running, and its buttons.
+ * @param {{ logo: string, name: string, version: string, running: boolean,
+ *           status?: string, text: string, actions: string }} card
+ * @returns {string}
+ */
 function serviceCard({ logo, name, version, running, status = "", text, actions }) {
     return `
         <div class="panel service">

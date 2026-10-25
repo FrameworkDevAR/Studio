@@ -10,10 +10,19 @@ const { readDatabases, forgetDatabases, quote } = require("./databases");
 // ----------------------------------------------------------------- helpers ---
 
 /**
+ * A result set of the client: its statement, its column names, and its rows, null for NULL.
+ * @typedef {{ statement: string, columns: string[], rows: string[][] }} ResultSet
+ */
+
+/**
  * Runs SQL in the mariadb client, given on stdin, and reads every result
  * from its XML, which keeps a NULL apart from the text NULL, and tabs and
  * newlines in the values as they are. A failure is thrown with MariaDB's
  * own words, and the line, for SQL of several.
+ * @param {string} sql
+ * @param {string=} db
+ * @param {number=} timeout
+ * @returns {Promise<ResultSet[]>}
  */
 async function query(sql, db = "", timeout = 30_000) {
     const result = await run("mariadb", [ "--xml", ...(db ? [ "-D", db ] : []) ], timeout, sql);
@@ -26,7 +35,11 @@ async function query(sql, db = "", timeout = 30_000) {
     return parseResults(result.stdout);
 }
 
-/** Each result set of the client's XML: its statement, its columns and its rows, null for NULL. */
+/**
+ * Each result set of the client's XML: its statement, its columns and its rows, null for NULL.
+ * @param {string} xml
+ * @returns {ResultSet[]}
+ */
 function parseResults(xml) {
     const sets = [];
     for (const set of xml.matchAll(
@@ -51,6 +64,11 @@ function parseResults(xml) {
     return sets;
 }
 
+/**
+ * Turns the XML's entities back into the characters they stand for.
+ * @param {string} text
+ * @returns {string}
+ */
 function decode(text) {
     return text.replace(/&(lt|gt|amp|quot|apos|#\d+|#x[\da-f]+);/gi, (_, name) => {
         if (name[0] === "#") {
@@ -61,12 +79,19 @@ function decode(text) {
     });
 }
 
-/** The PATH the other commands run with, for the ones spawned to stream. */
+/**
+ * The PATH the other commands run with, for the ones spawned to stream.
+ * @returns {NodeJS.ProcessEnv}
+ */
 function runEnv() {
     return { ...process.env, PATH };
 }
 
-/** A database there now; one made since the list was kept, in another client say, is found too. */
+/**
+ * A database there now; one made since the list was kept, in another client say, is found too.
+ * @param {string} name
+ * @returns {Promise<string>}
+ */
 async function existingDatabase(name) {
     let { list } = await readDatabases();
     if (!list.some((db) => db.name === name)) {
@@ -79,6 +104,12 @@ async function existingDatabase(name) {
     return name;
 }
 
+/**
+ * A table there now, in a database there now, with its name as MariaDB has it.
+ * @param {string} db
+ * @param {string} table
+ * @returns {Promise<{ db: string, table: string }>}
+ */
 async function existingTable(db, table) {
     db = await existingDatabase(db);
     const [ set ] = await query(`SELECT TABLE_NAME FROM information_schema.TABLES
@@ -89,12 +120,18 @@ async function existingTable(db, table) {
     return { db, table : set.rows[0][0] };
 }
 
-/** A name in backticks, with any backtick in it doubled. */
+/**
+ * A name in backticks, with any backtick in it doubled.
+ * @param {string} name
+ * @returns {string}
+ */
 function ident(name) {
     return `\`${String(name).replace(/`/g, "``")}\``;
 }
 
 
+
+// The public API
 module.exports = {
     query,
     decode,

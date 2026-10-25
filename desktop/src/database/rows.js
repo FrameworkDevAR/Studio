@@ -9,6 +9,7 @@
  * Reads the page of rows asked for, and replaces the rows in place, with
  * no fade, so nothing blinks. The total comes after: without filters, the estimate MariaDB
  * keeps; with them, counted apart, as that takes as long as filtering.
+ * @returns {Promise<void>}
  */
 async function loadRows() {
     if (!browse.table) {
@@ -43,6 +44,16 @@ async function loadRows() {
     }
 }
 
+/**
+ * The rows asked of the server: the table, the page, the sort and the filters.
+ * @typedef {{ db: string, table: string, page: string, sort: string, dir: string,
+ *     filters: string, match: string }} DbRowsQuestion
+ */
+
+/**
+ * The rows the page asks for now, as the server is asked for them.
+ * @returns {DbRowsQuestion}
+ */
 function rowsQuestion() {
     return {
         db      : browse.db,
@@ -55,6 +66,11 @@ function rowsQuestion() {
     };
 }
 
+/**
+ * Counts the rows the filters leave, and shows the total if they are still the ones asked for.
+ * @param {DbRowsQuestion} asked
+ * @returns {Promise<void>}
+ */
 async function countRows(asked) {
     try {
         const { count } = await api(`/api/db-count?${new URLSearchParams(asked)}`);
@@ -72,6 +88,7 @@ async function countRows(asked) {
  * marked, then each row, NULL apart from text and long values cut, with
  * its buttons at the end. A table without a primary key is only read, as
  * its rows cannot be told apart to change one.
+ * @returns {void}
  */
 function renderRows() {
     const { structure, rows, cut } = browse.rows;
@@ -149,11 +166,18 @@ function renderRows() {
     watchFades(/** @type {HTMLElement} */ (grid.parentElement));
 }
 
+/**
+ * The table open, with its database, as the key of what is kept for it.
+ * @returns {string}
+ */
 function tableKey() {
     return `${browse.db}.${browse.table}`;
 }
 
-/** The table's name and its rows, exact or estimated, over its rows. */
+/**
+ * The table's name and its rows, exact or estimated, over its rows.
+ * @returns {void}
+ */
 function renderRowsTitle() {
     const name  = browse.rows.structure.table;
     const table = browse.tables.find((one) => one.name === name);
@@ -162,7 +186,10 @@ function renderRowsTitle() {
             ? `· ${table.exact ? "" : "~"}${countOf(table.rows, "row")}` : ""}</span>`;
 }
 
-/** Which rows these are, of how many, and the buttons to the pages either side. */
+/**
+ * Which rows these are, of how many, and the buttons to the pages either side.
+ * @returns {void}
+ */
 function renderPager() {
     const { rows, page, size, more } = browse.rows;
     const table = browse.tables.find((one) => one.name === browse.table);
@@ -183,6 +210,12 @@ function renderPager() {
  * A value in the grid: NULL dimmed, a binary column's size, long text cut
  * with an ellipsis, and a button to see a long or JSON value whole. A
  * timestamp column shown as dates gives each as one, the number on hover.
+ * @param {string} value
+ * @param {{ binary: boolean, dataType: string }} column
+ * @param {number} cut
+ * @param {number} at
+ * @param {boolean=} asDate
+ * @returns {string}
  */
 function cellOf(value, column, cut, at, asDate = false) {
     if (value === null) {
@@ -204,7 +237,13 @@ function cellOf(value, column, cut, at, asDate = false) {
         class="${kind} ${long ? "long" : ""}">${esc(text.replace(/\s+/g, " "))}${open}</td>`;
 }
 
-/** A cell with the arrow that follows its foreign key, when it has one and a value. */
+/**
+ * A cell with the arrow that follows its foreign key, when it has one and a value.
+ * @param {string} cell
+ * @param {boolean} linked
+ * @param {number} at
+ * @returns {string}
+ */
 function withLink(cell, linked, at) {
     if (!linked) {
         return cell;
@@ -220,6 +259,8 @@ function withLink(cell, linked, at) {
 /**
  * A value too big for its cell: long, on several lines, or JSON. It shows cut, and changes in a
  * dialog.
+ * @param {string} value
+ * @returns {boolean}
  */
 function isBig(value) {
     return value !== null && (value.length > 40 || /\n/.test(value) || /^\s*[[{]/.test(value));
@@ -228,6 +269,9 @@ function isBig(value) {
 /**
  * Whether a column's values on this page look like Unix timestamps: whole
  * numbers of seconds, or milliseconds, from 2001 to 2100.
+ * @param {string[][]} rows
+ * @param {number} at
+ * @returns {boolean}
  */
 function isTimestamps(rows, at) {
     const values = rows.map((row) => row[at])
@@ -237,7 +281,11 @@ function isTimestamps(rows, at) {
         && Number(value.slice(0, 10)) < 4102444800);
 }
 
-/** A timestamp as a date and time here, with its seconds. */
+/**
+ * A timestamp as a date and time here, with its seconds.
+ * @param {string} value
+ * @returns {string}
+ */
 function dateOf(value) {
     const date = new Date(value.length > 10 ? Number(value) : Number(value) * 1000);
     const pad  = (number) => String(number).padStart(2, "0");
@@ -245,7 +293,11 @@ function dateOf(value) {
         pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-/** Shows a timestamp column as dates, or as its numbers again, kept for the table. */
+/**
+ * Shows a timestamp column as dates, or as its numbers again, kept for the table.
+ * @param {string} name
+ * @returns {void}
+ */
 function toggleDates(name) {
     const key   = tableKey();
     const dates = browse.dates[key] || [];
@@ -255,7 +307,11 @@ function toggleDates(name) {
     renderRows();
 }
 
-/** Sorts by a column, the other way when it already is. */
+/**
+ * Sorts by a column, the other way when it already is.
+ * @param {string} name
+ * @returns {void}
+ */
 function sortRows(name) {
     browse.dir  = browse.sort === name && browse.dir === "asc" ? "desc" : "asc";
     browse.sort = name;
@@ -263,6 +319,11 @@ function sortRows(name) {
     loadRows();
 }
 
+/**
+ * Goes to the page of rows before or after, never before the first.
+ * @param {number} step
+ * @returns {void}
+ */
 function turnPage(step) {
     browse.page = Math.max(1, browse.page + step);
     loadRows();
@@ -291,6 +352,8 @@ const NO_VALUE = [ "null", "not null" ];
  * whether all or any must hold, Filter, which Enter does too, and Clear.
  * It is drawn again for another table, and as rules come and go, never as
  * rows load, so typing stays.
+ * @param {boolean=} force
+ * @returns {void}
  */
 function renderFilterBar(force = false) {
     const bar = document.getElementById("rows-filters");
@@ -349,11 +412,24 @@ function renderFilterBar(force = false) {
     showFilterSql();
 }
 
+/**
+ * A rule of the filter bar: whether it is on, its column or any, its operator and its values.
+ * @typedef {{ on: boolean, column: string, op: string, value: string, value2: string }}
+ *     DbFilterRule
+ */
+
+/**
+ * A new rule, on, on any column, with no value.
+ * @returns {DbFilterRule}
+ */
 function blankRule() {
     return { on : true, column : "*", op : "contains", value : "", value2 : "" };
 }
 
-/** The rules as the bar holds them now. */
+/**
+ * The rules as the bar holds them now.
+ * @returns {DbFilterRule[]}
+ */
 function readFilterBar() {
     const bar = document.getElementById("rows-filters");
     browse.match = /** @type {HTMLSelectElement} */ (bar.querySelector("[data-f=match]"))?.value
@@ -373,13 +449,20 @@ function readFilterBar() {
     return browse.draft;
 }
 
-/** The rules that filter: turned on, and with a value, or needing none. */
+/**
+ * The rules that filter: turned on, and with a value, or needing none.
+ * @param {DbFilterRule[]} rules
+ * @returns {DbFilterRule[]}
+ */
 function usedRules(rules) {
     return rules.filter((rule) => rule.on
         && (NO_VALUE.includes(rule.op) || rule.value.trim() !== ""));
 }
 
-/** Filters by the rules in use, from the first page. */
+/**
+ * Filters by the rules in use, from the first page.
+ * @returns {void}
+ */
 function applyFilters() {
     browse.filters = usedRules(readFilterBar());
     browse.page    = 1;
@@ -390,6 +473,7 @@ function applyFilters() {
  * The WHERE the rules make, as the server writes it, shown under them as
  * they are typed. A rule on any column names a few of the columns it
  * tries; the server tries them all.
+ * @returns {void}
  */
 function showFilterSql() {
     const box   = document.getElementById("filter-sql");
@@ -443,6 +527,10 @@ function showFilterSql() {
     box.title     = where;
 }
 
+/**
+ * Adds an empty rule under the others, and puts the cursor in its value.
+ * @returns {void}
+ */
 function addFilter() {
     browse.draft = [ ...readFilterBar(), blankRule() ];
     renderFilterBar(true);
@@ -450,7 +538,11 @@ function addFilter() {
         .pop())?.focus();
 }
 
-/** Takes a rule away; with its last rule gone, the bar has an empty one, and nothing filters. */
+/**
+ * Takes a rule away; with its last rule gone, the bar has an empty one, and nothing filters.
+ * @param {number} index
+ * @returns {void}
+ */
 function removeFilter(index) {
     const rules = readFilterBar();
     rules.splice(index, 1);
@@ -459,6 +551,10 @@ function removeFilter(index) {
     applyFilters();
 }
 
+/**
+ * Takes every rule away, and shows the rows unfiltered from the first page.
+ * @returns {void}
+ */
 function clearFilters() {
     browse.draft   = [];
     browse.filters = [];
@@ -470,6 +566,8 @@ function clearFilters() {
 /**
  * An operator chosen: its value fields show as it needs them, and one that needs none filters at
  * once.
+ * @param {{ value: string, closest: (selectors: string) => HTMLElement }} select
+ * @returns {void}
  */
 function changeFilterOp(select) {
     readFilterBar();
@@ -489,6 +587,9 @@ function changeFilterOp(select) {
 /**
  * Gives a grid's columns the widths dragged for its table, kept while Studio
  * is open; without them, each column is as wide as it needs, up to a point.
+ * @param {HTMLElement} grid
+ * @param {Object<string, number>} widths
+ * @returns {void}
  */
 function applyWidths(grid, widths) {
     grid.classList.remove("fixed");
@@ -504,6 +605,9 @@ function applyWidths(grid, widths) {
 /**
  * Fixes every column at its width now, or the one given, so one can be dragged without the rest
  * moving.
+ * @param {HTMLElement} grid
+ * @param {Object<string, number>=} widths
+ * @returns {void}
  */
 function freezeWidths(grid, widths = {}) {
     const heads  = /** @type {HTMLElement[]} */ ([ ...grid.querySelectorAll("thead th") ]);
@@ -513,7 +617,11 @@ function freezeWidths(grid, widths = {}) {
     grid.classList.add("fixed");
 }
 
-/** Drags a column's edge; a double click puts the grid's columns back to the widths they need. */
+/**
+ * Drags a column's edge; a double click puts the grid's columns back to the widths they need.
+ * @param {PointerEvent} event
+ * @returns {void}
+ */
 function startResize(event) {
     const handle = /** @type {HTMLElement} */ (event.target);
     const th     = /** @type {HTMLElement} */ (handle.closest("th"));
@@ -548,6 +656,11 @@ function startResize(event) {
     handle.addEventListener("pointerup", stop, { once : true });
 }
 
+/**
+ * Puts a grid's columns back to the widths they need, forgetting the ones dragged.
+ * @param {HTMLElement} grid
+ * @returns {void}
+ */
 function resetWidths(grid) {
     if (grid.id === "rows-grid") {
         delete browse.widths[tableKey()];
@@ -559,6 +672,8 @@ function resetWidths(grid) {
  * Shows a value whole, in a dialog: JSON laid out and painted as JSON, any
  * other text as it is, with Copy. A value the grid cut is read whole first,
  * by its row's key.
+ * @param {HTMLElement} button
+ * @returns {Promise<void>}
  */
 async function openCell(button) {
     const td  = /** @type {HTMLElement} */ (button.closest("td"));
@@ -595,7 +710,14 @@ async function openCell(button) {
     showValue(name, value);
 }
 
+/**
+ * A value in a dialog, JSON laid out and painted, to read and copy.
+ * @param {string} name
+ * @param {string} value
+ * @returns {void}
+ */
 function showValue(name, value) {
+
     let shown = value;
     let json  = false;
     if (/^\s*[[{]/.test(value)) {

@@ -19,6 +19,27 @@ const { readPecl, checkUpgrades, upgrades, extensionLines } = require("./pecl");
  * file shows the file's value, since the CLI changes some of them (it always
  * reports max_execution_time as 0); one that is not shows PHP's, and says
  * whether that comes from php.ini or is PHP's own default.
+ * @returns {Promise<{
+ *     version: string,
+ *     iniFile: string,
+ *     mainIni: string,
+ *     timezones: string[],
+ *     extensions: {
+ *         name: string, version: string, added: boolean, pecl: boolean, latest: string,
+ *         size: number,
+ *     }[],
+ *     missing: { name: string, pecl: boolean }[],
+ *     problems: string[],
+ *     checked: number,
+ *     settings: {
+ *         key: string, value: string, inFile: boolean, options: string[],
+ *         timezone: boolean, base: string, baseFrom: string,
+ *     }[],
+ *     overrides: {
+ *         key: string, value: string, known: boolean, owner: string, options: string[],
+ *         base: string, baseFrom: string,
+ *     }[],
+ * }>}
  */
 async function readPhp() {
     const { data : php, problems } = await askPhp();
@@ -95,6 +116,10 @@ async function readPhp() {
 /**
  * Every setting PHP knows, with its value now, the choices it takes when
  * known, and whether the overrides file has it, for the dialog that adds one.
+ * @returns {Promise<{
+ *     key: string, value: string, inFile: boolean, owner: string, options: string[],
+ *     timezone: boolean,
+ * }[]>}
  */
 async function readDirectives() {
     const { data } = await askPhp();
@@ -116,6 +141,8 @@ async function readDirectives() {
  * on its next run. A setting of the page's own is checked against what it
  * accepts; any is checked by PHP, which has to start with them all without a
  * complaint, or none is written.
+ * @param {{ key: string, value?: string, remove?: boolean }[]} changes
+ * @returns {Promise<{ message: string }>}
  */
 async function setPhpSettings(changes) {
     const list = [].concat(changes || []).map((change) => ({
@@ -152,11 +179,23 @@ async function setPhpSettings(changes) {
     return { message : `${said}. ${reload.message}` };
 }
 
+/**
+ * Writes one setting to the overrides file, as setPhpSettings does.
+ * @param {string} key
+ * @param {string} value
+ * @returns {Promise<{ message: string }>}
+ */
 function setPhpSetting(key, value) {
     return setPhpSettings([ { key, value } ]);
 }
 
-/** Refuses a setting the page knows not to take that value, or that PHP does not have. */
+/**
+ * Refuses a setting the page knows not to take that value, or that PHP does not have.
+ * @param {string} key
+ * @param {string} value
+ * @param {Object<string, string>} known
+ * @returns {void}
+ */
 function checkSetting(key, value, known) {
     const rule = PHP_SETTINGS[key];
     if (!/^[a-z_][\w.]*$/i.test(key)) {
@@ -176,12 +215,20 @@ function checkSetting(key, value, known) {
     }
 }
 
-/** The overrides file, for the page's editor. */
+/**
+ * The overrides file, for the page's editor.
+ * @returns {{ file: string, exists: boolean, text: string }}
+ */
 function readOverrides() {
     const file = phpIniFile();
     return { file, exists : fs.existsSync(file), text : readFile(file) };
 }
 
+/**
+ * Saves the overrides file from the page's editor, once PHP takes it.
+ * @param {string} text
+ * @returns {Promise<{ message: string }>}
+ */
 async function saveOverrides(text) {
     if (typeof text !== "string") {
         throw new Error("No text to save");
@@ -193,6 +240,8 @@ async function saveOverrides(text) {
 /**
  * What PHP would complain about with this text as the overrides file, apart
  * from what it complains about already, which this text did not cause.
+ * @param {string} text
+ * @returns {Promise<{ problems: string[] }>}
  */
 async function checkOverrides(text) {
     const [ now, next ] = await Promise.all([ askPhp(), askPhp(String(text ?? "")) ]);
@@ -202,6 +251,8 @@ async function checkOverrides(text) {
 /**
  * Writes the overrides file once PHP starts with it without anything new to
  * complain about, keeping the one before as .bak, then reloads Apache.
+ * @param {string} text
+ * @returns {Promise<{ message: string }>}
  */
 async function writeOverrides(text) {
     const { problems } = await checkOverrides(text);
@@ -219,6 +270,8 @@ async function writeOverrides(text) {
 }
 
 
+
+// The public API
 module.exports = {
     readPhp,
     readDirectives,

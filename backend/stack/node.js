@@ -13,10 +13,22 @@ const { runJob, spawnLines } = require("../core/jobs");
 const NODE = path.join(PATHS.homebrew, "bin", "node");
 
 /**
+ * A global package npm installed: its name, its version, and whether it is a link.
+ * @typedef {{ name: string, version: string, linked: boolean }} GlobalPackage
+ */
+
+/**
  * The Node.js version and the packages installed with npm -g. Asking npm
  * takes a moment, so the answer is kept for a minute.
  */
 let nodeCache = { at : 0, data : null };
+/**
+ * Node.js and its global packages, each with its newest version and its size when known.
+ * @returns {Promise<{
+ *     version: string, broken: string, npm: string, corepack: string, root: string,
+ *     globals: (GlobalPackage & { latest: string, size: number })[], checked: number,
+ * }>}
+ */
 async function readNode() {
     const data = await readNodeKept();
     if (!data.broken && data.version) {
@@ -34,6 +46,13 @@ async function readNode() {
     };
 }
 
+/**
+ * What node, npm and corepack say, kept for a minute.
+ * @returns {Promise<{
+ *     version: string, broken: string, npm: string, corepack: string, root: string,
+ *     globals: GlobalPackage[],
+ * }>}
+ */
 async function readNodeKept() {
     if (Date.now() - nodeCache.at < 60_000 && nodeCache.data) {
         return nodeCache.data;
@@ -63,6 +82,10 @@ async function readNodeKept() {
  * registry has its name, which is often another one.
  */
 let outdated = { at : 0, busy : false, round : 0, packages : {} };
+/**
+ * Asks npm for the outdated packages in the background, at most once an hour.
+ * @returns {void}
+ */
 function checkOutdated() {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", "npm"));
     if (!cli || outdated.busy || Date.now() - outdated.at < 60 * 60_000) {
@@ -99,6 +122,12 @@ function checkOutdated() {
  * folder is a project of its own, not something npm installed.
  */
 let sizes = { at : 0, busy : false, packages : {} };
+/**
+ * Asks du for the room the packages take, in the background.
+ * @param {string} root
+ * @param {GlobalPackage[]} globals
+ * @returns {void}
+ */
 function checkSizes(root, globals) {
     if (!root || sizes.busy || sizes.at) {
         return;
@@ -126,6 +155,14 @@ function checkSizes(root, globals) {
  * with the text, then the most downloaded. Answers are kept for 10 minutes.
  */
 const searches = new Map();
+/**
+ * The packages on the registry that best match a text, kept for 10 minutes.
+ * @param {string} text
+ * @returns {Promise<{
+ *     name: string, version: string, description: string, keywords: string[],
+ *     publisher: string, date: string, license: string, weekly: number,
+ * }[]>}
+ */
 async function searchPackages(text) {
     const query = String(text || "").trim().toLowerCase().slice(0, 100);
     if (query.length < 2) {
@@ -167,6 +204,8 @@ async function searchPackages(text) {
  * Installs the newest version of some global packages, or of every outdated
  * one. Only installed packages can be named, and not linked ones, so a
  * request can never install something new this way.
+ * @param {"all" | string | string[]} names
+ * @returns {Promise<{ job: string }>}
  */
 async function updatePackages(names) {
     const { globals } = await readNodeKept();
@@ -193,6 +232,11 @@ async function updatePackages(names) {
  */
 const PACKAGE_SPEC = /^(@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(@[\w.^~<>=*+-]+)?$/i;
 
+/**
+ * Installs a package from the registry, by its spec, as a job the page follows.
+ * @param {string} spec
+ * @returns {{ job: string }}
+ */
 function installPackage(spec) {
     const wanted = String(spec || "").trim();
     if (!PACKAGE_SPEC.test(wanted)) {
@@ -204,6 +248,8 @@ function installPackage(spec) {
 /**
  * Removes a global package, or the link of a linked one, never its folder.
  * npm itself stays, since without it nothing could be installed again.
+ * @param {string} name
+ * @returns {Promise<{ job: string }>}
  */
 async function uninstallPackage(name) {
     const { globals } = await readNodeKept();
@@ -220,6 +266,9 @@ async function uninstallPackage(name) {
  * Runs npm on the global packages, as a job the page follows, a package a
  * step. Whatever npm changed, the packages, their sizes and the outdated ones
  * are asked for again.
+ * @param {import("../core/jobs").JobStep[]} steps
+ * @param {(worked: string[]) => string} done
+ * @returns {{ job: string }}
  */
 function runNpm(steps, done) {
     return runJob("npm", steps, {
@@ -242,6 +291,9 @@ function runNpm(steps, done) {
 /**
  * Runs npm and hands on each line it writes. Its colors and progress bar
  * are left out, since they are meant for a terminal.
+ * @param {string[]} args
+ * @param {(line: string) => void} onLine
+ * @returns {Promise<number>}
  */
 function spawnNpm(args, onLine) {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", "npm"));
@@ -257,6 +309,8 @@ function spawnNpm(args, onLine) {
 /**
  * A tool that comes with Node.js, from its package.json, so it is known even
  * when node itself does not start.
+ * @param {string} name
+ * @returns {string}
  */
 function toolVersion(name) {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", name));
@@ -271,7 +325,10 @@ function toolVersion(name) {
     return "";
 }
 
-/** The packages npm installed with -g, and the folder they live in. */
+/**
+ * The packages npm installed with -g, and the folder they live in.
+ * @returns {Promise<{ root: string, packages: GlobalPackage[] }>}
+ */
 async function readGlobals() {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", "npm"));
     if (!cli) {
@@ -297,7 +354,11 @@ async function readGlobals() {
     return { root : root.stdout.trim(), packages };
 }
 
-/** Why node does not start, as macOS's loader says it, on one line. */
+/**
+ * Why node does not start, as macOS's loader says it, on one line.
+ * @param {string} stderr
+ * @returns {string}
+ */
 function brokenReason(stderr) {
     const line = stderr.split("\n").find((one) => /Library not loaded/.test(one))
         || stderr.split("\n")[0] || "";
@@ -306,6 +367,11 @@ function brokenReason(stderr) {
         .trim();
 }
 
+/**
+ * Whether a path is a symbolic link; false when it is missing.
+ * @param {string} file
+ * @returns {boolean}
+ */
 function isLink(file) {
     try {
         return fs.lstatSync(file).isSymbolicLink();
@@ -314,6 +380,11 @@ function isLink(file) {
     }
 }
 
+/**
+ * The real path of a file, its links followed, or "" when it is missing.
+ * @param {string} file
+ * @returns {string}
+ */
 function realPathOf(file) {
     try {
         return fs.realpathSync(file);
@@ -322,6 +393,9 @@ function realPathOf(file) {
     }
 }
 
+
+
+// The public API
 module.exports = {
     readNode,
     updatePackages,

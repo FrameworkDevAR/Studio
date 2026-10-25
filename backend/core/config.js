@@ -16,6 +16,7 @@ const { phpIniFile } = require("../stack/php");
 /**
  * The config's text, for the editor on the page. Without one yet, the
  * example's, so there is something to start from; saving creates the file.
+ * @returns {{ file: string, exists: boolean, text: string }}
  */
 function readConfigFile() {
     const exists = fs.existsSync(CONFIG);
@@ -27,6 +28,8 @@ function readConfigFile() {
  * Saves the config from the editor on the page. It must be JSON holding an
  * object, with each setting of the shape the plugin expects, or the menu
  * would lose its projects; the previous file is kept as config.json.bak.
+ * @param {string} text
+ * @returns {Promise<{ message: string }>}
  */
 async function saveConfig(text) {
     if (typeof text !== "string" || text.length > 200_000) {
@@ -56,7 +59,11 @@ async function saveConfig(text) {
     };
 }
 
-/** What is wrong with a config's shape, or "" when nothing is. */
+/**
+ * What is wrong with a config's shape, or "" when nothing is.
+ * @param {*} config
+ * @returns {string}
+ */
 function configProblem(config) {
     const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
     const isList   = (value) => Array.isArray(value)
@@ -129,6 +136,9 @@ function configProblem(config) {
  * includes, by the path the server checked it is one. Changes to
  * config.json show in the apps on the next refresh: the plugin reads it on
  * every run.
+ * @param {string} which
+ * @param {string=} included
+ * @returns {Promise<{ message: string }>}
  */
 async function openFile(which, included = "") {
     const files = {
@@ -161,6 +171,9 @@ async function openFile(which, included = "") {
         : `Opened ${path.basename(files[which])}` };
 }
 
+
+
+// The public API
 module.exports = {
     readConfigFile,
     saveConfig,

@@ -2,6 +2,13 @@
 
 // Every click on the page, sent where it belongs.
 
+/**
+ * A click anywhere on the page: a link of the page's own changes the view, a
+ * line of the recent errors opens, and a button or switch does what its data
+ * attributes say.
+ * @param {MouseEvent} event
+ * @returns {void}
+ */
 function onClick(event) {
     // The page's own links change the view in place, without a reload.
     const link = event.target.closest("a[href^='/']");

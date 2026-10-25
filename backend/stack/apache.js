@@ -38,7 +38,12 @@ const FILTER_MODULES = {
 };
 const FILTER_DIRECTIVES = /^(Add|Set)(Input|Output)Filter(ByType)?$|^Filter(Provider|Chain)$/i;
 
-/** Each LoadModule line of httpd.conf, on or commented out. */
+/**
+ * Each LoadModule line of httpd.conf, on or commented out.
+ * @returns {Promise<{
+ *     name: string, file: string, enabled: boolean, protected: boolean, used: boolean,
+ * }[]>}
+ */
 async function readModules() {
     const used = await readUsedModules();
     return readFile(HTTPD_CONF).split("\n")
@@ -64,6 +69,10 @@ async function readModules() {
  * every 5s and walking the sites for .htaccess files is not free.
  */
 let usedCache = { at : 0, data : new Set() };
+/**
+ * The names of the modules in use, kept for a minute.
+ * @returns {Promise<Set<string>>}
+ */
 async function readUsedModules() {
     if (Date.now() - usedCache.at < 60_000) {
         return usedCache.data;
@@ -113,6 +122,7 @@ async function readUsedModules() {
  * it. `httpd -L` names the module by its source file, like mod_rewrite.c or
  * prefork.c, which is matched to a LoadModule name: rewrite_module or
  * mpm_prefork_module. Core directives have no module to turn off.
+ * @returns {Promise<Map<string, string>>}
  */
 async function readDirectives() {
     const names    = new Set([ ...readFile(HTTPD_CONF).matchAll(/LoadModule\s+(\w+)/g) ]
@@ -129,7 +139,12 @@ async function readDirectives() {
     return moduleOf;
 }
 
-/** The .htaccess files under the sites' folders, a few levels down, each once. */
+/**
+ * The .htaccess files under the sites' folders, a few levels down, each once.
+ * @param {string[]} roots
+ * @param {number=} depth
+ * @returns {string[]}
+ */
 function findHtaccess(roots, depth = 5) {
     const found = new Set();
     const walk  = (dir, level) => {
@@ -153,13 +168,21 @@ function findHtaccess(roots, depth = 5) {
     return [ ...found ];
 }
 
-/** The ports Apache listens on, from its Listen lines. */
+/**
+ * The ports Apache listens on, from its Listen lines.
+ * @returns {number[]}
+ */
 function readListen() {
     return [ ...readFile(HTTPD_CONF).matchAll(/^Listen\s+(?:\S+:)?(\d+)/gm) ]
         .map((found) => Number(found[1]));
 }
 
-/** The virtual hosts, from the vhosts file. */
+/**
+ * The virtual hosts, from the vhosts file.
+ * @returns {{
+ *     name: string, port: number, root: string, ssl: boolean, url: string, exists: boolean,
+ * }[]}
+ */
 function readVhosts() {
     const vhosts = [];
     const blocks = readFile(VHOSTS)
@@ -180,6 +203,13 @@ function readVhosts() {
     return vhosts;
 }
 
+/**
+ * A site's address, its port left out when it is the scheme's own.
+ * @param {string} name
+ * @param {number} port
+ * @param {boolean} ssl
+ * @returns {string}
+ */
 function siteUrl(name, port, ssl) {
     const scheme      = ssl ? "https" : "http";
     const defaultPort = ssl ? 443 : 80;
@@ -190,6 +220,9 @@ function siteUrl(name, port, ssl) {
  * Turns a module on or off by commenting its LoadModule line. A backup is kept,
  * and the change is undone when Apache's config check fails, so a bad toggle
  * can never leave Apache unable to start.
+ * @param {string} name
+ * @param {boolean} enabled
+ * @returns {Promise<{ message: string }>}
  */
 async function setModule(name, enabled) {
     if (!/^\w+$/.test(name)) {
@@ -228,6 +261,13 @@ async function setModule(name, enabled) {
  * be edited here.
  */
 const INCLUDE_LINE = /^(\s*)(#?)\s*(Include(?:Optional)?)\s+"?([^"\s]+)"?\s*$/;
+/**
+ * Each Include line of httpd.conf, with its file, its note and its module.
+ * @returns {{
+ *     file: string, name: string, enabled: boolean, note: string, module: string,
+ *     editable: boolean,
+ * }[]}
+ */
 function readIncludes() {
     const text  = readFile(HTTPD_CONF);
     const lines = text.split("\n");
@@ -260,7 +300,12 @@ function readIncludes() {
     return found;
 }
 
-/** Where an Include line's path is: as written, or in ServerRoot when relative. */
+/**
+ * Where an Include line's path is: as written, or in ServerRoot when relative.
+ * @param {string} text
+ * @param {string} written
+ * @returns {string}
+ */
 function includedPath(text, written) {
     const root = text.match(/^\s*ServerRoot\s+"?([^"\n]+?)"?\s*$/m)?.[1] || "";
     return path.isAbsolute(written) ? written : path.join(root, written);
@@ -269,6 +314,9 @@ function includedPath(text, written) {
 /**
  * Turns an included config file on or off by commenting its Include line,
  * checked and undone as a module's change is, then Apache reloads.
+ * @param {string} file
+ * @param {boolean} enabled
+ * @returns {Promise<{ message: string }>}
  */
 async function setInclude(file, enabled) {
     const original = readFile(HTTPD_CONF);
@@ -299,6 +347,9 @@ async function setInclude(file, enabled) {
 /**
  * The config files the page edits: httpd.conf, the vhosts, and any single
  * file httpd.conf includes, on or not -- never another file.
+ * @param {string} kind
+ * @param {string} file
+ * @returns {string}
  */
 function apacheFile(kind, file) {
     if (kind === "httpd") {
@@ -313,7 +364,12 @@ function apacheFile(kind, file) {
     throw new Error("Not a config file Apache includes");
 }
 
-/** A config file, for the page's editor. */
+/**
+ * A config file, for the page's editor.
+ * @param {string} kind
+ * @param {string} file
+ * @returns {{ file: string, exists: boolean, text: string }}
+ */
 function readApacheFile(kind, file) {
     const found = apacheFile(kind, file);
     return { file : found, exists : fs.existsSync(found), text : readFile(found) };
@@ -325,6 +381,10 @@ function readApacheFile(kind, file) {
  * one, httpd.conf including the copy instead, and on even when the file is
  * off, so it is known to work before it is turned on. Gives Apache's complaints,
  * with the copy's path put back as the file's name; none when it reads.
+ * @param {string} kind
+ * @param {string} text
+ * @param {string} target
+ * @returns {Promise<{ problems: string[] }>}
  */
 async function checkApacheFile(kind, text, target) {
     const file = apacheFile(kind, target);
@@ -362,6 +422,10 @@ async function checkApacheFile(kind, text, target) {
  * Apache's complaints, one per problem: without its AH codes and the lines
  * that only say the check failed, a copy's path named as its file, and
  * "Syntax error on line 12 of httpd.conf:" joined with its reason.
+ * @param {string} stderr
+ * @param {string=} copy
+ * @param {string=} name
+ * @returns {string[]}
  */
 function apacheProblems(stderr, copy = "", name = "") {
     return stderr.split("\n")
@@ -383,6 +447,10 @@ function apacheProblems(stderr, copy = "", name = "") {
  * Saves a config file from the page's editor, once Apache takes it. The
  * previous one is kept beside it, and put back should Apache's own check
  * fail all the same; then Apache reloads.
+ * @param {string} kind
+ * @param {string} text
+ * @param {string} target
+ * @returns {Promise<{ message: string }>}
  */
 async function saveApacheFile(kind, text, target) {
     const file      = apacheFile(kind, target);
@@ -407,6 +475,7 @@ async function saveApacheFile(kind, text, target) {
 /**
  * Reloads Apache gracefully, so running requests finish first. Checks the
  * config before, since a graceful restart with a broken one stops Apache.
+ * @returns {Promise<{ message: string }>}
  */
 async function reloadApache() {
     const services = await readServices();
@@ -423,6 +492,9 @@ async function reloadApache() {
     return { message : "Apache reloaded." };
 }
 
+
+
+// The public API
 module.exports = {
     readModules,
     readListen,

@@ -43,10 +43,24 @@ const SETTING_SCOPES = {
 };
 
 /**
+ * A PHP setting or a MariaDB option, as the server gives it: its value, the
+ * choices it takes, whether the file has it, and what it goes back to without it.
+ * @typedef {{ key: string, value: string, inFile?: boolean, known?: boolean,
+ *     options?: string[], timezone?: boolean, size?: boolean, base?: string,
+ *     baseFrom?: string, owner?: string, comment?: string }} StudioSetting
+ */
+
+/**
  * The settings, in groups, then the file's other settings, a group for each
  * part they belong to: in the page's group of the same name, as Xdebug, or
  * in one of their own. Skipped while a field is focused or has an unsaved
  * change, and when nothing changed, so it does not flicker every 5s.
+ * @param {string} scope "php" or "mariadb"
+ * @param {{ title: string, keys: string[] }[]} fixed
+ * @param {StudioSetting[]} settings
+ * @param {StudioSetting[]} overrides
+ * @param {string=} extra
+ * @returns {void}
  */
 function renderSettingGroups(scope, fixed, settings, overrides, extra = "") {
     const box  = document.getElementById(SETTING_SCOPES[scope].box);
@@ -105,6 +119,8 @@ const SIZE_SETTINGS = [ "memory_limit", "upload_max_filesize", "post_max_size" ]
  * The field for a setting's value, fitting it: a list of the choices, a
  * timezone, a size, a number, or a text. The page's rows and the dialog that
  * adds one use it alike.
+ * @param {StudioSetting} setting
+ * @returns {string}
  */
 function settingField(setting) {
     const value = String(setting.value);
@@ -151,6 +167,9 @@ function settingField(setting) {
  * One setting: its name, with what it is for and where its value comes from
  * -- a file, as php.ini, or the default -- or what it goes back to without
  * the override, which the x does.
+ * @param {StudioSetting} setting
+ * @param {string} scope
+ * @returns {string}
  */
 function settingRow(setting, scope) {
     const { who, unknown } = SETTING_SCOPES[scope];
@@ -187,7 +206,11 @@ function settingRow(setting, scope) {
     `;
 }
 
-/** A setting's value as its field holds it: a size's number and unit as one, 512M. */
+/**
+ * A setting's value as its field holds it: a size's number and unit as one, 512M.
+ * @param {Element} row
+ * @returns {string}
+ */
 function fieldValue(row) {
     const size = row.querySelector(".field.size");
     if (size) {
@@ -199,7 +222,12 @@ function fieldValue(row) {
     return /** @type {HTMLInputElement} */ (row.querySelector("input, select, textarea")).value;
 }
 
-/** Puts a value in a setting's field, adding it to a list that lacks it. */
+/**
+ * Puts a value in a setting's field, adding it to a list that lacks it.
+ * @param {Element} row
+ * @param {string} value
+ * @returns {void}
+ */
 function setFieldValue(row, value) {
     const size = row.querySelector(".field.size");
     if (size) {
@@ -217,7 +245,11 @@ function setFieldValue(row, value) {
     field.value = value;
 }
 
-/** Which page's settings a row is one of, by the box holding it. */
+/**
+ * Which page's settings a row is one of, by the box holding it.
+ * @param {Element} row
+ * @returns {string}
+ */
 function scopeOf(row) {
     return Object.keys(SETTING_SCOPES)
         .find((scope) => row.closest(`#${SETTING_SCOPES[scope].box}`));
@@ -226,6 +258,8 @@ function scopeOf(row) {
 /**
  * Marks a setting whose value differs from the saved one. The changes panel
  * shows while any does, and saves them all at once.
+ * @param {Event & { target: * }} event
+ * @returns {void}
  */
 function markDirty(event) {
     const row = event.target.closest(".setting");
@@ -237,6 +271,8 @@ function markDirty(event) {
  * The x of an override: like a change, it is only marked, to be saved with
  * the others. The field shows the value it goes back to, and the x turns
  * into an undo, which keeps the override after all.
+ * @param {HTMLElement} row
+ * @returns {void}
  */
 function toggleUnset(row) {
     if (row.classList.contains("removing")) {
@@ -255,7 +291,11 @@ function toggleUnset(row) {
     showSettingChanges(scopeOf(row));
 }
 
-/** Puts a setting back as it was saved, undoing a change or an x. */
+/**
+ * Puts a setting back as it was saved, undoing a change or an x.
+ * @param {HTMLElement} row
+ * @returns {void}
+ */
 function resetSetting(row) {
     setFieldValue(row, row.dataset.value);
     row.classList.remove("dirty", "removing");
@@ -269,6 +309,11 @@ function resetSetting(row) {
     }
 }
 
+/**
+ * The rows of a page's settings with a change not saved yet.
+ * @param {string} scope
+ * @returns {HTMLElement[]}
+ */
 function dirtyRows(scope) {
     return /** @type {HTMLElement[]} */ ([
         ...document.querySelectorAll(`#${SETTING_SCOPES[scope].box} .setting.dirty`),
@@ -278,6 +323,8 @@ function dirtyRows(scope) {
 /**
  * The changes panel: how many, and each setting with its old and new value,
  * or, for an override going, the value it goes back to and from where.
+ * @param {string} scope
+ * @returns {void}
  */
 function showSettingChanges(scope) {
     const rows = dirtyRows(scope);
@@ -301,6 +348,8 @@ function showSettingChanges(scope) {
  * checked as one file, and PHP's Apache reloads, or MariaDB restarts, once.
  * When one is refused, nothing is written and the changes stay in their
  * fields, to fix.
+ * @param {string} scope
+ * @returns {Promise<void>}
  */
 async function saveSettings(scope) {
     const rows   = dirtyRows(scope);
@@ -329,7 +378,11 @@ async function saveSettings(scope) {
     }
 }
 
-/** Puts every changed setting back as it was saved. */
+/**
+ * Puts every changed setting back as it was saved.
+ * @param {string} scope
+ * @returns {void}
+ */
 function discardSettings(scope) {
     dirtyRows(scope).forEach(resetSetting);
     showSettingChanges(scope);
@@ -344,6 +397,12 @@ function discardSettings(scope) {
  */
 let pick = { list : [], key : "", inEditor : false, scope : "php", resolve : null };
 
+/**
+ * Opens the dialog for a page's settings, or for the editor's text, and gives
+ * the setting picked with its value once it is, or null when it closes.
+ * @param {{ inEditor?: boolean, text?: string, scope?: string }} start
+ * @returns {Promise<{ key: string, value: string }>}
+ */
 async function pickSetting({ inEditor = false, text = "", scope = "php" }) {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("pick"));
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("pick-filter"));
@@ -383,12 +442,21 @@ async function pickSetting({ inEditor = false, text = "", scope = "php" }) {
     });
 }
 
+/**
+ * Gives the dialog's answer to whoever is waiting on it, once.
+ * @param {{ key: string, value: string }} answer
+ * @returns {void}
+ */
 function finishPick(answer) {
     const resolve = pick.resolve;
     pick.resolve  = null;
     resolve?.(answer);
 }
 
+/**
+ * The dialog's list: the settings with the filter in their name, grouped.
+ * @returns {void}
+ */
 function renderPickList() {
     const text   = /** @type {HTMLInputElement} */ (document.getElementById("pick-filter")).value
         .trim()
@@ -420,6 +488,9 @@ function renderPickList() {
 /**
  * Settings grouped by what they are part of: PHP or MariaDB itself first,
  * then each extension or engine by name, and last the ones it does not know.
+ * @param {StudioSetting[]} settings
+ * @param {string} scope
+ * @returns {{ title: string, rows: StudioSetting[] }[]}
  */
 function byOwner(settings, scope) {
     const { first, stranger } = SETTING_SCOPES[scope];
@@ -438,6 +509,8 @@ function byOwner(settings, scope) {
 /**
  * Picks a setting: its value now goes in the field to change, with the
  * choices the page knows for it.
+ * @param {string} key
+ * @returns {void}
  */
 function choosePick(key) {
     const one    = pick.list.find((item) => item.key === key);
@@ -467,6 +540,12 @@ function choosePick(key) {
     }
 }
 
+/**
+ * Says how the dialog's setting is doing under its value, as a complaint unless told not to.
+ * @param {string} text
+ * @param {boolean=} bad
+ * @returns {void}
+ */
 function setPickStatus(text, bad = true) {
     const status = document.getElementById("pick-status");
     status.textContent = text;
@@ -477,6 +556,7 @@ function setPickStatus(text, bad = true) {
 /**
  * Gives the setting to the editor, or saves it, keeping the dialog open with
  * the complaint when PHP or MariaDB does not take the value.
+ * @returns {Promise<void>}
  */
 async function submitPick() {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("pick"));

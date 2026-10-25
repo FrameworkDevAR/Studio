@@ -8,20 +8,24 @@
 // over a dialog too.
 
 /**
- * @type {{ select : HTMLSelectElement, button : HTMLButtonElement, at : number,
- *          items : HTMLOptionElement[] } | null}
+ * @type {{ select: HTMLSelectElement, button: HTMLButtonElement, at: number,
+ *          items: HTMLOptionElement[] } | null}
  */
 let picking = null;
 
 // The select's own value and selectedIndex, which the button's are set through.
-const SELECT_VALUE = /** @type {{ get : () => string, set : (value : string) => void }} */ (
+const SELECT_VALUE = /** @type {{ get: () => string, set: (value: string) => void }} */ (
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value")
 );
-const SELECT_INDEX = /** @type {{ get : () => number, set : (index : number) => void }} */ (
+const SELECT_INDEX = /** @type {{ get: () => number, set: (index: number) => void }} */ (
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "selectedIndex")
 );
 
-/** The button for a select, which shows its option picked, follows it, and opens the list. */
+/**
+ * The button for a select, which shows its option picked, follows it, and opens the list.
+ * @param {HTMLSelectElement} select
+ * @returns {void}
+ */
 function enhanceSelect(select) {
     if (select.dataset.picker || select.multiple || select.classList.contains("cell-input")
         || !select.parentElement?.classList.contains("select")) {
@@ -81,7 +85,11 @@ function enhanceSelect(select) {
     show();
 }
 
-/** Every select there now, and every one drawn later. */
+/**
+ * Every select there now, and every one drawn later.
+ * @param {(Document | Element)=} root
+ * @returns {void}
+ */
 function enhanceSelects(root = document) {
     root.querySelectorAll(".select > select").forEach(enhanceSelect);
 }
@@ -100,7 +108,14 @@ new MutationObserver((records) => {
     }
 }).observe(document.documentElement, { childList : true, subtree : true });
 
-/** @param {string} [typed] What was typed on the button, to search for. */
+/**
+ * Opens the list of a select's options under its button, in the open dialog
+ * when the select is in one, and puts the focus on its search.
+ * @param {HTMLSelectElement} select
+ * @param {HTMLButtonElement} button
+ * @param {string=} typed What was typed on the button, to search for.
+ * @returns {void}
+ */
 function openPicker(select, button, typed = "") {
     const box    = document.getElementById("picker");
     const search = /** @type {HTMLInputElement} */ (box.querySelector("input"));
@@ -126,6 +141,11 @@ function openPicker(select, button, typed = "") {
     (search.hidden ? box : search).focus({ preventScroll : true });
 }
 
+/**
+ * Closes the list, the focus going back to its button unless told not to.
+ * @param {boolean=} back
+ * @returns {void}
+ */
 function closePicker(back = true) {
     const box = document.getElementById("picker");
     const was = picking;
@@ -142,6 +162,8 @@ function closePicker(back = true) {
 /**
  * The options that hold what is typed, in their groups, the group's name
  * counting too; the one picked marked, and the cursor on it at first.
+ * @param {boolean=} first
+ * @returns {void}
  */
 function renderPicker(first = false) {
     const { select } = picking;
@@ -191,6 +213,10 @@ function renderPicker(first = false) {
     markPicker();
 }
 
+/**
+ * Marks the option the cursor is on, scrolled into view.
+ * @returns {void}
+ */
 function markPicker() {
     const box = document.getElementById("picker");
     box.querySelector(".picker-option.active")?.classList.remove("active");
@@ -199,7 +225,10 @@ function markPicker() {
     row?.scrollIntoView({ block : "nearest" });
 }
 
-/** Under the button, as wide as it at least, above it when there is no room under it. */
+/**
+ * Under the button, as wide as it at least, above it when there is no room under it.
+ * @returns {void}
+ */
 function placePicker() {
     const box  = document.getElementById("picker");
     const area = picking.button.getBoundingClientRect();
@@ -210,7 +239,11 @@ function placePicker() {
         : Math.max(8, area.top - box.offsetHeight - 4)}px`;
 }
 
-/** Picks an option: the select takes it, and says so as a person's pick does. */
+/**
+ * Picks an option: the select takes it, and says so as a person's pick does.
+ * @param {number=} at
+ * @returns {void}
+ */
 function pickOption(at = picking.at) {
     const option = picking?.items[at];
     if (!option) {
@@ -226,6 +259,12 @@ function pickOption(at = picking.at) {
     }
 }
 
+/**
+ * The list's keys: ↑ and ↓ move the cursor, Enter picks, Escape and Tab close it,
+ * and a letter in a short list opens its search.
+ * @param {KeyboardEvent} event
+ * @returns {void}
+ */
 function pickerKeys(event) {
     if (!picking) {
         return;

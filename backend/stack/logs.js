@@ -21,6 +21,11 @@ const LOGS = {
     redis   : PATHS.redisLog,
 };
 
+/**
+ * The file of a log, by name, or undefined when it has none.
+ * @param {string} name
+ * @returns {string}
+ */
 function logFile(name) {
     const source = LOGS[name];
     return typeof source === "function" ? source() : source;
@@ -29,8 +34,10 @@ function logFile(name) {
 /**
  * Each log's size, and that of the copies newsyslog keeps of it once rotated
  * (error_log.0.gz, error_log.1.gz, ...), which sit next to it.
+ * @returns {Object<string, { file: string, size: number, archived: number }>}
  */
 function readLogSizes() {
+    /** @type {Object<string, { file: string, size: number, archived: number }>} */
     const sizes = {};
     for (const name of Object.keys(LOGS)) {
         const file = logFile(name);
@@ -45,7 +52,12 @@ function readLogSizes() {
     return sizes;
 }
 
-/** The last lines of a log, by name. */
+/**
+ * The last lines of a log, by name.
+ * @param {string} name
+ * @param {number} lines
+ * @returns {{ name: string, file: string, lines: string[] }}
+ */
 function readLog(name, lines) {
     const file = logFile(name);
     if (!file || !fs.existsSync(file)) {
@@ -59,6 +71,8 @@ function readLog(name, lines) {
  * Empties a log where it is, and deletes its rotated copies. Truncating rather
  * than replacing the file matters: Apache, MariaDB and Redis keep it open and
  * write at its end, so they carry on into the emptied file without a restart.
+ * @param {string} name
+ * @returns {Promise<{ message: string }>}
  */
 async function clearLog(name) {
     const file = LOGS[name] ? logFile(name) : null;
@@ -77,6 +91,9 @@ async function clearLog(name) {
     };
 }
 
+
+
+// The public API
 module.exports = {
     readLogSizes,
     readLog,

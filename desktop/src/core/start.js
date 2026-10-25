@@ -262,6 +262,10 @@ document.getElementById("browse-structure").addEventListener("contextmenu", (eve
 });
 // A column drags by its row to another place; the line it would land on shows as it goes.
 const structureBox = document.getElementById("browse-structure");
+/**
+ * Takes the line a dragged column would land on off every row.
+ * @returns {void}
+ */
 const clearDrop    = () => structureBox.querySelectorAll(".drop-above, .drop-below")
     .forEach((one) => one.classList.remove("drop-above", "drop-below"));
 structureBox.addEventListener("dragstart", (event) => {

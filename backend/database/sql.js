@@ -13,6 +13,13 @@ const { readTables, readStructure } = require("./schema");
 // The most rows a query in the console shows.
 const RESULTS = 1000;
 
+/**
+ * How a result's rows can be changed in place: the table, its key, and each column of the
+ * result as the table's.
+ * @typedef {{ db: string, table: string, primary: string[], columns: { name: string,
+ *     binary: boolean, dataType: string, generated: boolean }[] }} SqlEditable
+ */
+
 
 // ---------------------------------------------------------------------- sql ---
 
@@ -20,6 +27,9 @@ const RESULTS = 1000;
  * Runs the SQL typed in the console, in its database. Each result shows,
  * up to 1000 rows -- a SELECT without a LIMIT stops there -- and for the
  * last statement, the rows it changed.
+ * @param {{ db: string, sql: string }} run
+ * @returns {Promise<{ time: number, changed: number, results: { statement: string,
+ *     columns: string[], rows: string[][], more: boolean, edit: SqlEditable }[] }>}
  */
 async function runSql({ db, sql }) {
     db = await existingDatabase(db);
@@ -60,6 +70,11 @@ const PLAIN_FROM = new RegExp(`^\\s*SELECT\\s+([\\s\\S]+?)\\s+FROM\\s+(${
     NAME_SQL
 }(?:\\s*\\.\\s*${NAME_SQL})?)\\s*((?:WHERE|ORDER\\s+BY|LIMIT)\\b[\\s\\S]*)?;?\\s*$`, "i");
 const PLAIN_ITEM = new RegExp(`^(?:${NAME_SQL}\\s*\\.\\s*)?(?:${NAME_SQL}|\\*)$`);
+/**
+ * A name as it is, out of its backticks, with any doubled backtick in it single.
+ * @param {string} name
+ * @returns {string}
+ */
 const unquoted   = (name) => (name.startsWith("`") ? name.slice(1, -1).replace(/``/g, "`") : name);
 
 /**
@@ -67,6 +82,9 @@ const unquoted   = (name) => (name.startsWith("`") ? name.slice(1, -1).replace(/
  * plain SELECT of one table, not a view, with its columns as they are named
  * -- no expressions, no aliases -- and its primary key among them. Then
  * the table, its key, and each column of the result as the table's.
+ * @param {string} db
+ * @param {import("./client").ResultSet} set
+ * @returns {Promise<SqlEditable>}
  */
 async function editableOf(db, set) {
     const found = String(set.statement).match(PLAIN_FROM);
@@ -118,6 +136,9 @@ async function editableOf(db, set) {
  * Runs an uploaded .sql file, or a .sql.gz, into a database, streamed from
  * the request into the mariadb client, so a dump of any size goes through.
  * The client stops at the first statement that fails, and says which.
+ * @param {import("http").IncomingMessage} request
+ * @param {{ db?: string, name?: string }} file
+ * @returns {Promise<{ message: string }>}
  */
 async function importDatabase(request, { db, name = "" }) {
     db = await existingDatabase(db);
@@ -140,6 +161,8 @@ async function importDatabase(request, { db, name = "" }) {
 }
 
 
+
+// The public API
 module.exports = {
     runSql,
     importDatabase,

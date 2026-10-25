@@ -50,6 +50,10 @@ the apps and servers of each project. See the README.
   the folder it belongs in. Backend modules never require each other in a circle.
 - Comments say why, not what, in full sentences: a `/** */` above each function, and
   a block comment above any rule or step that would otherwise be "tidied away".
+- Each function's `/** */` is JSDoc, as in the user's other projects: the description, then one
+  `@param {type} name` per parameter (`{type=}` when optional) and always a
+  `@returns {type}`, `{void}` included. Real types, never `{object}`: write the shape.
+- A module's `module.exports` comes after three blank lines and `// The public API`.
 - Keep names plain and one word where possible, like the user's other projects
   (Framework, Runner, Diff, JSON).
 

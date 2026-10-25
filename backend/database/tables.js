@@ -15,6 +15,10 @@ const { columnSql } = require("./structure");
  * columns too -- its comment and the next auto_increment id. Only what is
  * given changes; a new engine or a conversion rewrites the table, so it is
  * given minutes.
+ * @param {{ db: string, table: string, engine?: string, charset?: string,
+ *     collation?: string, convert?: boolean, comment?: string,
+ *     next?: number | string }} change
+ * @returns {Promise<{ message: string }>}
  */
 async function changeTable({ db, table, engine, charset, collation, convert, comment, next }) {
     const structure = await readStructure(db, table);
@@ -63,7 +67,11 @@ async function changeTable({ db, table, engine, charset, collation, convert, com
 
 // ------------------------------------------------------------------ tables ---
 
-/** A table's name, new or given anew: 1 to 64 characters, not ending in a space. */
+/**
+ * A table's name, new or given anew: 1 to 64 characters, not ending in a space.
+ * @param {string} name
+ * @returns {string}
+ */
 function tableName(name) {
     name = String(name || "");
     if (!name.trim() || name.length > 64 || /\s$/.test(name)) {
@@ -72,7 +80,12 @@ function tableName(name) {
     return name;
 }
 
-/** Whether a table there is a view, which is renamed, copied and dropped as one. */
+/**
+ * Whether a table there is a view, which is renamed, copied and dropped as one.
+ * @param {string} db
+ * @param {string} table
+ * @returns {Promise<{ db: string, table: string, view: boolean, target: string }>}
+ */
 async function kindOf(db, table) {
     ({ db, table } = await existingTable(db, table));
     const [ set ] = await query(`SELECT TABLE_TYPE FROM information_schema.TABLES
@@ -88,6 +101,9 @@ async function kindOf(db, table) {
 /**
  * Refuses to empty or drop a table another refers to with a foreign key,
  * naming those, as MariaDB's own error doesn't.
+ * @param {{ db: string, table: string }} old
+ * @param {string} doing
+ * @returns {Promise<void>}
  */
 async function unreferenced(old, doing) {
     const [ set ] = await query(`
@@ -109,6 +125,9 @@ async function unreferenced(old, doing) {
  * A new table, as Sequel Ace makes one: its name, a first column, as the
  * column dialog gives it, the primary key on it or not, and its engine,
  * collation and comment, or the database's and MariaDB's when not given.
+ * @param {{ db: string, name: string, column: import("./structure").ColumnDefinition,
+ *     primary?: boolean, engine?: string, collation?: string, comment?: string }} table
+ * @returns {Promise<{ message: string, table: string }>}
  */
 async function createTable({
     db, name, column, primary = true, engine = "", collation = "", comment = ""
@@ -146,6 +165,11 @@ async function createTable({
     return { message : `Created the table ${name}`, table : name };
 }
 
+/**
+ * Renames a table or a view, in its database.
+ * @param {{ db: string, table: string, name: string }} rename
+ * @returns {Promise<{ message: string, table: string }>}
+ */
 async function renameTable({ db, table, name }) {
     const old = await kindOf(db, table);
     name = tableName(name);
@@ -159,6 +183,8 @@ async function renameTable({ db, table, name }) {
  * options, as CREATE TABLE ... LIKE gives them, and its rows with their
  * values, the generated columns making theirs again. Foreign keys and
  * triggers stay with the table copied. A view is made again as its query.
+ * @param {{ db: string, table: string, name: string, data?: boolean }} copy
+ * @returns {Promise<{ message: string, table: string }>}
  */
 async function duplicateTable({ db, table, name, data = true }) {
     const old = await kindOf(db, table);
@@ -198,7 +224,11 @@ async function duplicateTable({ db, table, name, data = true }) {
     };
 }
 
-/** Empties a table, as TRUNCATE does: its rows gone, and its auto_increment back to 1. */
+/**
+ * Empties a table, as TRUNCATE does: its rows gone, and its auto_increment back to 1.
+ * @param {{ db: string, table: string }} empty
+ * @returns {Promise<{ message: string }>}
+ */
 async function emptyTable({ db, table }) {
     const old = await kindOf(db, table);
     if (old.view) {
@@ -210,6 +240,11 @@ async function emptyTable({ db, table }) {
     return { message : `Emptied ${old.table}` };
 }
 
+/**
+ * Drops a table, unless another refers to it with a foreign key, or a view.
+ * @param {{ db: string, table: string }} drop
+ * @returns {Promise<{ message: string }>}
+ */
 async function dropTable({ db, table }) {
     const old = await kindOf(db, table);
     if (!old.view) {
@@ -234,6 +269,10 @@ const UPKEEP = {
  * operations do, all in one statement: what MariaDB says of each, by
  * table, as it says it -- a note, then its status. Views are only checked;
  * the rest leaves them out. Optimizing rewrites a table, so it is given time.
+ * @param {{ db: string, tables?: string[],
+ *     op: "optimize" | "analyze" | "check" | "repair" }} upkeep
+ * @returns {Promise<{ time: number, results: { table: string,
+ *     said: { type: string, text: string }[] }[] }>}
  */
 async function maintainTables({ db, tables = [], op }) {
     const verb = UPKEEP[op];
@@ -281,6 +320,8 @@ async function maintainTables({ db, tables = [], op }) {
 /**
  * The id after the highest of the table's auto_increment column: where a reset of its next id
  * puts it.
+ * @param {{ db: string, table: string }} pick
+ * @returns {Promise<{ next: string }>}
  */
 async function nextId({ db, table }) {
     const structure = await readStructure(db, table);
@@ -294,6 +335,8 @@ async function nextId({ db, table }) {
 }
 
 
+
+// The public API
 module.exports = {
     changeTable,
     createTable,

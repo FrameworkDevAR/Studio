@@ -23,12 +23,17 @@ const PECL = path.join(PATHS.homebrew, "bin", "pecl");
  * something.
  */
 let peclCache = { at : 0, packages : {} };
+/**
+ * The version of each extension pecl installed, by name, kept for a minute.
+ * @returns {Promise<Object<string, string>>}
+ */
 async function readPecl() {
     if (Date.now() - peclCache.at < 60_000) {
         return peclCache.packages;
     }
     const result   = fs.existsSync(PECL) ? await run(PECL, [ "list", "-c", "pecl" ], 20_000)
         : { stdout : "" };
+    /** @type {Object<string, string>} */
     const packages = {};
     for (const line of result.stdout.split("\n")) {
         const found = line.match(/^(\S+)\s+(\d\S*)\s+(stable|beta|alpha|devel|snapshot)\s*$/);
@@ -46,6 +51,10 @@ async function readPecl() {
  * once an hour and the page shows the last answer.
  */
 let upgrades = { at : 0, busy : false, round : 0, packages : {} };
+/**
+ * Asks pecl for the extensions with a newer version in the background, at most once an hour.
+ * @returns {void}
+ */
 function checkUpgrades() {
     if (!fs.existsSync(PECL) || upgrades.busy || Date.now() - upgrades.at < 60 * 60_000) {
         return;
@@ -74,6 +83,11 @@ function checkUpgrades() {
  */
 const EXTENSION_SPEC = /^[a-z][\w]*(-\d[\w.]*)?$/i;
 
+/**
+ * Installs an extension from PECL, by its spec, as a job the page follows.
+ * @param {string} spec
+ * @returns {{ job: string }}
+ */
 function installExtension(spec) {
     const wanted = String(spec || "").trim();
     if (!EXTENSION_SPEC.test(wanted)) {
@@ -85,7 +99,11 @@ function installExtension(spec) {
     );
 }
 
-/** Builds the newest version of some installed pecl extensions. */
+/**
+ * Builds the newest version of some installed pecl extensions.
+ * @param {string | string[]} names
+ * @returns {Promise<{ job: string }>}
+ */
 async function updateExtensions(names) {
     const pecl   = await readPecl();
     const chosen = [].concat(names).map((name) => String(name).toLowerCase());
@@ -101,6 +119,8 @@ async function updateExtensions(names) {
 /**
  * Builds an extension again, for the PHP installed now: after a new minor
  * version, the one built for the last cannot load.
+ * @param {string} name
+ * @returns {{ job: string }}
  */
 function reinstallExtension(name) {
     const wanted = String(name || "").toLowerCase();
@@ -113,7 +133,11 @@ function reinstallExtension(name) {
     );
 }
 
-/** Removes a pecl extension, and its line in php.ini with it. */
+/**
+ * Removes a pecl extension, and its line in php.ini with it.
+ * @param {string} name
+ * @returns {Promise<{ job: string }>}
+ */
 async function uninstallExtension(name) {
     const pecl   = await readPecl();
     const wanted = String(name || "").toLowerCase();
@@ -132,6 +156,9 @@ async function uninstallExtension(name) {
  * about options to build with, so each is answered with its default. Once
  * done, php.ini loads what is installed and nothing that is not, and Apache
  * reloads to pick it up.
+ * @param {import("../core/jobs").JobStep[]} steps
+ * @param {(worked: string[]) => string} done
+ * @returns {{ job: string }}
  */
 function runPecl(steps, done) {
     return runJob("pecl", steps, {
@@ -169,7 +196,11 @@ function runPecl(steps, done) {
     });
 }
 
-/** What went wrong in a pecl run, from its last error lines. */
+/**
+ * What went wrong in a pecl run, from its last error lines.
+ * @param {string[]} lines
+ * @returns {string}
+ */
 function peclError(lines) {
     const errors = lines.filter(
         (line) => /error|not found|failed|No releases|does not exist|requires/i.test(line)
@@ -182,6 +213,7 @@ function peclError(lines) {
  * Makes php.ini load each extension pecl installed, and none it removed:
  * pecl writes these lines itself, but not always. A Zend extension, as
  * xdebug, is loaded with zend_extension, which pecl does not always know.
+ * @returns {Promise<void>}
  */
 async function syncExtensionLines() {
     const { mainIni, extDir = "" } = (await askPhp()).data;
@@ -219,6 +251,8 @@ async function syncExtensionLines() {
 /**
  * The lines that load an extension, in php.ini and the files of conf.d, as
  * extension="redis.so" or zend_extension=xdebug, each with its name.
+ * @param {string} mainIni
+ * @returns {{ file: string, text: string, name: string }[]}
  */
 function extensionLines(mainIni) {
     const files   = [
@@ -251,6 +285,11 @@ function extensionLines(mainIni) {
  */
 let peclNames  = { at : 0, list : [] };
 const releases = new Map();
+/**
+ * The extensions on PECL that best match a text, each with its newest release.
+ * @param {string} text
+ * @returns {Promise<PeclRelease[]>}
+ */
 async function searchExtensions(text) {
     const query = String(text || "").trim().toLowerCase().slice(0, 60);
     if (query.length < 2) {
@@ -271,7 +310,20 @@ async function searchExtensions(text) {
     return Promise.all(names.map(releaseOf));
 }
 
-/** A PECL package's newest release: its version, date, summary and licence. */
+/**
+ * A release of a PECL package, as the search gives it: its version, whether it is stable,
+ * its summary, licence and date.
+ * @typedef {{
+ *     name: string, version: string, stable: boolean, summary: string, license: string,
+ *     date: string,
+ * }} PeclRelease
+ */
+
+/**
+ * A PECL package's newest release: its version, date, summary and licence.
+ * @param {string} name
+ * @returns {Promise<PeclRelease>}
+ */
 async function releaseOf(name) {
     const id   = name.toLowerCase();
     const kept = releases.get(id);
@@ -295,6 +347,11 @@ async function releaseOf(name) {
     return info;
 }
 
+/**
+ * A file of PECL's REST service, as text.
+ * @param {string} file
+ * @returns {Promise<string>}
+ */
 async function peclRest(file) {
     const response = await fetch(`https://pecl.php.net/rest/${file}`, {
         signal : AbortSignal.timeout(8_000),
@@ -305,6 +362,11 @@ async function peclRest(file) {
     return response.text();
 }
 
+/**
+ * Turns the XML's entities back into the characters they stand for.
+ * @param {string} text
+ * @returns {string}
+ */
 function decodeXml(text) {
     return text.replace(/&quot;/g, "\"")
         .replace(/&apos;/g, "'")
@@ -314,6 +376,8 @@ function decodeXml(text) {
 }
 
 
+
+// The public API
 module.exports = {
     readPecl,
     checkUpgrades,

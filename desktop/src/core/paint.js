@@ -14,6 +14,11 @@ const JSON_PARTS = new RegExp(
     "g",
 );
 
+/**
+ * A text made safe to put in HTML: its &, < and > as entities.
+ * @param {string} value
+ * @returns {string}
+ */
 function escapeCode(value) {
     return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -22,6 +27,8 @@ function escapeCode(value) {
  * The JSON with each part in the color of what it is. Whatever is not a part
  * of a JSON is left as it was, so a text that is not one yet -- being typed --
  * is still painted as far as it can be.
+ * @param {string} text
+ * @returns {string}
  */
 function paintJson(text) {
     let result = "";
@@ -53,6 +60,8 @@ function paintJson(text) {
  * !include, or a setting -- its name, the =, and a value that is a text in
  * quotes, a number with its unit, a word PHP or MariaDB knows (On, Off,
  * E_ALL), or anything else.
+ * @param {string} text
+ * @returns {string}
  */
 function paintIni(text) {
     return text.split("\n").map((line) => {
@@ -83,6 +92,8 @@ function paintIni(text) {
  * An Apache config file painted line by line: a comment, a <Section> tag, or
  * a directive -- its name, then its arguments, each a text in quotes, a
  * number, a word Apache knows (On, Off, All, None), or anything else.
+ * @param {string} text
+ * @returns {string}
  */
 function paintApache(text) {
     const paintArgs = (args) => args
@@ -122,6 +133,8 @@ function paintApache(text) {
 /**
  * HTML or XML painted: a comment, and a tag -- its name, its attributes'
  * names, and their values in quotes. The text between tags is left as it is.
+ * @param {string} text
+ * @returns {string}
  */
 function paintMarkup(text) {
     let result = "";
@@ -153,6 +166,10 @@ function paintMarkup(text) {
  * box made as its body is: they follow the text as it is typed and
  * scrolled, Tab indents, and Enter keeps the line's indent. For a value
  * changed in a dialog.
+ * @param {HTMLElement} box
+ * @param {(text: string) => string} paint
+ * @param {string=} indent
+ * @returns {void}
  */
 function codeArea(box, paint, indent = "    ") {
     const text   = box.querySelector("textarea");

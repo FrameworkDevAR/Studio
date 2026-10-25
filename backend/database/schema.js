@@ -16,10 +16,52 @@ const BINARY  = new RegExp(
 // ------------------------------------------------------------------ reading ---
 
 /**
+ * A table or view as the database's list shows it: its rows, exact or estimated, engine,
+ * collation, sizes, the space it could give back, and what its info shows.
+ * @typedef {{ name: string, view: boolean, engine: string, rows: number, exact: boolean,
+ *     data: number, index: number, size: number, free: number, collation: string,
+ *     comment: string, format: string, next: number, average: number, most: number,
+ *     created: string, updated: string }} TableEntry
+ */
+
+/**
+ * What a column starts with, or is made from: its kind, and the value or expression.
+ * @typedef {{ kind: "none" | "null" | "value" | "expression" | "stored" | "virtual",
+ *     value: string }} ColumnValue
+ */
+
+/**
+ * A column of a table, as information_schema has it, with what it starts with and whether its
+ * bytes are not text.
+ * @typedef {{ name: string, type: string, dataType: string, nullable: boolean,
+ *     default: string, value: ColumnValue, key: string, extra: string, comment: string,
+ *     collation: string, binary: boolean }} TableColumn
+ */
+
+/**
+ * An index of a table, with its columns in order.
+ * @typedef {{ name: string, unique: boolean, type: string, columns: string[] }} TableIndex
+ */
+
+/**
+ * A foreign key of a table: its columns, and the table and columns they reference.
+ * @typedef {{ name: string, columns: string[], db: string, table: string,
+ *     references: string[], onDelete: string, onUpdate: string }} TableForeignKey
+ */
+
+/**
+ * A table's structure, as readStructure gives it.
+ * @typedef {{ db: string, table: string, columns: TableColumn[], indexes: TableIndex[],
+ *     foreign: TableForeignKey[], primary: string[], create: string }} TableStructure
+ */
+
+/**
  * The tables and views of a database, as phpMyAdmin lists them first: rows,
  * exact for MyISAM and Aria, which keep them, and estimated for InnoDB,
  * engine, collation, the data's and the indexes' sizes, the space a table
  * could give back, and its comment.
+ * @param {string} db
+ * @returns {Promise<TableEntry[]>}
  */
 async function readTables(db) {
     db = await existingDatabase(db);
@@ -57,6 +99,9 @@ async function readTables(db) {
  * A table's structure: its columns, its indexes and foreign keys, the
  * columns of its primary key, which the rows are changed by, and its
  * CREATE TABLE.
+ * @param {string} db
+ * @param {string} table
+ * @returns {Promise<TableStructure>}
  */
 async function readStructure(db, table) {
     ({ db, table } = await existingTable(db, table));
@@ -129,6 +174,10 @@ async function readStructure(db, table) {
  * a value -- a number, or a text in quotes, read back from them -- or an
  * expression, as current_timestamp(); or what it is made from, when it is
  * generated, kept on disk or not.
+ * @param {string} preset
+ * @param {string} generated
+ * @param {string} extra
+ * @returns {ColumnValue}
  */
 function valueOf(preset, generated, extra) {
     if (generated) {
@@ -161,7 +210,10 @@ function valueOf(preset, generated, extra) {
 }
 
 
-/** The engines a table can be given: those MariaDB has on, its default first. */
+/**
+ * The engines a table can be given: those MariaDB has on, its default first.
+ * @returns {Promise<{ name: string, comment: string, preset: boolean }[]>}
+ */
 async function readEngines() {
     const [ set ] = await query(
         "SELECT ENGINE, SUPPORT, COMMENT FROM information_schema.ENGINES " +
@@ -172,6 +224,8 @@ async function readEngines() {
 }
 
 
+
+// The public API
 module.exports = {
     readTables,
     readStructure,

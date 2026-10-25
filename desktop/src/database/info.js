@@ -6,6 +6,11 @@
 
 /** The engines MariaDB has on, asked once, when the Information tab first needs them. */
 let engineList = null;
+/**
+ * The engines, from the server the first time and as kept after: each with its comment, and
+ * whether it is the default.
+ * @returns {Promise<{ name: string, comment: string, preset: boolean }[]>}
+ */
 async function loadEngines() {
     engineList = engineList || await api("/api/engines");
     return engineList;
@@ -16,6 +21,7 @@ async function loadEngines() {
  * engine and encoding, which change here, its dates, its rows and sizes,
  * its next id and comment, which change here too, and its CREATE
  * statement. A view's is only read.
+ * @returns {Promise<void>}
  */
 async function loadInfo() {
     const box = document.getElementById("browse-info");
@@ -140,6 +146,9 @@ let infoStart = {};
  * The form's collations follow its encoding, keeping the kind picked, as
  * general_ci; Save turns on once something changes, and converting the
  * columns is offered once the encoding does.
+ * @param {{ collation: string }} table
+ * @param {string} charset
+ * @returns {void}
  */
 function setUpInfoForm(table, charset) {
     const form = /** @type {HTMLFormElement} */ (document.getElementById("info-form"));
@@ -166,6 +175,10 @@ function setUpInfoForm(table, charset) {
     });
 }
 
+/**
+ * The form's values, by option, null for one it does not have, as a view's.
+ * @returns {Object<string, string>}
+ */
 function infoValues() {
     const data = new FormData(/** @type {HTMLFormElement} */ (
         document.getElementById("info-form")
@@ -174,7 +187,11 @@ function infoValues() {
         .map((name) => [ name, data.has(name) ? String(data.get(name)) : null ]));
 }
 
-/** What the form changes, by option; the encoding as a pair, as it is set together. */
+/**
+ * What the form changes, by option; the encoding as a pair, as it is set together.
+ * @returns {{ engine?: string, charset?: string, collation?: string, comment?: string,
+ *     next?: string }}
+ */
 function infoChanges() {
     const now     = infoValues();
     const changes = {};
@@ -194,6 +211,10 @@ function infoChanges() {
     return changes;
 }
 
+/**
+ * Turns Save on once something is changed, and offers to convert the columns once the encoding is.
+ * @returns {void}
+ */
 function infoChanged() {
     const changes = infoChanges();
     /** @type {HTMLButtonElement} */ (document.querySelector("[data-info-save]")).disabled
@@ -204,6 +225,7 @@ function infoChanged() {
 /**
  * Saves what changed. A new engine, or columns converted, rewrite the
  * table, which takes a while in a large one, so the status says so.
+ * @returns {Promise<void>}
  */
 async function saveInfo() {
     const changes = infoChanges();
@@ -237,6 +259,8 @@ async function saveInfo() {
 /**
  * Puts the id after the highest one in the table in the next id's field,
  * as resetting it to where the rows are, to save with the rest.
+ * @param {HTMLButtonElement} button
+ * @returns {Promise<void>}
  */
 async function resetNext(button) {
     button.disabled = true;
@@ -257,6 +281,10 @@ async function resetNext(button) {
     button.disabled = false;
 }
 
+/**
+ * Copies the table's CREATE statement.
+ * @returns {void}
+ */
 function copyCreate() {
     navigator.clipboard.writeText(browse.structure.create).then(() => toast("Copied"));
 }

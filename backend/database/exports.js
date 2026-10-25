@@ -20,9 +20,42 @@ const prepared = new Map();
 const KEEP     = 5 * 60_000;
 
 /**
+ * What the page asks to export: the database, the format, gzip, and a query's results, a
+ * table's rows, by its filters, its order or by keys, or the tables picked, with the structure,
+ * the data or both, and how a CSV is written.
+ * @typedef {{ db: string, format: string, gzip?: boolean, structure?: boolean,
+ *     data?: boolean, separator?: string, header?: boolean, sql?: string,
+ *     columns?: string[], table?: string, keys?: import("./rows").RowKey[],
+ *     filters?: string, match?: string, sort?: string, dir?: string,
+ *     tables?: string[] }} ExportSpec
+ */
+
+/**
+ * An export as it is kept for its download, checked.
+ * @typedef {{ db: string, format: "sql" | "csv" | "json", gzip: boolean, structure: boolean,
+ *     data: boolean, separator: string, header: boolean, sql?: string, columns?: string[],
+ *     part?: string, table?: string, where?: string,
+ *     sort?: { name: string, dir: "ASC" | "DESC" }, tables?: string[],
+ *     whole?: boolean }} ExportJob
+ */
+
+/**
+ * Where an export is written: the download, its gzip, or a file of a zip.
+ * @typedef {{ write: (text: string | Buffer) => boolean,
+ *     once: (event: string, listener: () => void) => * }} ExportOut
+ */
+
+/**
+ * A column as an export writes it: its name, whether it is binary, and its type.
+ * @typedef {{ name: string, binary: boolean, dataType: string }} ExportColumn
+ */
+
+/**
  * Checks what is asked for and keeps it, for the download to take: the
  * database, the format, gzip, and either the tables, with the structure, the
  * data or both, for SQL, or a table's rows, by its filters or by keys.
+ * @param {ExportSpec} spec
+ * @returns {Promise<{ id: string }>}
  */
 async function prepareExport(spec) {
     const format = [ "sql", "csv", "json" ].includes(spec.format) ? spec.format : null;
@@ -96,7 +129,11 @@ async function prepareExport(spec) {
     return { id };
 }
 
-/** How many statements SQL holds: split at each ; outside quotes, backticks and comments. */
+/**
+ * How many statements SQL holds: split at each ; outside quotes, backticks and comments.
+ * @param {string} sql
+ * @returns {number}
+ */
 function statementCount(sql) {
     let count = 0, some = false;
     for (let at = 0; at < sql.length; at++) {
@@ -124,7 +161,12 @@ function statementCount(sql) {
     return count + (some ? 1 : 0);
 }
 
-/** Streams the export kept by its id, once, as a file to download. */
+/**
+ * Streams the export kept by its id, once, as a file to download.
+ * @param {import("http").ServerResponse} response
+ * @param {string} id
+ * @returns {Promise<void>}
+ */
 async function runExport(response, id) {
     const job = prepared.get(String(id));
     prepared.delete(String(id));
@@ -185,6 +227,10 @@ async function runExport(response, id) {
  * mariadb-dump of the tables picked, or of a table's rows by a WHERE: their
  * CREATE, their INSERTs, or both. The routines and events come with the
  * structure of a whole database; the triggers, with any table's.
+ * @param {ExportJob} job
+ * @param {NodeJS.WritableStream} out
+ * @param {{ now: boolean }} closed
+ * @returns {Promise<void>}
  */
 function dumpSql(job, out, closed) {
     const args = [ "--single-transaction", "--hex-blob" ];
@@ -223,6 +269,12 @@ function dumpSql(job, out, closed) {
 /**
  * A table's rows, as MariaDB sends them, a row at a time, to the function
  * given, which waits when the download does. Binary values come as hex.
+ * @param {ExportJob} job
+ * @param {string} table
+ * @param {(columns: ExportColumn[]) => *} onColumns
+ * @param {(values: string[], columns: ExportColumn[]) => *} onRow
+ * @param {{ now: boolean }} closed
+ * @returns {Promise<void>}
  */
 async function eachRow(job, table, onColumns, onRow, closed) {
     let sql, columns;
@@ -280,7 +332,12 @@ async function eachRow(job, table, onColumns, onRow, closed) {
     }
 }
 
-/** Writes, and waits for the download to take it when it is behind. */
+/**
+ * Writes, and waits for the download to take it when it is behind.
+ * @param {ExportOut} out
+ * @param {string | Buffer} text
+ * @returns {Promise<void>}
+ */
 function put(out, text) {
     return out.write(text) ? null : new Promise((resolve) => out.once("drain", resolve));
 }
@@ -288,6 +345,10 @@ function put(out, text) {
 /**
  * A CSV field: quoted when it holds the separator, a quote or a line; NULL an empty field,
  * unquoted.
+ * @param {string} value
+ * @param {{ binary?: boolean }} column
+ * @param {string} separator
+ * @returns {string}
  */
 function csvField(value, column, separator) {
     if (value === null) {
@@ -299,6 +360,14 @@ function csvField(value, column, separator) {
         : text;
 }
 
+/**
+ * A table's rows, or a query's, as CSV, its column names first when asked.
+ * @param {ExportJob} job
+ * @param {string} table
+ * @param {ExportOut} out
+ * @param {{ now: boolean }} closed
+ * @returns {Promise<void>}
+ */
 async function writeCsv(job, table, out, closed) {
     const line = (fields) => `${fields.join(job.separator)}\r\n`;
     await eachRow(job, table,
@@ -314,6 +383,9 @@ async function writeCsv(job, table, out, closed) {
 /**
  * A JSON value: whole numbers and floats as numbers, when they fit; the rest as text, binary as
  * 0x hex.
+ * @param {string} value
+ * @param {ExportColumn} column
+ * @returns {string | number}
  */
 function jsonValue(value, column) {
     if (value === null) {
@@ -329,7 +401,13 @@ function jsonValue(value, column) {
     return value;
 }
 
-/** An array of rows, as objects by column; several tables, an object of arrays by table. */
+/**
+ * An array of rows, as objects by column; several tables, an object of arrays by table.
+ * @param {ExportJob} job
+ * @param {ExportOut} out
+ * @param {{ now: boolean }} closed
+ * @returns {Promise<void>}
+ */
 async function writeJson(job, out, closed) {
     const list = job.sql ? [ null ] : job.table ? [ job.table ] : job.tables;
     const many = list.length > 1;
@@ -357,6 +435,10 @@ async function writeJson(job, out, closed) {
  * A .zip of a CSV per table, written as it goes: each file deflated, its
  * sizes and checksum after it, and the list of files at the end. Up to 4 GB
  * in all, as zip without its 64-bit extension allows.
+ * @param {ExportJob} job
+ * @param {ExportOut} out
+ * @param {{ now: boolean }} closed
+ * @returns {Promise<void>}
  */
 async function writeZip(job, out, closed) {
     const entries = [];
@@ -441,4 +523,7 @@ async function writeZip(job, out, closed) {
     await write(end);
 }
 
+
+
+// The public API
 module.exports = { prepareExport, runExport };

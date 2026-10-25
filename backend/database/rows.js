@@ -20,12 +20,27 @@ const LONG    = /^(tinytext|text|mediumtext|longtext|json|varchar|char)$/;
  */
 const EXACT = 50_000;
 
+/**
+ * A filter rule: the column, or * for any, its operator, and the value, with a second one for
+ * BETWEEN.
+ * @typedef {{ column: string, op: string, value?: string, value2?: string }} RowFilter
+ */
+
+/**
+ * A row's primary key, as its values by column, null for NULL.
+ * @typedef {Object<string, string>} RowKey
+ */
+
 
 /**
  * A page of a table's rows, sorted by a column or else by its primary key,
  * and filtered by rules, as Sequel Ace's, all or any of them. Long text is cut and
  * binary columns are given as their size, so a page stays light; one more
  * row than the page is asked for, to know whether there is a next one.
+ * @param {{ db?: string, table?: string, page?: number | string, sort?: string,
+ *     dir?: string, filters?: string, match?: string }} view
+ * @returns {Promise<{ structure: import("./schema").TableStructure, page: number,
+ *     size: number, more: boolean, rows: string[][], cut: number }>}
  */
 async function readRows({
     db, table, page = 1, sort = "", dir = "asc", filters = "[]", match = "all"
@@ -61,7 +76,11 @@ async function readRows({
     };
 }
 
-/** How many rows the filters leave, asked apart, as it takes as long as the filtering. */
+/**
+ * How many rows the filters leave, asked apart, as it takes as long as the filtering.
+ * @param {{ db?: string, table?: string, filters?: string, match?: string }} view
+ * @returns {Promise<{ count: number }>}
+ */
 async function countRows({ db, table, filters = "[]", match = "all" }) {
     const structure = await readStructure(db, table);
     const [ set ]   = await query(
@@ -76,6 +95,8 @@ async function countRows({ db, table, filters = "[]", match = "all" }) {
 /**
  * The exact rows of the database's InnoDB tables small enough to count at
  * once, by name, asked for after the tables show, so they show at once.
+ * @param {string} db
+ * @returns {Promise<Object<string, number>>}
  */
 async function countSmallTables(db) {
     db = await existingDatabase(db);
@@ -135,6 +156,10 @@ const NEGATIVE = {
  * The WHERE of the filter rules, joined by AND, or by OR for any. A rule on
  * any column holds when one column does, or, said in the negative, when
  * none does; binary columns are left out of those.
+ * @param {import("./schema").TableColumn[]} columns
+ * @param {string | RowFilter[]} filters
+ * @param {string=} match
+ * @returns {string}
  */
 function whereOf(columns, filters, match) {
     let rules;
@@ -162,12 +187,20 @@ function whereOf(columns, filters, match) {
     return conditions.length ? `WHERE ${conditions.join(match === "any" ? " OR " : " AND ")}` : "";
 }
 
-/** A text for LIKE, with its own % and _ kept as they are. */
+/**
+ * A text for LIKE, with its own % and _ kept as they are.
+ * @param {string} value
+ * @returns {string}
+ */
 function likeText(value) {
     return value.replace(/[\\%_]/g, "\\$&");
 }
 
-/** The values of IN, typed with commas between them. */
+/**
+ * The values of IN, typed with commas between them.
+ * @param {string} value
+ * @returns {string}
+ */
 function listOf(value) {
     const values = value.split(",").map((one) => one.trim()).filter((one) => one !== "");
     if (!values.length) {
@@ -176,10 +209,13 @@ function listOf(value) {
     return values.map(quote).join(", ");
 }
 
-/** One row whole, found by its primary key, to edit; or to copy, with binary columns in hex. */
 /**
+ * One row whole, found by its primary key, to edit; or to copy, with binary columns in hex.
  * A row whole, by its key, or several, by theirs, in the order given: the
  * ones gone since are left out.
+ * @param {{ db: string, table: string, key?: RowKey, keys?: RowKey[], hex?: boolean }} pick
+ * @returns {Promise<{ structure: import("./schema").TableStructure, row?: string[],
+ *     rows?: string[][] }>}
  */
 async function readRow({ db, table, key, keys = null, hex = false }) {
     const structure = await readStructure(db, table);
@@ -223,6 +259,8 @@ async function readRow({ db, table, key, keys = null, hex = false }) {
  * a key. A value is a text, as MariaDB converts it to the column's type, or
  * null; a binary column is never written. A new row leaves out the columns
  * not given, for their defaults, as an auto_increment id.
+ * @param {{ db: string, table: string, key?: RowKey, values: Object<string, string> }} row
+ * @returns {Promise<{ message: string }>}
  */
 async function saveRow({ db, table, key, values }) {
     const structure = await readStructure(db, table);
@@ -253,6 +291,9 @@ async function saveRow({ db, table, key, values }) {
 /**
  * Sets a column of rows, by their keys, to one value, or NULL, in one
  * statement: what a row's menu does to the rows picked.
+ * @param {{ db: string, table: string, keys: RowKey[], column: string,
+ *     value?: string }} change
+ * @returns {Promise<{ message: string, count: number }>}
  */
 async function setColumn({ db, table, keys, column, value = null }) {
     const structure = await readStructure(db, table);
@@ -273,7 +314,11 @@ async function setColumn({ db, table, keys, column, value = null }) {
         ? "1 row" : `${count} rows`}`, count };
 }
 
-/** Deletes a row by its key, or several by theirs, in one statement, so all go or none. */
+/**
+ * Deletes a row by its key, or several by theirs, in one statement, so all go or none.
+ * @param {{ db: string, table: string, key?: RowKey, keys?: RowKey[] }} pick
+ * @returns {Promise<{ message: string, count?: number }>}
+ */
 async function deleteRow({ db, table, key, keys = null }) {
     const structure = await readStructure(db, table);
     const target    = `${ident(structure.db)}.${ident(structure.table)}`;
@@ -295,6 +340,9 @@ async function deleteRow({ db, table, key, keys = null }) {
  * Runs a change, then asks how many rows it touched and the id it made, in
  * the same session. Changing a row that is no longer there is an error, as
  * when another tab deleted it.
+ * @param {string} statement
+ * @param {boolean=} one
+ * @returns {Promise<{ count: number, id: string }>}
  */
 async function change(statement, one = true) {
     const [ set ] = await query(`${statement}; SELECT ROW_COUNT(), LAST_INSERT_ID();`);
@@ -306,7 +354,12 @@ async function change(statement, one = true) {
     return { count : Number(count), id };
 }
 
-/** The WHERE that finds a row by its primary key, given as its values by column. */
+/**
+ * The WHERE that finds a row by its primary key, given as its values by column.
+ * @param {import("./schema").TableStructure} structure
+ * @param {RowKey} key
+ * @returns {string}
+ */
 function keyWhere(structure, key) {
     if (!structure.primary.length) {
         throw new Error(
@@ -326,7 +379,12 @@ function keyWhere(structure, key) {
 }
 
 
-/** The WHERE that finds rows by their keys, up to a thousand at once. */
+/**
+ * The WHERE that finds rows by their keys, up to a thousand at once.
+ * @param {import("./schema").TableStructure} structure
+ * @param {RowKey[]} keys
+ * @returns {string}
+ */
 function keysWhere(structure, keys) {
     if (!Array.isArray(keys) || !keys.length || keys.length > 1000) {
         throw new Error("Pick 1 to 1000 rows");
@@ -335,6 +393,8 @@ function keysWhere(structure, keys) {
 }
 
 
+
+// The public API
 module.exports = {
     readRows,
     countRows,

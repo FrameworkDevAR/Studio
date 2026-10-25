@@ -20,6 +20,12 @@ const ICON_TYPES   = [ ".svg", ".png", ".ico" ];
  * page asks every 5s and favicons hardly ever change.
  */
 let iconCache = { at : 0, data : {} };
+/**
+ * The favicon file of each project that has one, by project.
+ * @param {import("./apps").StudioApp[]} apps
+ * @param {import("./apps").StudioServer[]} servers
+ * @returns {Object<string, string>}
+ */
 function readIcons(apps, servers) {
     if (Date.now() - iconCache.at < 300_000) {
         return iconCache.data;
@@ -28,6 +34,7 @@ function readIcons(apps, servers) {
     for (const server of servers) {
         roots[server.project] ??= server.dir;
     }
+    /** @type {Object<string, string>} */
     const icons = {};
     for (const [ project, root ] of Object.entries(roots)) {
         const icon = findIcon(root);
@@ -42,6 +49,9 @@ function readIcons(apps, servers) {
 /**
  * The best favicon.* in a folder, a few levels down: an SVG before a PNG
  * before an ICO, and the nearest of each.
+ * @param {string} root
+ * @param {number=} depth
+ * @returns {string}
  */
 function findIcon(root, depth = 4) {
     const found = [];
@@ -70,11 +80,18 @@ function findIcon(root, depth = 4) {
     return found[0]?.file || "";
 }
 
-/** The file of a project's favicon, if it has one. Only a file found above can be asked for. */
+/**
+ * The file of a project's favicon, if it has one. Only a file found above can be asked for.
+ * @param {string} project
+ * @returns {string}
+ */
 function iconFile(project) {
     return iconCache.data[project] || "";
 }
 
+
+
+// The public API
 module.exports = {
     readIcons,
     iconFile,

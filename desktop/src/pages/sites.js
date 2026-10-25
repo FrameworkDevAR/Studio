@@ -5,6 +5,8 @@
 /**
  * The host a project's apps answer on: the one most of them use, leaving out
  * localhost. A project may have an app or two set to another one.
+ * @param {string} project
+ * @returns {string}
  */
 function hostOf(project) {
     const counts = new Map();
@@ -22,6 +24,8 @@ function hostOf(project) {
  * has apps, so projects with an app or two share a row; then the blocks of a
  * row that is not full share out what is left, so the row is always filled.
  * Two projects of one app each take half a row each.
+ * @param {number[]} needs
+ * @returns {number[]}
  */
 function blockSpans(needs) {
     const spans = [ ...needs ];
@@ -43,7 +47,24 @@ function blockSpans(needs) {
     return spans;
 }
 
-/** How many of a block's apps could be started now. */
+/**
+ * A card of the Sites page: one app or server, with what its card shows.
+ * @typedef {{ key: string, target: string, label: string, running: boolean,
+ *     starting: boolean, stopping: boolean, url: string, port: number,
+ *     mark?: string }} SitesCard
+ */
+
+/**
+ * A block of the Sites page: a project, and the cards of its apps or servers;
+ * its kind is "servers" or "apps".
+ * @typedef {{ title: string, kind: string, project: string, cards: SitesCard[] }} SitesBlock
+ */
+
+/**
+ * How many of a block's apps could be started now.
+ * @param {SitesBlock} group
+ * @returns {number}
+ */
 function stoppedCount(group) {
     return group.cards.filter((card) => !card.running && !card.starting && !card.stopping).length;
 }
@@ -64,7 +85,11 @@ const BRANCH_ICON    = `<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/>
  */
 const iconColors = new Map();
 
-/** The style giving a block its favicon's color, once known; the palette's until then. */
+/**
+ * The style giving a block its favicon's color, once known; the palette's until then.
+ * @param {string} project
+ * @returns {string}
+ */
 function iconTone(project) {
     const color = iconColors.get(project);
     if (color === undefined && state.icons.includes(project)) {
@@ -79,6 +104,8 @@ function iconTone(project) {
  * pixels by hue: the busiest hue wins, weighted by how vivid each pixel is.
  * Greys, near-whites and near-blacks are left out, so a logo's own color
  * shows rather than its background. Draws the blocks again once known.
+ * @param {string} project
+ * @returns {void}
  */
 function readIconColor(project) {
     const image = new Image();
@@ -122,7 +149,13 @@ function readIconColor(project) {
     image.src = `/api/icon?project=${encodeURIComponent(project)}`;
 }
 
-/** An RGB color as hue (0-360), saturation and lightness (0-100). */
+/**
+ * An RGB color as hue (0-360), saturation and lightness (0-100).
+ * @param {number} red
+ * @param {number} green
+ * @param {number} blue
+ * @returns {{ hue: number, saturation: number, lightness: number }}
+ */
 function toHsl(red, green, blue) {
     const [ r, g, b ] = [ red / 255, green / 255, blue / 255 ];
     const max   = Math.max(r, g, b);
@@ -141,13 +174,18 @@ function toHsl(red, green, blue) {
 
 /**
  * A project's badge: the initials of its first two words, so Shop Alpha is SA.
+ * @param {string} title
+ * @returns {string}
  */
 function monogramOf(title) {
     const words = title.split(/\s+/);
     return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
 }
 
-/** The apps and the servers together, for the counts. */
+/**
+ * The apps and the servers together, for the counts.
+ * @returns {Object<string, *>[]}
+ */
 function allApps() {
     return [ ...state.apps, ...state.servers ];
 }
@@ -156,6 +194,7 @@ function allApps() {
  * The apps as cards, in a block per project: the projects with servers of
  * their own first, as their servers come, then each project's apps in the
  * menu's order. A project's title is its apps' names up to the " - ".
+ * @returns {void}
  */
 function renderSites() {
     const groups = [];
@@ -289,6 +328,8 @@ function renderSites() {
  * as "DE" for desktop. A card whose two letters another one in the block
  * already has takes the next letter instead, so chat and checkin are "CH" and
  * "CE", and no two cards in a block look the same.
+ * @param {SitesCard[]} cards
+ * @returns {void}
  */
 function markCards(cards) {
     const taken = new Set();
@@ -308,6 +349,13 @@ const ACTION_ICONS = {
     stop  : `<rect x="6" y="6" width="12" height="12" rx="2"/>`,
 };
 
+/**
+ * An action of a card as an icon button, its label for a title.
+ * @param {"start" | "open" | "stop"} kind
+ * @param {string} label
+ * @param {string} attributes the button's data attributes, as HTML
+ * @returns {string}
+ */
 function iconButton(kind, label, attributes) {
     return `<button class="icon-btn ${kind}" title="${esc(label)}" aria-label="${esc(label)}"
         ${attributes}><svg viewBox="0 0 24 24">${ACTION_ICONS[kind]}</svg></button>`;
@@ -317,6 +365,8 @@ function iconButton(kind, label, attributes) {
  * One app: its monogram with the status dot on its corner, the name and where it
  * answers, then the actions as icon buttons. A running app wears its block's
  * color; a stopped one stays grey until hovered.
+ * @param {SitesCard} card
+ * @returns {string}
  */
 function appCard(card) {
     let state   = card.running ? "on" : "idle";
@@ -358,7 +408,10 @@ function appCard(card) {
     `;
 }
 
-/** The vhosts, one row per name with its http and https side by side, never checked. */
+/**
+ * The vhosts, one row per name with its http and https side by side, never checked.
+ * @returns {void}
+ */
 function renderVhosts() {
     const rows = new Map();
     for (const vhost of state.vhosts) {

@@ -41,7 +41,10 @@ main();
 
 // ------------------------------------------------------------------- entry ---
 
-/** Runs the clicked action, or prints the menu when there is no argument. */
+/**
+ * Runs the clicked action, or prints the menu when there is no argument.
+ * @returns {void}
+ */
 function main() {
     const [ , , action, argument ] = process.argv;
     if (action) {
@@ -51,7 +54,10 @@ function main() {
     renderMenu();
 }
 
-/** The whole menu, in the order it appears. */
+/**
+ * The whole menu, in the order it appears.
+ * @returns {void}
+ */
 function renderMenu() {
     const state = readState();
 

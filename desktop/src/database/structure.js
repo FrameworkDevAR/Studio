@@ -5,8 +5,17 @@
 // --------------------------------------------------------------- structure ---
 
 /**
+ * A column of a table's structure, as the server reads it: its type as MariaDB writes it and its
+ * bare type, what it starts with, its key, extra, comment and collation, and whether it is binary.
+ * @typedef {{ name: string, type: string, dataType: string, nullable: boolean,
+ *     default: string, value: { kind: string, value: string }, key: string, extra: string,
+ *     comment: string, collation: string, binary: boolean }} DbStructureColumn
+ */
+
+/**
  * The table's columns, filtered as typed, and its indexes, to add and
  * drop, each scrolling its own; its CREATE TABLE is in Information.
+ * @returns {Promise<void>}
  */
 async function loadStructure() {
     const box = document.getElementById("browse-structure");
@@ -125,6 +134,7 @@ async function loadStructure() {
  * The dialog that adds an index: its kind, the columns it is on, in the
  * order they are ticked, which is the order that counts for an index, and
  * its name, made from them until it is typed over.
+ * @returns {void}
  */
 function openIndexDialog() {
     const structure = browse.structure;
@@ -206,13 +216,22 @@ function openIndexDialog() {
     });
 }
 
-/** A kind picked; a primary key has no name of its own. */
+/**
+ * A kind picked; a primary key has no name of its own.
+ * @param {HTMLElement} button
+ * @returns {void}
+ */
 function pickIndexKind(button) {
     setActive(button);
     /** @type {HTMLElement} */ (button.closest("form").querySelector("[data-index-name]")).hidden =
         button.dataset.indexKind === "primary";
 }
 
+/**
+ * Drops an index, or the primary key, once the user is sure.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
 async function dropIndex(name) {
     const sure = await ask({
         title  : name === "PRIMARY"
@@ -233,7 +252,11 @@ async function dropIndex(name) {
 
 // --------------------------------------------------------------- foreign keys ---
 
-/** A rule, short, as the list shows it. */
+/**
+ * A rule, short, as the list shows it.
+ * @param {string} rule
+ * @returns {string}
+ */
 function fkRule(rule) {
     return {
         "RESTRICT"  : "restrict",
@@ -248,7 +271,8 @@ function fkRule(rule) {
  * the one it refers to in the table picked -- its primary key at first --
  * what a delete and an update there do here, and its name, made from the
  * table and columns until it is typed over.
- * @param {string | null} name The key to change, or none for a new one.
+ * @param {string=} name The key to change, or none for a new one.
+ * @returns {Promise<void>}
  */
 async function openForeignKeyDialog(name = null) {
     const structure = browse.structure;
@@ -426,6 +450,11 @@ async function openForeignKeyDialog(name = null) {
     });
 }
 
+/**
+ * Drops a foreign key, once the user is sure. Gives whether it was dropped.
+ * @param {string} name
+ * @returns {Promise<boolean>}
+ */
 async function dropForeignKey(name) {
     const key  = browse.structure.foreign.find((one) => one.name === name);
     const sure = await ask({
@@ -459,6 +488,13 @@ async function dropForeignKey(name) {
  * filtered to it, as Sequel Ace's arrow in a cell does.
  */
 let pendingFilters = null;
+/**
+ * Opens the rows a cell's foreign key refers to, if its column has a key of its own and the cell
+ * a value.
+ * @param {number} at The column's place.
+ * @param {number} index The row's place.
+ * @returns {void}
+ */
 function followForeignKey(at, index) {
     const { structure, rows } = browse.rows;
     const column = structure.columns[at];
@@ -481,13 +517,20 @@ function followForeignKey(at, index) {
     navigate(browsePath("rows", key.table));
 }
 
-/** A table's size on disk, data and indexes, for a title; nothing for a view. */
+/**
+ * A table's size on disk, data and indexes, for a title; nothing for a view.
+ * @param {string} name
+ * @returns {string}
+ */
 function size(name) {
     const table = browse.tables.find((one) => one.name === name);
     return table && !table.view ? ` · ${bytes(table.size)}` : "";
 }
 
-/** The columns whose name, type or comment has the text typed. */
+/**
+ * The columns whose name, type or comment has the text typed.
+ * @returns {void}
+ */
 function renderStructureColumns() {
     const structure = browse.structure;
     const search    = /** @type {HTMLInputElement} */ (document.getElementById("structure-filter"))
@@ -519,6 +562,8 @@ function renderStructureColumns() {
 /**
  * What a column starts with, as the grid shows it: nothing and NULL muted, an empty text named, a
  * generated column's expression after "as".
+ * @param {DbStructureColumn} column
+ * @returns {string}
  */
 function defaultCell(column) {
     const { kind, value } = column.value;

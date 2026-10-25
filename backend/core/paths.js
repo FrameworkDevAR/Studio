@@ -35,6 +35,8 @@ const TOOLS = {
 /**
  * The paths of a config, with the defaults filled in and `~` expanded. The
  * tools inside Homebrew -- brew, httpd, apachectl -- come from `homebrew`.
+ * @param {Object<string, *>} config
+ * @returns {Object<string, string>}
  */
 function pathsOf(config) {
     const paths    = { ...DEFAULTS };
@@ -51,7 +53,11 @@ function pathsOf(config) {
     };
 }
 
-/** The tools of a config, with the defaults filled in. */
+/**
+ * The tools of a config, with the defaults filled in.
+ * @param {Object<string, *>} config
+ * @returns {{ browser: string, editor: string, phpMyAdmin: string }}
+ */
 function toolsOf(config) {
     const tools = { ...TOOLS };
     for (const key of Object.keys(TOOLS)) {
@@ -62,9 +68,16 @@ function toolsOf(config) {
     return tools;
 }
 
-/** ~/Projects -> /Users/someone/Projects, so the config can be shared. */
+/**
+ * ~/Projects -> /Users/someone/Projects, so the config can be shared.
+ * @param {string} dir
+ * @returns {string}
+ */
 function expandHome(dir) {
     return String(dir || "").replace(/^~(?=\/|$)/, os.homedir());
 }
 
+
+
+// The public API
 module.exports = { DEFAULTS, TOOLS, pathsOf, toolsOf, expandHome };
