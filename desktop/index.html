@@ -248,6 +248,97 @@
             </div>
         </section>
 
+        <!-- ------------------------------------------------------ database -->
+        <!-- One database's tables: their structure, their rows, their information, and SQL to run. -->
+        <section data-view="database">
+            <header class="page-head">
+                <div>
+                    <h1><a href="/databases" class="crumb">Databases</a><span class="crumb-sep">/</span><span class="menu-wrap db-switch"><button class="db-switch-btn" data-db-switch aria-haspopup="listbox" title="Switch to another database"><span id="browse-db"></span><svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div id="db-switch" class="menu menu-left db-switch-menu" hidden><input type="search" id="db-switch-filter" placeholder="Filter databases…" spellcheck="false" autocomplete="off"><div id="db-switch-list" class="db-switch-list" role="listbox"></div></div></span></h1>
+                </div>
+                <div class="actions">
+                    <div class="segmented" id="browse-tabs">
+                        <button data-browse-tab="tables">Tables</button>
+                        <button data-browse-tab="structure">Structure</button>
+                        <button data-browse-tab="rows">Rows</button>
+                        <button data-browse-tab="info">Information</button>
+                        <button data-browse-tab="sql">SQL</button>
+                    </div>
+                    <!-- What is done to the database as a whole, in a menu. -->
+                    <div class="menu-wrap">
+                        <button class="ghost" data-menu="browse-menu" aria-haspopup="menu">Actions<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                        <div id="browse-menu" class="menu" role="menu" hidden>
+                            <button role="menuitem" data-db-import>Import…</button>
+                            <button role="menuitem" data-db-export>Export…</button>
+                            <a role="menuitem" id="browse-pma" target="_blank" rel="noopener">Open phpMyAdmin</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="browse">
+                <div class="browse-aside">
+                    <div class="panel browse-side">
+                        <input id="table-filter" type="search" placeholder="Filter tables…" spellcheck="false" autocomplete="off">
+                        <div id="browse-tables" class="browse-tables"></div>
+                    </div>
+                    <!-- What the marked table is, as Sequel Ace's Table Information has it. -->
+                    <div id="table-info" class="panel table-info" hidden></div>
+                </div>
+                <div class="browse-main">
+                    <div id="browse-overview" class="panel browse-fill">
+                        <div class="panel-head">
+                            <h2>Tables <span id="overview-count" class="muted"></span></h2>
+                            <div class="head-tools">
+                                <input id="overview-filter" type="search" placeholder="Filter tables…" spellcheck="false" autocomplete="off">
+                                <button class="ghost" data-table-add>Add table</button>
+                            </div>
+                        </div>
+                        <div class="grid-wrap"><div class="grid-scroll"><table id="overview-grid" class="data-grid fill"></table></div></div>
+                    </div>
+                    <div id="browse-rows" class="panel browse-fill">
+                        <div class="panel-head">
+                            <h2 id="rows-title"></h2>
+                            <div class="head-tools">
+                                <button class="ghost" data-row-new>New row</button>
+                                <button class="ghost" data-table-menu aria-haspopup="menu">Table<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                            </div>
+                        </div>
+                        <!-- The filters, as Sequel Ace has them: a rule per line, all or any of them. -->
+                        <form id="rows-filters" class="filter-bar" autocomplete="off"></form>
+                        <div id="rows-note" class="form-note" hidden></div>
+                        <div class="grid-wrap"><div class="grid-scroll"><table id="rows-grid" class="data-grid"></table></div></div>
+                        <div class="rows-foot">
+                            <input id="column-filter" type="search" placeholder="Filter columns…" spellcheck="false" autocomplete="off">
+                            <div id="rows-pager" class="pager"></div>
+                        </div>
+                    </div>
+                    <div id="browse-structure" class="browse-structure"></div>
+                    <div id="browse-info" class="panel browse-fill"></div>
+                    <div id="browse-sql" class="panel">
+                        <div class="sql-box">
+                            <pre id="sql-paint" class="sql-paint" aria-hidden="true"></pre>
+                            <textarea id="sql-text" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="SELECT * FROM …"></textarea>
+                        </div>
+                        <div class="sql-bar">
+                            <!-- The queries run here before, and the ones kept, to use again. -->
+                            <div class="menu-wrap">
+                                <button class="ghost" data-menu="sql-history" aria-haspopup="menu">History<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                                <div id="sql-history" class="menu menu-left sql-menu" role="menu" hidden></div>
+                            </div>
+                            <div class="menu-wrap">
+                                <button class="ghost" data-menu="sql-favorites" aria-haspopup="menu">Favorites<svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+                                <div id="sql-favorites" class="menu menu-left sql-menu" role="menu" hidden></div>
+                            </div>
+                            <span id="sql-status" class="editor-status"></span>
+                            <button class="ghost" data-sql-explain title="EXPLAIN the statement the cursor is in">Explain</button>
+                            <button class="ghost" data-sql-current title="Run the statement the cursor is in">Run current <kbd>⇧⌘↩</kbd></button>
+                            <button data-sql-run><span id="sql-run-label">Run all</span> <kbd>⌘↩</kbd></button>
+                        </div>
+                        <div id="sql-results"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ----------------------------------------------------- databases -->
         <section data-view="databases">
             <header class="page-head">
@@ -392,6 +483,13 @@
         </form>
     </dialog>
 
+    <!-- A row's menu, opened by a right click in the rows grid. -->
+    <div id="row-menu" class="menu context-menu" role="menu" hidden></div>
+    <!-- The options of the select open, to pick from and search. -->
+    <div id="picker" class="picker-box" popover="manual" tabindex="-1"><input type="search" placeholder="Search…" spellcheck="false" autocomplete="off" aria-label="Search the options"><div class="picker-list" role="listbox"></div></div>
+    <!-- What the SQL box offers to complete the word typed. -->
+    <div id="sql-complete" class="menu context-menu sql-complete" role="listbox" hidden></div>
+
     <!-- The file editor: the file's text, checked as it is typed. -->
     <dialog id="editor" class="editor">
         <header class="editor-head">
@@ -466,6 +564,7 @@
             </header>
             <div id="form-body" class="form-body"></div>
             <footer class="editor-foot">
+                <button type="button" id="form-remove" class="danger" hidden></button>
                 <span id="form-status" class="editor-status"></span>
                 <span class="actions">
                     <button type="button" class="ghost" data-close-form>Cancel</button>
@@ -489,9 +588,11 @@
     <script src="/src/node.js"></script>
     <script src="/src/apache.js"></script>
     <script src="/src/databases.js"></script>
+    <script src="/src/browse.js"></script>
     <script src="/src/logs.js"></script>
     <script src="/src/editor.js"></script>
     <script src="/src/clicks.js"></script>
+    <script src="/src/picker.js"></script>
     <script src="/src/start.js"></script>
 </body>
 </html>

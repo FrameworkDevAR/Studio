@@ -234,9 +234,11 @@ function ask({ title, text = "", body = "", note = "", ok = "OK", danger = false
  * Opens the form dialog with its fields, as a new database's. Its button
  * gives the form to submit, and what that gives is said in a toast once the
  * dialog closes; what it throws stays in the dialog, by the button, to fix.
- * ready gets the fields once they are in, for listeners of their own.
+ * ready gets the fields once they are in, for listeners of their own. A
+ * remove, as a row's Delete, is a red button at the left, which closes the
+ * dialog when what it runs gives true.
  */
-function formDialog({ title, text = "", body, ok, danger = false, submit, ready = null }) {
+function formDialog({ title, text = "", body, ok, danger = false, submit, ready = null, remove = null }) {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("form"));
     const form   = /** @type {HTMLFormElement} */ (document.getElementById("form-form"));
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("form-ok"));
@@ -251,6 +253,14 @@ function formDialog({ title, text = "", body, ok, danger = false, submit, ready 
     button.disabled    = false;
     status.textContent = "";
     status.className   = "editor-status";
+    const drop = /** @type {HTMLButtonElement} */ (document.getElementById("form-remove"));
+    drop.hidden      = !remove;
+    drop.textContent = remove?.label || "";
+    drop.onclick     = async () => {
+        if (await remove.run()) {
+            dialog.close();
+        }
+    };
     ready?.(fields);
     setUpPillTabs(fields);
     form.onsubmit = async (event) => {
@@ -281,4 +291,22 @@ function esc(value) {
     return String(value ?? "").replace(/[&<>"']/g, (char) => ({
         "&" : "&amp;", "<" : "&lt;", ">" : "&gt;", "\"" : "&quot;", "'" : "&#39;",
     })[char]);
+}
+
+/** Opens a button's menu, or closes it; any other open menu closes. */
+function toggleMenu(button) {
+    const menu = document.getElementById(button.dataset.menu);
+    closeMenus(menu);
+    menu.hidden = !menu.hidden;
+    button.setAttribute("aria-expanded", String(!menu.hidden));
+}
+
+/** Closes the open menus, but the one given. @param {Element | null} [keep] */
+function closeMenus(keep = null) {
+    for (const menu of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(".menu:not([hidden])"))) {
+        if (menu !== keep) {
+            menu.hidden = true;
+            document.querySelector(`[data-menu="${menu.id}"]`)?.setAttribute("aria-expanded", "false");
+        }
+    }
 }

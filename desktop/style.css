@@ -80,7 +80,10 @@
 }
 :root { --serif: "Noto Serif", Georgia, "Times New Roman", serif; }
 
+/* No elastic bounce at a scroll's ends, on the page or in any box that scrolls. */
 * { box-sizing: border-box; }
+/* No bounce at the page's ends. Only the page's: on every box, Chrome stops the wheel in the grids inside. */
+html, body { overscroll-behavior: none; }
 
 body {
     margin: 0;
@@ -252,7 +255,7 @@ button.ghost, .button.ghost { background: var(--panel); color: var(--text); bord
 button.ghost:hover, .button.ghost:hover { background: var(--hover); filter: none; }
 button.danger { background: var(--panel); color: var(--red); border-color: var(--border); }
 button.danger:hover { background: var(--red-bg); filter: none; }
-button.danger-fill { background: var(--red); color: #fff; }
+button.danger-fill { background: var(--red); border-color: var(--red); color: #fff; }
 button:disabled { opacity: .5; cursor: progress; }
 button.small, .button.small { padding: 3px 10px; font-size: 12.5px; }
 
@@ -715,7 +718,7 @@ input, select {
     transition: border-color .12s, background .12s;
 }
 /* The theme's muted text, a little faded, so a hint never reads as a value. */
-input::placeholder { color: color-mix(in srgb, var(--muted) 70%, transparent); opacity: 1; }
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--muted) 70%, transparent); opacity: 1; }
 input:hover, select:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 input:focus, select:focus { outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
 
@@ -741,6 +744,34 @@ input:focus, select:focus { outline: 3px solid color-mix(in srgb, var(--accent) 
 }
 .select:hover::after, .select:focus-within::after { background: var(--accent); }
 select option { background: var(--panel); color: var(--text); }
+
+/*
+ * The selects as buttons: the select stays, hidden, with its value; the
+ * button looks as it did, and opens its options in a list that searches.
+ */
+.select > select.picker-source { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.picker { display: block; width: 100%; height: 32px; padding: 0 32px 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); color: var(--strong); font: inherit; font-size: 13px; font-weight: 400; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: border-color .12s; }
+.picker:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); filter: none; }
+.picker:focus-visible, .picker[aria-expanded="true"] { outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+.picker:disabled { opacity: .5; cursor: default; }
+.setting.dirty .picker { border-color: var(--accent); }
+.setting.removing .picker { opacity: .55; border-style: dashed; }
+.filter-rule .picker, .filter-query .picker { height: 28px; padding: 0 28px 0 9px; border-radius: 8px; font-size: 12px; }
+/* The list: a popover, so over a dialog too, as the menus look. */
+.picker-box { position: fixed; inset: auto; margin: 0; display: none; flex-direction: column; max-width: min(480px, 90vw); max-height: min(360px, 60vh); padding: 5px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: color-mix(in srgb, var(--panel) 30%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 12px 32px rgb(0 0 0 / .18); outline: none; }
+.picker-box:popover-open { display: flex; }
+.picker-box input { flex: none; height: 30px; margin-bottom: 5px; }
+.picker-list { overflow: auto; min-height: 0; }
+.picker-option { padding: 6px 10px; border-radius: 7px; font-size: 13px; cursor: default; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-option.active { background: color-mix(in srgb, var(--strong) 10%, transparent); }
+.picker-option.picked { color: var(--accent); font-weight: 600; }
+.picker-option.off { color: var(--muted); opacity: .6; }
+/* A group's name, smaller and dimmer, its options under it, set in, as a select shows them. */
+.picker-group { padding: 8px 10px 3px; color: color-mix(in srgb, var(--muted) 65%, transparent); font-size: 11.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-option.in-group { padding-left: 24px; }
+.picker-list hr + .picker-group, .picker-group:first-child { padding-top: 6px; }
+.picker-list hr { margin: 4px; border: 0; border-top: 1px solid var(--border); }
+.picker-none { padding: 8px 10px; color: var(--muted); font-size: 12.5px; }
 
 .panel.problem { color: var(--red); background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .panel.problem code { color: inherit; }
@@ -889,6 +920,330 @@ button.db-user:hover { filter: none; color: var(--accent); background: var(--acc
 .user-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 12px; margin: 0; padding-top: 10px; border-top: 1px solid var(--border); font-size: 12px; }
 .user-facts dt { color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
 .user-facts dd { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; margin: 0; }
+
+/* --------------------------------------------------------- database page */
+
+h1 .crumb { color: var(--muted); }
+h1 .crumb:hover { color: var(--accent); text-decoration: none; }
+.crumb-sep { margin: 0 10px; color: var(--border); }
+/*
+ * The page fits the window, as the logs do, so only one thing scrolls: the
+ * grid of rows or tables inside its panel, or the tab's panels together.
+ */
+section[data-view="database"].active { display: flex; flex-direction: column; height: calc(100vh - var(--top) - 24px); }
+main:has(section[data-view="database"].active) { padding-bottom: 24px; }
+section[data-view="database"] > .page-head { margin-bottom: 2px; }
+.browse { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; }
+.browse.whole { grid-template-columns: minmax(0, 1fr); }
+.browse.whole .browse-aside { display: none; }
+.browse-aside { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+.browse-side { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; margin: 0; padding: 14px 10px 10px; }
+.table-info { flex: none; margin: 0; padding: 12px 14px; overflow: hidden; font-size: 12px; }
+.table-info dl { display: flex; flex-direction: column; gap: 5px; margin: 0; }
+.table-info dl > div { display: flex; gap: 12px; }
+.table-info dt { flex: none; color: var(--muted); }
+.table-info dd { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); text-align: right; font-variant-numeric: tabular-nums; }
+/* An estimate of a table's rows, which counts them when clicked. */
+/* Inline text with a dashed underline, so a row is as tall as with the count in it. */
+.estimate { display: inline; padding: 0; border: 0; border-radius: 0; background: none; color: var(--muted); font: inherit; line-height: inherit; text-decoration: underline dashed; text-underline-offset: 3px; cursor: pointer; }
+.estimate:hover { color: var(--accent); }
+.estimate:disabled { text-decoration: none; cursor: default; }
+.table-info .none { color: var(--muted); opacity: .6; }
+.browse-side input { flex: none; }
+.browse-tables { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+/* The keys scroll a table clear of the list's 28px fades, not just into the box. */
+.table-link { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; color: var(--text); scroll-margin: 28px 0; }
+.table-link:hover { background: var(--hover); text-decoration: none; }
+.table-link.active { background: color-mix(in srgb, var(--muted) 20%, transparent); }
+.table-link.active .table-name { color: var(--strong); }
+.focused .table-link.active { background: var(--accent-bg); }
+.focused .table-link.active .table-name { color: var(--accent); }
+.table-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.browse-tables .pkg-none { padding: 14px 10px; font-size: 13px; }
+.browse-main { min-width: 0; min-height: 0; overflow: auto; }
+.browse-main > .browse-fill { display: flex; flex-direction: column; height: 100%; margin: 0; }
+.browse-fill .grid-wrap { flex: 1; min-height: 0; }
+.browse-fill .panel-head, .browse-fill .pager, #rows-note { flex: none; }
+#overview-filter { width: 240px; }
+#browse-sql { margin: 0; }
+/* The columns and the indexes share the window, and each scrolls its own. */
+.browse-structure { display: flex; flex-direction: column; gap: 18px; height: 100%; }
+.browse-structure > .panel { display: flex; flex-direction: column; min-height: 0; margin: 0; }
+.browse-structure .panel-head { flex: none; }
+.structure-columns { flex: 1 1 0; min-height: 160px !important; }
+.structure-columns .grid-wrap { flex: 1; min-height: 0; }
+/* The indexes as tall as the table's information beside them, always, and as tight. */
+.table-info, .structure-indexes { height: 182px; }
+/* The indexes and the foreign keys side by side, under the columns. */
+.structure-keys { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.structure-keys.alone { grid-template-columns: 1fr; }
+.structure-keys > .panel { margin: 0; }
+.structure-keys .structure-indexes { display: flex; flex-direction: column; min-width: 0; }
+.fk-line { cursor: pointer; }
+.fk-text { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fk-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fk-map { color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.fk-text small { color: var(--muted); font-size: 11.5px; }
+.fk-line:hover .fk-map { color: var(--accent); }
+.fk-target { color: inherit; text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+.fk-pairs { display: flex; flex-direction: column; gap: 8px; }
+.fk-pair { display: grid; grid-template-columns: 1fr auto 1fr 28px; align-items: center; gap: 8px; }
+.fk-arrow { color: var(--muted); }
+.fk-more { align-self: flex-start; }
+/* A foreign key's value, with the arrow to the row it refers to, shown on hover. */
+.data-grid td.linked { position: relative; padding-right: 30px; }
+.fk-follow { position: absolute; top: 50%; right: 5px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--muted); translate: 0 -50%; opacity: 0; transition: opacity .12s; }
+.fk-follow svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.data-grid tr:hover td.linked .fk-follow, .fk-follow:focus-visible { opacity: 1; }
+.fk-follow:hover { filter: none; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+.structure-indexes { flex: none; padding: 10px 14px 8px; }
+.structure-indexes .panel-head { margin-bottom: 4px; }
+.structure-indexes h2 { font-size: 15px; }
+/* The lists run to the panel's edges, so a line's highlight does, as a grid's row. */
+.structure-indexes .index-list { margin: 0 -14px; }
+.structure-indexes .structure-line { padding: 4px 16px; transition: background .12s; }
+.structure-indexes .structure-line:hover { background: var(--hover); }
+.index-list { min-height: 0; overflow: auto; }
+#structure-filter { width: 240px; }
+.head-tools { display: flex; align-items: center; gap: 8px; }
+/* A column being dragged, and the line where it would land. */
+#structure-grid tr.dragging td { opacity: .45; }
+#structure-grid tr.drop-above td { box-shadow: inset 0 2px 0 var(--accent); }
+#structure-grid tr.drop-below td { box-shadow: inset 0 -2px 0 var(--accent); }
+select.cell-input { padding: 0 4px; }
+.column-type { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px; }
+.column-checks { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.column-checks[hidden] { display: none; }
+#rows-search { width: 240px; }
+#rows-note { margin: -4px 0 12px; }
+/*
+ * The filter rules, a line each, small to fit many, then the WHERE they
+ * make, with whether all or any hold, Filter and Clear beside it.
+ */
+.filter-bar { flex: none; display: flex; flex-direction: column; gap: 5px; margin: -4px 0 12px; }
+.filter-rules { display: flex; flex-direction: column; gap: 5px; }
+.filter-rule { display: flex; align-items: center; gap: 5px; }
+.filter-rule input, .filter-rule select, .filter-query select { height: 28px; padding: 0 9px; border-radius: 8px; font-size: 12px; }
+.filter-rule .field.select { flex: none; width: 170px; }
+.filter-rule .field.select.op { width: 132px; }
+.filter-rule .field.select select, .filter-query .field.select select { padding-right: 26px; }
+.filter-rule input:not(.box) { flex: 1; min-width: 80px; font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.filter-rule input.box { width: 16px; height: 16px; margin: 0 4px 0 2px; padding: 0; border-radius: 5px; }
+.filter-rule.off > :not(.box) { opacity: .45; }
+.filter-rule .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
+.filter-rule .icon-btn svg { width: 12px; height: 12px; }
+.filter-rule:not(:last-child) [data-filter-add] { visibility: hidden; }
+.filter-and { flex: none; color: var(--muted); font-size: 12px; }
+/* The WHERE the rules make, in a dashed box, with the match, Filter and Clear beside it. */
+.filter-foot { display: flex; align-items: center; gap: 6px; }
+.filter-query { flex: 1; min-width: 0; display: flex; align-items: center; height: 28px; padding: 0 10px; border: 1px dashed color-mix(in srgb, var(--muted) 55%, var(--border)); border-radius: 8px; }
+.filter-sql { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; background: none; font-size: 11.5px; }
+.filter-sql .muted { font-family: -apple-system, system-ui, sans-serif; }
+.filter-foot .field.select { flex: none; width: 108px; }
+.filter-foot button { flex: none; height: 28px; }
+.filter-bar.applied .filter-query { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
+
+/* A grid of rows, scrolling sideways when wide, its header in sight as it scrolls. */
+/* Solid, as the row buttons' column lies over the cells when the grid scrolls sideways. */
+.browse-main, .sql-result { --grid: color-mix(in srgb, var(--field) 55%, var(--panel)); }
+.grid-wrap { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--grid); }
+.grid-scroll { flex: 1; min-height: 0; overflow: auto; }
+/*
+ * A scrolling box fades out at the edges where more of it is hidden, which
+ * the script sets as it scrolls, and the fades come and go smoothly.
+ */
+@property --fade-top    { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-bottom { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-left   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-right  { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-skip   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-edge   { syntax: "<color>"; inherits: false; initial-value: #000; }
+@property --fade-foot   { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --fade-floor  { syntax: "<color>"; inherits: false; initial-value: #000; }
+[data-fades] {
+    transition: --fade-top .25s, --fade-bottom .25s, --fade-left .25s, --fade-right .25s, --fade-edge .25s, --fade-floor .25s;
+    /* The bottom fade ends above a grid's totals, as the right one before its buttons. */
+    mask-image:
+        linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-foot) - var(--fade-bottom)),
+            var(--fade-floor) calc(100% - var(--fade-foot)), #000 calc(100% - var(--fade-foot))),
+        linear-gradient(to right, transparent, #000 var(--fade-left), #000 calc(100% - var(--fade-skip) - var(--fade-right)),
+            var(--fade-edge) calc(100% - var(--fade-skip)), #000 calc(100% - var(--fade-skip)));
+    mask-composite: intersect;
+}
+/* As wide as its columns need, never stretched to fill the panel. */
+.data-grid { width: max-content; border-collapse: separate; border-spacing: 0; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12px; }
+.data-grid th { position: sticky; top: 0; z-index: 1; padding: 0; white-space: nowrap; text-transform: none; letter-spacing: 0; font-size: 12px; background: var(--code-bg); }
+.data-grid th .sort, .data-grid th .th { display: flex; align-items: center; gap: 5px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: none; color: var(--strong); font: 600 12px "SF Mono", ui-monospace, Menlo, monospace; text-align: left; white-space: nowrap; }
+.data-grid th .sort:hover { filter: none; color: var(--accent); }
+.data-grid th .sort.active { color: var(--accent); }
+.sort-dir { font-family: -apple-system, system-ui, sans-serif; }
+.key { display: inline-flex; margin-right: 5px; color: var(--amber); vertical-align: -2px; }
+.key svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.data-grid td { max-width: 320px; padding: 6px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.data-grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-grid th .sort.right { justify-content: flex-end; }
+.data-grid td.comment { max-width: 260px; color: var(--muted); font-family: -apple-system, system-ui, sans-serif; }
+/* The tables' and the columns' grids as wide as their panel, the comment taking what the others leave, cut to fit. */
+.data-grid.fill { width: 100%; }
+.data-grid.fill td.comment { width: 100%; min-width: 200px; max-width: 0; }
+.data-grid tfoot td { position: sticky; bottom: 0; background: var(--code-bg); color: var(--strong); font-weight: 600; border-top: 1px solid var(--border); border-bottom: 0; }
+.grid-link { color: var(--strong); font-weight: 600; }
+.grid-link:hover { color: var(--accent); text-decoration: none; }
+.data-grid td.empty { max-width: none; padding: 26px 18px; font-family: -apple-system, system-ui, sans-serif; font-size: 13px; }
+.data-grid td.empty.bad { color: var(--red); }
+.data-grid tbody tr:last-child td { border-bottom: 0; }
+/* Another table's rows come in; a new page or sort of the same one replaces them in place. */
+/* Columns dragged to a width keep it, and cut what does not fit. */
+.data-grid.fixed { table-layout: fixed; }
+.data-grid.fixed td { max-width: none; }
+.data-grid.fixed th .sort { overflow: hidden; }
+.col-resize { position: absolute; top: 0; right: -4px; bottom: 0; z-index: 2; width: 8px; cursor: col-resize; touch-action: none; }
+.col-resize::after { content: ""; position: absolute; top: 25%; bottom: 25%; left: 3px; width: 2px; border-radius: 1px; background: var(--accent); opacity: 0; transition: opacity .15s; }
+.data-grid th:hover .col-resize::after, body.resizing .col-resize::after { opacity: .6; }
+body.resizing { cursor: col-resize; user-select: none; }
+/*
+ * A column of timestamps has a clock in its header, drawn as the key is;
+ * hovering the column makes it a button, which shows them as dates.
+ */
+.data-grid th:has(.as-date) .sort { padding-right: 34px; }
+.as-date { position: absolute; top: 50%; right: 8px; width: 22px; height: 22px; padding: 0; border-color: transparent; border-radius: 6px; background: none; color: var(--muted); translate: 0 -50%; }
+.as-date svg { width: 13px; height: 13px; }
+.data-grid th:hover .as-date { border-color: var(--border); background: var(--panel); }
+.as-date.on { color: var(--cyan); }
+.data-grid th:hover .as-date.on { border-color: color-mix(in srgb, var(--cyan) 45%, var(--border)); background: color-mix(in srgb, var(--cyan) 12%, var(--panel)); }
+.data-grid td.date { color: var(--cyan); }
+/* A long value has a button to see it whole, on hover. */
+.data-grid td.long { position: relative; padding-right: 34px; }
+.cell-open { position: absolute; top: 50%; right: 6px; display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--muted); translate: 0 -50%; opacity: 0; transition: opacity .12s; }
+.cell-open svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.data-grid td.long:hover .cell-open, .cell-open:focus-visible { opacity: 1; }
+.cell-open:hover { filter: none; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); }
+#ask[data-mode="view"] { width: min(900px, calc(100vw - 48px)); max-height: min(800px, calc(100vh - 48px)); }
+.value-view { max-height: calc(min(800px, 100vh - 48px) - 190px); margin: 6px 0; padding: 14px 16px; overflow: auto; border-radius: 10px; background: var(--code-bg); color: var(--strong); font: 12px/1.6 "SF Mono", ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+/* Dimmed while the next page or a search is read, which can take seconds in a large table. */
+.data-grid.loading tbody { opacity: .5; transition: opacity .2s; }
+.data-grid tbody tr:hover td { background: var(--hover); }
+/* A cell changed in place: a field filling it, the row's height kept. */
+.data-grid td.editing { padding: 0 2px; }
+.cell-input { width: 100%; height: 26px; padding: 0 6px; border-radius: 6px; font: inherit; }
+.editor.form.wide { width: min(900px, calc(100vw - 48px)); max-height: min(800px, calc(100vh - 48px)); }
+/* A big value's text, as the editor's body, in a framed box of its own height. */
+.editor-body.value-code { flex: none; height: min(460px, 50vh); overflow: hidden; border: 1px solid var(--border); border-radius: 10px; }
+.value-code:focus-within { outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent); border-color: var(--accent); }
+/* The marked row: the accent while its grid has the keys, grey otherwise. */
+.data-grid tbody tr.selected td { background: color-mix(in srgb, var(--muted) 20%, var(--grid)); }
+.data-grid.focused tbody tr.selected td { background: var(--accent-bg); }
+.null { color: var(--muted); font-style: italic; opacity: .75; }
+/* Under the rows: the column filter at the left, the pages at the right. */
+.rows-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+#column-filter { width: 200px; height: 28px; border-radius: 8px; font-size: 12px; }
+.pager { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 12.5px; }
+.pager .muted { margin-right: 6px; font-variant-numeric: tabular-nums; }
+.pager:empty { display: none; }
+
+.data-grid.structure .key { margin: 0 0 0 6px; }
+.structure-line .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; opacity: 0; }
+.structure-line .icon-btn svg { width: 12px; height: 12px; }
+.structure-line:hover .icon-btn, .structure-line .icon-btn:focus-visible { opacity: 1; }
+.structure-line .icon-btn:hover { color: var(--red); border-color: color-mix(in srgb, var(--red) 50%, var(--border)); background: var(--red-bg); }
+/* The index's columns: each ticked one shows its place in it. */
+.index-columns .check { position: relative; }
+.index-columns .order { flex: none; margin-left: auto; font-style: normal; }
+.index-columns .order:not(:empty) { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: var(--accent); background: var(--accent-bg); font: 650 11px -apple-system, system-ui, sans-serif; }
+.structure-line { display: flex; align-items: center; gap: 12px; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.structure-line:last-child { border-bottom: 0; }
+.structure-line > span:not(.tag) { flex: 1; min-width: 0; color: var(--muted); font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.data-grid.structure td { max-width: 260px; }
+/* The CREATE TABLE opens by its title, the chevron turning as it does. */
+
+/* The SQL console: the query, Run under it, then each result. */
+/* The SQL is typed in a clear box over its painted copy, as in the file editor. */
+.sql-box { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--input); }
+/* The text wraps, its lines numbered in a gutter at the left, as in the editor. */
+.sql-box::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 40px; border-right: 1px solid var(--border); background: color-mix(in srgb, var(--code-bg) 50%, transparent); }
+.sql-paint, .sql-box textarea { box-sizing: border-box; margin: 0; padding: 12px 14px 12px 52px; font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace; tab-size: 4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sql-paint { position: absolute; top: 0; left: 0; color: var(--strong); pointer-events: none; counter-reset: sql-line; }
+.sql-line { position: relative; }
+.sql-line::before { content: counter(sql-line); counter-increment: sql-line; position: absolute; left: -52px; width: 30px; color: color-mix(in srgb, var(--muted) 60%, transparent); text-align: right; }
+.sql-box textarea { position: relative; display: block; width: 100%; min-height: 160px; border: 0; border-radius: 0; background: transparent; color: transparent; caret-color: var(--strong); resize: vertical; }
+.sql-box textarea::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.sql-box textarea:focus { outline: none; }
+.sql-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 12px 0 0; }
+.sql-bar .editor-status { flex: 1; min-width: 0; }
+.sql-bar kbd { margin-left: 6px; font: 600 10.5px/1 -apple-system, system-ui, sans-serif; opacity: .7; }
+.sql-result { margin-top: 18px; }
+.sql-result-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 12.5px; }
+.sql-result-head code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-result-head .muted { margin-left: auto; white-space: nowrap; }
+.sql-bar .menu-wrap { flex: none; }
+.sql-bar [data-sql-current] { flex: none; }
+.menu.menu-left { right: auto; left: 0; }
+/* The history and the favorites: each query on a line, cut, with when or its name under it. */
+.sql-menu { width: 460px; max-height: min(420px, 60vh); overflow: auto; }
+.sql-menu > * { flex: none; }
+.sql-menu button[role=menuitem] { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; text-align: left; }
+.sql-menu .sql-menu-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px "SF Mono", ui-monospace, Menlo, monospace; }
+.sql-menu small { color: var(--muted); font-size: 11px; }
+.sql-menu .sql-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-menu small.sql-menu-text { font-size: 11px; }
+.menu-row { display: flex; align-items: center; gap: 2px; }
+.menu-row > button[role=menuitem] { flex: 1; }
+.menu-row > .icon-btn { flex: none; width: 26px; height: 26px; border: 0; background: none; opacity: .6; }
+.menu-row > .icon-btn:hover { opacity: 1; }
+.menu-none { padding: 8px 10px; color: var(--muted); font-size: 12.5px; }
+.data-grid.editable td { cursor: cell; }
+/* A file to pick, as a box to click or drop it on, with the one picked in it. */
+.file-drop { display: flex; align-items: center; gap: 14px; padding: 18px; border: 1.5px dashed var(--border); border-radius: 12px; background: var(--input); cursor: pointer; transition: border-color .12s, background .12s; }
+.file-drop:hover, .file-drop:has(input:focus-visible), .file-drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, var(--input)); }
+.file-drop input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.file-drop svg { flex: none; width: 28px; height: 28px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.file-drop.chosen svg { stroke: var(--accent); }
+.file-drop-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.file-drop-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font-weight: 500; }
+.file-drop-text small { color: var(--muted); font-size: 12px; }
+/* What MariaDB said of each table it optimized, analyzed, checked or repaired. */
+.upkeep-list { display: flex; flex-direction: column; max-height: 50vh; overflow: auto; }
+.upkeep-row { display: flex; gap: 16px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+.upkeep-row:first-child { border-top: 0; }
+.upkeep-table { flex: none; width: 34%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font-family: "SF Mono", ui-monospace, Menlo, monospace; }
+.upkeep-said { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--muted); }
+.upkeep-said .status { color: var(--text); }
+.upkeep-row.ok .upkeep-said .status { color: var(--green); }
+.upkeep-said .warning, .upkeep-row.warn .status { color: var(--amber); }
+.upkeep-said .error, .upkeep-row.bad .status { color: var(--red); }
+/* The CSV's columns, each with its first values, and the table's column it goes to. */
+.csv-map { display: flex; flex-direction: column; max-height: 40vh; overflow: auto; }
+.csv-map:empty { display: none; }
+.csv-map-head { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 2px 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.csv-map-row { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
+.csv-map-file { display: flex; flex-direction: column; min-width: 0; }
+.csv-map-file strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--strong); font: 500 12.5px "SF Mono", ui-monospace, Menlo, monospace; }
+.csv-map-file small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11.5px; }
+.result-value { width: 100%; min-height: 260px; font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace; resize: vertical; }
+
+/* A row's fields in its dialog: the column and its type, the value, and NULL beside it. */
+.row-field .col-type { margin-left: 4px; color: var(--muted); font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 400; }
+.row-field > span:first-child { font-family: "SF Mono", ui-monospace, Menlo, monospace; color: var(--strong); }
+.row-value { display: flex; align-items: flex-start; gap: 10px; }
+.row-value > input, .row-value > textarea, .row-value > .field { flex: 1; min-width: 0; }
+.row-value textarea { padding: 7px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); color: var(--strong); font: 12.5px/1.5 "SF Mono", ui-monospace, Menlo, monospace; resize: vertical; }
+.row-value .check { flex: none; padding-top: 6px; font-size: 12px; }
+.row-value :disabled { opacity: .5; }
+.export-form { display: flex; flex-direction: column; gap: 14px; padding: 10px 0; }
+.export-form > .form-row > span:first-child { display: flex; align-items: center; gap: 6px; }
+.export-all { margin-left: auto; margin-right: -6px; font-weight: 400; color: var(--muted); }
+.export-all button { padding: 1px 6px; border: 0; border-radius: 6px; background: none; color: var(--accent); font: inherit; cursor: pointer; }
+.export-all button:hover { background: var(--accent-bg); }
+.export-tables .check[hidden] { display: none; }
+.export-tables .check > span { flex-direction: row; align-items: center; gap: 6px; }
+/* The box keeps its border whole; the list in it scrolls and fades. */
+.export-tables-box { border: 1px solid var(--border); border-radius: 10px; background: var(--input); overflow: hidden; }
+.export-tables-box .export-tables { border: 0; border-radius: 0; background: none; }
+.export-choices { display: flex; flex-direction: column; }
+input[type="radio"].box { border-radius: 50%; }
+input[type="radio"].box:checked::after { width: 6px; height: 6px; margin: 0; border: 0; border-radius: 50%; background: var(--on-accent); rotate: 0deg; }
+.export-header { align-self: end; }
+.export-form .editor-status:empty { display: none; }
 
 /* ------------------------------------------------------------ form dialog */
 
@@ -1164,6 +1519,8 @@ a.npm-name:hover { color: var(--accent); text-decoration: underline; }
 .tag.red { color: var(--red); background: var(--red-bg); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
 .editor-head, .editor-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 18px; }
 .editor-head { border-bottom: 1px solid var(--border); }
+/* The close button keeps its square when the title or its text runs long. */
+.editor-head .icon-btn { flex: none; }
 .editor-head h2 { font-size: 18px; margin-bottom: 2px; }
 .editor-head code { font-size: 11.5px; color: var(--muted); }
 .editor-foot { border-top: 1px solid var(--border); }
@@ -1281,3 +1638,63 @@ a.npm-name:hover { color: var(--accent); text-decoration: underline; }
 .pecl-logo { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; letter-spacing: .02em; color: var(--strong); }
 .pecl-logo .logo-tile { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #777bb4; }
 .pecl-logo svg { width: 22px; height: 22px; fill: #fff; }
+
+/* ---------------------------------------------------------------- menus --- */
+.menu-wrap { position: relative; }
+.menu-wrap > button .chevron, [data-table-menu] .chevron { width: 14px; height: 14px; margin-right: -4px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: .7; }
+.menu { position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 190px; padding: 5px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); box-shadow: 0 12px 32px rgb(0 0 0 / .18); }
+.menu > button, .menu > a, .menu-row > button[role=menuitem] { justify-content: flex-start; padding: 7px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font-size: 13px; font-weight: 500; text-align: left; }
+.menu > button:hover, .menu > a:hover, .menu-row > button[role=menuitem]:hover { background: var(--hover); filter: none; text-decoration: none; }
+.menu > button:disabled { background: none; opacity: .45; }
+.menu > button.danger-item { color: var(--red); }
+.menu > hr { margin: 5px 4px; border: 0; border-top: 1px solid var(--border); }
+/* A right click's menu, at the pointer, over everything: see-through and blurred, as macOS's. */
+.context-menu { position: fixed; top: 0; right: auto; z-index: 100; min-width: 240px; background: color-mix(in srgb, var(--panel) 30%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); }
+.context-menu > button:hover { background: color-mix(in srgb, var(--strong) 10%, transparent); }
+/* The database page's menus, under their buttons, look as its right-click menu does. */
+#browse-menu, .sql-menu { background: color-mix(in srgb, var(--panel) 30%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); }
+#browse-menu > button:hover, #browse-menu > a:hover, .sql-menu > button:hover, .sql-menu .menu-row > button[role=menuitem]:hover { background: color-mix(in srgb, var(--strong) 10%, transparent); }
+#browse-menu { min-width: 240px; }
+/* The database in the title, a button to switch to another; its list under it, filtered as typed. */
+.db-switch { display: inline-block; }
+.db-switch-btn { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px; margin: 0 -4px; border: 0; border-radius: 10px; background: none; color: inherit; font: inherit; letter-spacing: inherit; }
+.db-switch-btn:hover { background: var(--hover); filter: none; }
+.db-switch-btn .chevron { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
+.db-switch-menu { width: 340px; padding: 6px; font-family: -apple-system, system-ui, sans-serif; letter-spacing: normal; background: color-mix(in srgb, var(--panel) 30%, transparent); -webkit-backdrop-filter: blur(24px) saturate(1.6); backdrop-filter: blur(24px) saturate(1.6); }
+.db-switch-menu input { width: 100%; margin-bottom: 6px; }
+.db-switch-list { display: flex; flex-direction: column; max-height: min(400px, 60vh); overflow: auto; }
+.db-switch-list > button { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 10px; border: 0; border-radius: 8px; background: none; color: var(--text); font-size: 13px; font-weight: 500; text-align: left; }
+.db-switch-list > button:hover, .db-switch-list > button.active { background: color-mix(in srgb, var(--strong) 10%, transparent); filter: none; }
+.db-switch-list > button.current .db-switch-name { color: var(--accent); }
+.db-switch-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.db-switch-list small { flex: none; color: var(--muted); font-size: 11.5px; font-weight: 400; }
+/* The words to complete, under the one typed: its name, and what it is, faint, at the right. */
+.sql-complete { width: 360px; max-height: 240px; overflow: auto; padding: 4px; }
+.sql-complete > button { display: flex; align-items: baseline; gap: 12px; padding: 4px 8px; border-radius: 6px; font: 12.5px "SF Mono", ui-monospace, Menlo, monospace; }
+.sql-complete > button.active { background: var(--accent-bg); color: var(--strong); }
+.sql-complete .complete-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-complete .complete-kind { flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font: 11px -apple-system, system-ui, sans-serif; }
+
+/* ----------------------------------------------------------- information --- */
+/* As Sequel Ace's Table Information: labels on the right of their column, values beside them. */
+#browse-info .panel-head { margin-bottom: 10px; }
+.info-form { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.info-form dl { margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.info-grid { display: grid; grid-template-columns: 130px minmax(0, 280px) 130px minmax(0, 1fr); gap: 4px 14px; align-items: center; }
+.info-wide { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 14px; }
+.info-form dt { color: var(--muted); text-align: right; }
+.info-form dd { min-width: 0; margin: 0; color: var(--strong); font-variant-numeric: tabular-nums; }
+.info-form dd.none { color: var(--muted); opacity: .6; }
+.info-form .check small { display: block; }
+/* Smaller fields than a dialog's, and each line as tall as the next id's, so a table without one lines up the same. */
+.info-form input, .info-form select { height: 28px; border-radius: 8px; font-size: 12.5px; }
+.info-form textarea { border-radius: 8px; }
+.info-stats { grid-auto-rows: 28px; }
+.info-next-field { display: flex; gap: 6px; }
+.info-next-field button { height: 28px; padding: 0 10px; border-radius: 8px; font-size: 12.5px; }
+.info-next { width: 140px; }
+.info-wide textarea { font-family: inherit; font-size: 13px; }
+.info-create { flex: 1; min-height: 0; padding-bottom: 0 !important; border-bottom: 0 !important; }
+.info-create dt { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; padding-top: 8px; }
+.info-create dd { min-height: 0; display: flex; }
+.info-create pre { flex: 1; min-height: 0; margin: 0; padding: 12px 14px; overflow: auto; border-radius: 10px; background: var(--code-bg); color: var(--text); font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, monospace; }

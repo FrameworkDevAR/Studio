@@ -14,6 +14,7 @@ function renderDatabases() {
     document.getElementById("tab-option-count").textContent = mariadb.available
         ? String(mariadb.settings.filter((option) => option.inFile).length + mariadb.overrides.length) : "";
     renderDbText();
+    renderBrowseHead();
     renderDbList();
     renderUsers();
     if (mariadb.available) {
@@ -28,7 +29,7 @@ function renderDatabases() {
 function renderDbText() {
     const file = state.mariadb.file.split("/").pop();
     document.getElementById("db-text").innerHTML = {
-        databases : "MariaDB on port 3306. Sizes include indexes and refresh every 30 seconds; a name opens the database in phpMyAdmin.",
+        databases : "MariaDB on port 3306. Sizes include indexes and refresh every 30 seconds; a name opens its tables.",
         users     : "The users the sites log in as: the databases each reaches, and what it may do there. root and your own user look after MariaDB, so they are left to phpMyAdmin.",
         options   : `Values saved here go to <code title="${esc(state.mariadb.file)}">${esc(file)}</code>, which MariaDB reads after <code>my.cnf</code>, so they win over it. MariaDB checks them first; the ones it can change as it runs apply at once, and the rest restart it.`,
     }[dbTab()];
@@ -54,7 +55,7 @@ function renderDbList() {
                 <div class="db-card-head">
                     <span class="db-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-13"/><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg></span>
                     <span class="db-title">
-                        <a class="db-name" href="${esc(db.url)}" target="_blank" rel="noopener" title="Open in phpMyAdmin">${esc(db.name)}</a>
+                        <a class="db-name" href="/database/${encodeURIComponent(db.name)}" title="Open its tables">${esc(db.name)}</a>
                         <small>${db.tables === 1 ? "1 table" : `${db.tables} tables`} · ${bytes(db.size)}</small>
                     </span>
                     <span class="db-actions">

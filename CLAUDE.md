@@ -5,7 +5,8 @@ the apps and servers of each project. See the README.
 
 - `backend/` is the server: `server.js` answers the page and the api, and each other file
   covers one part (`apache.js`, `php.js`, `node.js`, `services.js`, `databases.js` with the
-  databases and users, `mariadb.js` with MariaDB's options, `apps.js`, `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share, and
+  databases and users, `mariadb.js` with MariaDB's options, `tables.js` with a database's tables, rows, SQL,
+  export and import, `apps.js`, `logs.js`, `config.js`), with `system.js` holding the paths and helpers they share, and
   `jobs.js` running the npm and pecl installs the page follows as they go.
 - `backend/paths.js` holds the stack's paths, with their defaults, for the server and the
   plugin both.

@@ -70,6 +70,87 @@ function onClick(event) {
         openEditor("php");
     } else if (target.dataset.editMariadb !== undefined) {
         openEditor("mariadb");
+    } else if (target.dataset.browseTab) {
+        navigate(browsePath(target.dataset.browseTab));
+    } else if (target.dataset.cellOpen !== undefined) {
+        openCell(target);
+    } else if (target.dataset.asDate) {
+        toggleDates(target.dataset.asDate);
+    } else if (target.dataset.filterAdd !== undefined) {
+        addFilter();
+    } else if (target.dataset.filterRemove !== undefined) {
+        removeFilter(Number(target.dataset.filterRemove));
+    } else if (target.dataset.filterClear !== undefined) {
+        clearFilters();
+    } else if (target.dataset.countTable) {
+        countTable(target);
+    } else if (target.dataset.resetNext !== undefined) {
+        resetNext(target);
+    } else if (target.dataset.copyCreate !== undefined) {
+        copyCreate();
+    } else if (target.dataset.infoSave !== undefined) {
+        saveInfo();
+    } else if (target.dataset.fkAdd !== undefined) {
+        openForeignKeyDialog();
+    } else if (target.dataset.fkDrop) {
+        dropForeignKey(target.dataset.fkDrop);
+    } else if (target.dataset.fkFollow) {
+        followForeignKey(Number(target.dataset.fkFollow), Number(target.closest("tr").dataset.row));
+    } else if (target.dataset.dbSwitch !== undefined) {
+        toggleDbSwitch();
+    } else if (target.dataset.dbGo) {
+        switchDatabase(target.dataset.dbGo);
+    } else if (target.dataset.resultExport) {
+        openResultExport(Number(target.dataset.resultExport));
+    } else if (target.dataset.sqlUse) {
+        useSql(target.dataset.sqlUse);
+    } else if (target.dataset.sqlForget) {
+        forgetSql(target.dataset.sqlForget);
+    } else if (target.dataset.sqlKeep !== undefined) {
+        keepSql();
+    } else if (target.dataset.sqlClear !== undefined) {
+        clearSqlHistory();
+    } else if (target.dataset.sqlCurrent !== undefined) {
+        runSql("current");
+    } else if (target.dataset.sqlExplain !== undefined) {
+        runSql("explain");
+    } else if (target.dataset.menu) {
+        if (target.dataset.menu.startsWith("sql-")) {
+            renderSqlMenus();
+        }
+        toggleMenu(target);
+    } else if (target.dataset.indexAdd !== undefined) {
+        openIndexDialog();
+    } else if (target.dataset.indexKind) {
+        pickIndexKind(target);
+    } else if (target.dataset.indexDrop) {
+        dropIndex(target.dataset.indexDrop);
+    } else if (target.dataset.overviewSort) {
+        sortOverview(target.dataset.overviewSort);
+    } else if (target.dataset.sort) {
+        sortRows(target.dataset.sort);
+    } else if (target.dataset.page) {
+        turnPage(Number(target.dataset.page));
+    } else if (target.dataset.rowNew !== undefined) {
+        openRowDialog();
+    } else if (target.dataset.columnAct) {
+        columnAction(target.dataset.columnAct);
+    } else if (target.dataset.columnAdd !== undefined) {
+        openColumnDialog();
+    } else if (target.dataset.tableMenu !== undefined) {
+        toggleTableMenu(target);
+    } else if (target.dataset.tableAct) {
+        tableAction(target.dataset.tableAct);
+    } else if (target.dataset.tableAdd !== undefined) {
+        openTableDialog();
+    } else if (target.dataset.rowAct) {
+        rowAction(target.dataset.rowAct);
+    } else if (target.dataset.sqlRun !== undefined) {
+        runSql();
+    } else if (target.dataset.dbExport !== undefined) {
+        openExportDialog();
+    } else if (target.dataset.dbImport !== undefined) {
+        importDatabase();
     } else if (target.dataset.dbTab) {
         navigate(target.dataset.dbTab === "databases" ? "/databases" : `/databases/${target.dataset.dbTab}`);
     } else if (target.dataset.dbNew !== undefined) {

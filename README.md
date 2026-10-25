@@ -4,7 +4,8 @@ A control panel for the local development stack, that runs in the browser: Apach
 MariaDB, PHP, Node.js and Redis from Homebrew, and the apps and servers of each
 project. It shows what is running, starts and stops it, changes the PHP settings and
 the Apache modules, installs PHP extensions with pecl and Node's global packages with
-npm, creates and changes the databases, their users and MariaDB's options, and reads the logs, and everything stays on the machine.
+npm, creates and changes the databases, their users and MariaDB's options, browses and edits their
+tables' rows, runs SQL, exports and imports them, and reads the logs, and everything stays on the machine.
 
 ## Running it
 

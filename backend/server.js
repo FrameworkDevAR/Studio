@@ -10,6 +10,9 @@ const { ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, MYSQL_CNF, versionOf }
 const { readServices, readDisk, serviceAction, startAll, restartAll, stopAll } = require("./services");
 const db                                                                    = require("./databases");
 const mariadb                                                               = require("./mariadb");
+const tables                                                                = require("./tables");
+const exporter                                                              = require("./exports");
+const importer                                                              = require("./imports");
 const { readModules, readListen, readVhosts, setModule, reloadApache, readIncludes, setInclude,
         apacheFile, readApacheFile, checkApacheFile, saveApacheFile }       = require("./apache");
 const php                                                                   = require("./php");
@@ -89,6 +92,43 @@ async function handle(request, response) {
         }
         if (url.pathname === "/api/mariadb-file" && request.method === "GET") {
             return send(response, 200, mariadb.readOptionsFile());
+        }
+        if (url.pathname === "/api/db-tables" && request.method === "GET") {
+            return send(response, 200, await tables.readTables(url.searchParams.get("db")));
+        }
+        if (url.pathname === "/api/db-structure" && request.method === "GET") {
+            return send(response, 200, await tables.readStructure(url.searchParams.get("db"), url.searchParams.get("table")));
+        }
+        if (url.pathname === "/api/db-rows" && request.method === "GET") {
+            return send(response, 200, await tables.readRows(Object.fromEntries(url.searchParams)));
+        }
+        if (url.pathname === "/api/engines" && request.method === "GET") {
+            return send(response, 200, await tables.readEngines());
+        }
+        if (url.pathname === "/api/db-counts" && request.method === "GET") {
+            return send(response, 200, await tables.countSmallTables(url.searchParams.get("db")));
+        }
+        if (url.pathname === "/api/db-count" && request.method === "GET") {
+            return send(response, 200, await tables.countRows(Object.fromEntries(url.searchParams)));
+        }
+        // The export asked for in an action, by its id, as a download.
+        if (url.pathname === "/api/db-export" && request.method === "GET") {
+            return await exporter.runExport(response, url.searchParams.get("id"));
+        }
+        // The file to import is the request's body itself, streamed, so it is
+        // a POST with the header every action needs.
+        if (url.pathname === "/api/db-import" && request.method === "POST") {
+            if (request.headers["x-studio"] !== "1") {
+                return send(response, 403, { error : "Forbidden" });
+            }
+            return send(response, 200, await tables.importDatabase(request, Object.fromEntries(url.searchParams)));
+        }
+        // A CSV into a table, streamed as the import of a dump is, its options in the address.
+        if (url.pathname === "/api/db-import-csv" && request.method === "POST") {
+            if (request.headers["x-studio"] !== "1") {
+                return send(response, 403, { error : "Forbidden" });
+            }
+            return send(response, 200, await importer.importCsv(request, Object.fromEntries(url.searchParams)));
         }
         if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
@@ -249,6 +289,27 @@ async function runAction(body) {
     case "mariadb-options": return mariadb.setOptions(body.changes);
     case "mariadb-save":  return mariadb.saveOptionsFile(body.text);
     case "mariadb-check": return mariadb.checkOptions(body.text);
+    case "db-row":        return tables.readRow(body);
+    case "db-row-save":   return tables.saveRow(body);
+    case "db-row-delete": return tables.deleteRow(body);
+    case "db-rows-set":   return tables.setColumn(body);
+    case "db-sql":        return tables.runSql(body);
+    case "db-index-add":  return tables.addIndex(body);
+    case "db-index-drop": return tables.dropIndex(body);
+    case "db-fk-save":    return tables.saveForeignKey(body);
+    case "db-fk-drop":    return tables.dropForeignKey(body);
+    case "db-table-change": return tables.changeTable(body);
+    case "db-export":       return exporter.prepareExport(body);
+    case "db-table-create": return tables.createTable(body);
+    case "db-table-rename": return tables.renameTable(body);
+    case "db-table-copy":   return tables.duplicateTable(body);
+    case "db-table-empty":  return tables.emptyTable(body);
+    case "db-table-drop":   return tables.dropTable(body);
+    case "db-table-upkeep": return tables.maintainTables(body);
+    case "db-column-save":  return tables.saveColumn(body);
+    case "db-column-move":  return tables.moveColumn(body);
+    case "db-column-drop":  return tables.dropColumn(body);
+    case "db-next-id":    return tables.nextId(body);
     case "save-config":   return saveConfig(body.text);
     case "clear-log":     return clearLog(body.name);
     case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);

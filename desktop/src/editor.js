@@ -110,6 +110,72 @@ function paintApache(text) {
 }
 
 /**
+ * HTML or XML painted: a comment, and a tag -- its name, its attributes'
+ * names, and their values in quotes. The text between tags is left as it is.
+ */
+function paintMarkup(text) {
+    let result = "";
+    let last   = 0;
+    for (const match of text.matchAll(/<!--[\s\S]*?(?:-->|$)|<[/?!]?[A-Za-z][\w:.-]*[^<>]*>?/g)) {
+        result += escapeCode(text.slice(last, match.index));
+        last    = match.index + match[0].length;
+
+        const part = match[0];
+        if (part.startsWith("<!--")) {
+            result += `<span class="code-mark">${escapeCode(part)}</span>`;
+            continue;
+        }
+        const [ , open, name, rest ] = part.match(/^(<[/?!]?)([^\s<>/?]+)([\s\S]*)$/);
+        const close = rest.match(/[/?]?>$/)?.[0] || "";
+        const attrs = rest.slice(0, rest.length - close.length).replace(/("[^"]*"?|'[^']*'?)|([^\s="']+)|[\s\S]/g, (all, quoted, word) => (quoted
+            ? `<span class="code-string">${escapeCode(all)}</span>`
+            : word ? `<span class="code-key">${escapeCode(all)}</span>` : escapeCode(all)));
+        result += `<span class="code-mark">${escapeCode(open)}</span><span class="code-word">${escapeCode(name)}</span>${attrs}<span class="code-mark">${escapeCode(close)}</span>`;
+    }
+    return result + escapeCode(text.slice(last));
+}
+
+/**
+ * A text with its line numbers and its painted copy, as the editor's, in a
+ * box made as its body is: they follow the text as it is typed and
+ * scrolled, Tab indents, and Enter keeps the line's indent. For a value
+ * changed in a dialog.
+ */
+function codeArea(box, paint, indent = "    ") {
+    const text   = box.querySelector("textarea");
+    const lines  = box.querySelector(".editor-lines");
+    const shown  = /** @type {HTMLElement} */ (box.querySelector(".editor-paint"));
+    const update = () => {
+        // A trailing newline keeps the paint as tall as the text when it ends in one.
+        shown.innerHTML   = `${paint(text.value)}\n`;
+        lines.textContent = Array.from({ length : text.value.split("\n").length }, (_, index) => index + 1).join("\n");
+    };
+    // As typing would, so ⌘Z undoes it.
+    const put = (value) => {
+        if (!document.execCommand("insertText", false, value)) {
+            text.setRangeText(value, text.selectionStart, text.selectionEnd, "end");
+        }
+        update();
+    };
+    text.addEventListener("input", update);
+    text.addEventListener("scroll", () => {
+        lines.scrollTop       = text.scrollTop;
+        shown.style.transform = `translate(${-text.scrollLeft}px, ${-text.scrollTop}px)`;
+    });
+    text.addEventListener("keydown", (event) => {
+        if (event.key === "Tab" && !event.shiftKey) {
+            event.preventDefault();
+            put(indent);
+        } else if (event.key === "Enter" && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.isComposing) {
+            event.preventDefault();
+            const start = text.value.lastIndexOf("\n", text.selectionStart - 1) + 1;
+            put(`\n${text.value.slice(start, text.selectionStart).match(/^[ \t]*/)[0]}`);
+        }
+    });
+    update();
+}
+
+/**
  * What the editor can open: where it reads the file, how it paints and checks
  * it, and the action that saves it. config.json is checked here as it is
  * typed. The overrides file is checked by PHP, on the server, a moment after

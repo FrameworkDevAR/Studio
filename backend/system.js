@@ -136,6 +136,7 @@ module.exports = {
     MYSQL_CNF,
     DISK,
     SWIFTBAR,
+    PATH,
     run,
     versionOf,
     tailOf,

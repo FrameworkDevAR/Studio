@@ -6,7 +6,7 @@
 "use strict";
 
 const REFRESH_MS = 5000;
-const VIEWS      = [ "overview", "services", "sites", "php", "node", "apache", "databases", "logs" ];
+const VIEWS      = [ "overview", "services", "sites", "php", "node", "apache", "databases", "database", "logs" ];
 const TITLES     = {
     overview  : "Overview",
     services  : "Services",
@@ -15,6 +15,7 @@ const TITLES     = {
     node      : "Node.js",
     apache    : "Apache",
     databases : "Databases",
+    database  : "Database",
     logs      : "Logs",
 };
 

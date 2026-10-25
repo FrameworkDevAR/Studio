@@ -42,8 +42,9 @@ function route() {
     for (const section of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("section[data-view]"))) {
         section.classList.toggle("active", section.dataset.view === view);
     }
+    // A database's own page is part of Databases in the sidebar.
     for (const link of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("nav a"))) {
-        link.classList.toggle("active", link.dataset.view === view);
+        link.classList.toggle("active", link.dataset.view === (view === "database" ? "databases" : view));
     }
     document.title = `${TITLES[view]} · Studio`;
     window.scrollTo(0, 0);
@@ -62,6 +63,9 @@ function route() {
     }
     if (view === "databases") {
         showDbTab();
+    }
+    if (view === "database") {
+        showBrowse();
     }
 }
 

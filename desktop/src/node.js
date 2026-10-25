@@ -278,7 +278,7 @@ const UPDATE_KINDS = {
 
 /** One package or extension, or a count of them: "1 package", "3 extensions". */
 function countOf(count, noun) {
-    return `${count} ${noun}${count === 1 ? "" : "s"}`;
+    return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
 }
 
 /**
