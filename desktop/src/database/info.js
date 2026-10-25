@@ -1,6 +1,14 @@
-"use strict";
-
 // A table's information, as Sequel Ace's: its engine, encoding, comment and next id.
+
+import { api } from "../core/api.js";
+import { bytes, esc, toast } from "../core/helpers.js";
+import { watchFades } from "./cells.js";
+import { browse, loadTables, rowsCell } from "./page.js";
+import { paintSql } from "./sql.js";
+import { tableMenuButton } from "./tables.js";
+import { charsetList, loadCharsets } from "../pages/databases.js";
+
+
 
 // -------------------------------------------------------------- information ---
 
@@ -309,3 +317,14 @@ async function resetNext(button) {
 function copyCreate() {
     navigator.clipboard.writeText(browse.structure.create).then(() => toast("Copied"));
 }
+
+
+
+// The public API
+export {
+    loadEngines,
+    loadInfo,
+    saveInfo,
+    resetNext,
+    copyCreate,
+};

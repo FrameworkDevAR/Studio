@@ -1,14 +1,13 @@
-"use strict";
-
-const { execFile } = require("child_process");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-
 // What PHP's settings accept, PHP itself asked for them and for its startup problems,
 // and the ini files, read and written.
 
-const { PATHS, versionOf, filesIn, readFile } = require("../core/system");
+import { execFile } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { PATHS, versionOf, filesIn, readFile } from "../core/system.js";
+
 
 
 /**
@@ -377,7 +376,7 @@ function fileSize(file) {
 
 
 // The public API
-module.exports = {
+export {
     PHP_SETTINGS,
     ownerOf,
     readSwitches,

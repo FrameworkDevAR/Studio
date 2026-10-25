@@ -1,6 +1,9 @@
-"use strict";
-
 // The Sites page: the apps and servers in a block per project, and the vhosts.
+
+import { esc, shortPath } from "../core/helpers.js";
+import { starting, state } from "../core/state.js";
+
+
 
 /**
  * A card of the Sites page: one app or server, with what its card shows.
@@ -500,3 +503,11 @@ function renderVhosts() {
         </tbody>
     `;
 }
+
+
+
+// The public API
+export {
+    allApps,
+    renderSites,
+};

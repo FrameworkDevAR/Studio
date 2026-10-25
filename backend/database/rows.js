@@ -1,11 +1,11 @@
-"use strict";
-
 // A table's rows: a page of them, sorted and filtered, counted, one read whole, and
 // rows changed, added and deleted by their primary key.
 
-const { quote, forgetDatabases } = require("./databases");
-const { query, existingDatabase, ident } = require("./client");
-const { readStructure } = require("./schema");
+import { quote, forgetDatabases } from "./databases.js";
+import { query, existingDatabase, ident } from "./client.js";
+import { readStructure } from "./schema.js";
+
+
 
 // The rows a page of a table holds.
 const PAGE    = 100;
@@ -42,7 +42,7 @@ const EXACT = 50_000;
  * row than the page is asked for, to know whether there is a next one.
  * @param {{ db?: string, table?: string, page?: number | string, sort?: string,
  *     dir?: string, filters?: string, match?: string }} view
- * @returns {Promise<{ structure: import("./schema").TableStructure, page: number,
+ * @returns {Promise<{ structure: import("./schema.js").TableStructure, page: number,
  *     size: number, more: boolean, rows: string[][], cut: number }>}
  */
 async function readRows({
@@ -169,7 +169,7 @@ const NEGATIVE = {
  * The WHERE of the filter rules, joined by AND, or by OR for any. A rule on
  * any column holds when one column does, or, said in the negative, when
  * none does; binary columns are left out of those.
- * @param {import("./schema").TableColumn[]} columns
+ * @param {import("./schema.js").TableColumn[]} columns
  * @param {string | RowFilter[]} filters
  * @param {string=} match
  * @returns {string}
@@ -236,7 +236,7 @@ function listOf(value) {
  * A row whole, by its key, or several, by theirs, in the order given: the
  * ones gone since are left out.
  * @param {{ db: string, table: string, key?: RowKey, keys?: RowKey[], hex?: boolean }} pick
- * @returns {Promise<{ structure: import("./schema").TableStructure, row?: string[],
+ * @returns {Promise<{ structure: import("./schema.js").TableStructure, row?: string[],
  *     rows?: string[][] }>}
  */
 async function readRow({ db, table, key, keys = null, hex = false }) {
@@ -405,7 +405,7 @@ async function change(statement, one = true) {
 
 /**
  * The WHERE that finds a row by its primary key, given as its values by column.
- * @param {import("./schema").TableStructure} structure
+ * @param {import("./schema.js").TableStructure} structure
  * @param {RowKey} key
  * @returns {string}
  */
@@ -431,7 +431,7 @@ function keyWhere(structure, key) {
 
 /**
  * The WHERE that finds rows by their keys, up to a thousand at once.
- * @param {import("./schema").TableStructure} structure
+ * @param {import("./schema.js").TableStructure} structure
  * @param {RowKey[]} keys
  * @returns {string}
  */
@@ -445,7 +445,7 @@ function keysWhere(structure, keys) {
 
 
 // The public API
-module.exports = {
+export {
     readRows,
     countRows,
     countSmallTables,

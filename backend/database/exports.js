@@ -1,18 +1,18 @@
-"use strict";
-
-const crypto = require("crypto");
-const zlib = require("zlib");
-const { spawn } = require("child_process");
-
 // Exports, as Sequel Ace's: tables picked from a database, or a table's rows
 // -- all, the ones its filters show, or the ones picked -- as SQL, CSV or
 // JSON. SQL is mariadb-dump's, with the structure, the data or both; CSV and
 // JSON are written here, row by row, as MariaDB sends them, so a table of
 // any size goes through. Several tables in CSV come as a .zip, a file each.
 
-const { decode, existingDatabase, ident, runEnv } = require("./client");
-const { readStructure, readTables } = require("./schema");
-const { keysWhere, whereOf } = require("./rows");
+import crypto from "node:crypto";
+import zlib from "node:zlib";
+import { spawn } from "node:child_process";
+
+import { decode, existingDatabase, ident, runEnv } from "./client.js";
+import { readStructure, readTables } from "./schema.js";
+import { keysWhere, whereOf } from "./rows.js";
+
+
 
 // What to export is sent first, in an action, as a list of tables or of rows
 // is too long for an address; the download then asks for it by its id, once.
@@ -27,7 +27,7 @@ const KEEP     = 5 * 60_000;
  * the data or both, and how a CSV is written.
  * @typedef {{ db: string, format: string, gzip?: boolean, structure?: boolean,
  *     data?: boolean, separator?: string, header?: boolean, sql?: string,
- *     columns?: string[], table?: string, keys?: import("./rows").RowKey[],
+ *     columns?: string[], table?: string, keys?: import("./rows.js").RowKey[],
  *     filters?: string, match?: string, sort?: string, dir?: string,
  *     tables?: string[] }} ExportSpec
  */
@@ -617,4 +617,7 @@ async function writeZip(job, out, closed) {
 
 
 // The public API
-module.exports = { prepareExport, runExport };
+export {
+    prepareExport,
+    runExport,
+};

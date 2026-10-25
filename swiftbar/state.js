@@ -1,22 +1,20 @@
-"use strict";
-
 // What is running now: the services, the apps' and the projects' servers, and what is
 // starting or stopping.
 
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
-const {
+import {
     sh, HTTPD, versionOf, STACK_FLAG, DESKTOPS_FLAG, EXTRA_SERVERS, STOPPING_FLAG
-} = require("./config");
-const { isRunning, waitForUrl, sleep, filesIn } = require("./helpers");
-const { appInfo, byProjectThenApp, appRoots, appDirsOf } = require("./apps");
+} from "./config.js";
+import { isRunning, waitForUrl, sleep, filesIn } from "./helpers.js";
+import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
 
 
 
 /**
  * A running app: a Vite server, or another Node app, which is not Vite.
- * @typedef {import("./apps").AppInfo & { pid: string, isVite?: boolean }} AppServer
+ * @typedef {import("./apps.js").AppInfo & { pid: string, isVite?: boolean }} AppServer
  */
 
 /**
@@ -103,7 +101,7 @@ function readExtraServers(portByPid) {
 
     return EXTRA_SERVERS.map((server) => {
         const pid = (pidsByDir.get(realPathOf(server.dir)) || [])
-            .sort((a, b) => portByPid[a] - portByPid[b])[0];
+            .sort((a, b) => Number(portByPid[a]) - Number(portByPid[b]))[0];
         return {
             ...server,
             pid,
@@ -273,7 +271,7 @@ function readAppServers(portByPid) {
 
 
 // The public API
-module.exports = {
+export {
     readState,
     urlOf,
     readViteServers,

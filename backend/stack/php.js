@@ -1,17 +1,15 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-
 // The PHP version, its settings and the overrides file.
 
-const { run, versionOf, filesIn, readFile } = require("../core/system");
-const { reloadApache } = require("./apache");
-const {
+import fs from "node:fs";
+import path from "node:path";
+
+import { run, versionOf, filesIn, readFile } from "../core/system.js";
+import { reloadApache } from "./apache.js";
+import {
     PHP_SETTINGS, ownerOf, readSwitches, askPhp, readBase, phpIniFile, settingLine, iniValue,
     displayValue, iniKeys, readIniFile, fileSize
-} = require("./ini");
-const { readPecl, checkUpgrades, upgrades, extensionLines } = require("./pecl");
+} from "./ini.js";
+import { readPecl, checkUpgrades, upgrades, extensionLines } from "./pecl.js";
 
 
 
@@ -289,7 +287,7 @@ async function writeOverrides(text) {
 
 
 // The public API
-module.exports = {
+export {
     readPhp,
     readDirectives,
     setPhpSetting,

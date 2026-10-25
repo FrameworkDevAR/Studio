@@ -1,9 +1,21 @@
-"use strict";
-
 // A database's own page, as a small phpMyAdmin: its tables on the side; a
 // table's structure; its rows, to sort, filter, change, add and delete;
 // its information, as Sequel Ace's, to change its options; SQL to run;
 // and the database exported or imported as a whole.
+
+import { api } from "../core/api.js";
+import { bytes, esc, toast } from "../core/helpers.js";
+import { currentView, navigate } from "../core/routes.js";
+import { state } from "../core/state.js";
+import { openRowDialog, rowsKeyed, watchFades } from "./cells.js";
+import { openColumnDialog, structureIsView } from "./columns.js";
+import { loadInfo } from "./info.js";
+import { loadRows, renderPager, renderRowsTitle, rowsQuestion, tableKey } from "./rows.js";
+import { openSql } from "./sql.js";
+import { loadStructure, pendingFilters, setPendingFilters } from "./structure.js";
+import { countOf } from "../pages/node.js";
+
+
 
 /**
  * What the page shows: the database and its tables, the table picked, the
@@ -103,7 +115,7 @@ async function showBrowse() {
         };
     }
 
-    pendingFilters = null;
+    setPendingFilters(null);
     browse.tab = tabName;
 
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
@@ -125,7 +137,7 @@ async function showBrowse() {
     renderTableList();
 
     if (tabName === "tables") {
-        renderOverview();
+        renderTablesTab();
     } else if (tabName === "rows") {
         loadRows();
     } else if (tabName === "structure") {
@@ -170,7 +182,7 @@ async function loadTables() {
     renderBrowseHead();
 
     if (browse.tab === "tables") {
-        renderOverview();
+        renderTablesTab();
     }
 
     countSmallTables();
@@ -216,7 +228,7 @@ async function countSmallTables() {
  */
 function showCounts() {
     if (browse.tab === "tables") {
-        renderOverview();
+        renderTablesTab();
     }
 
     renderTableList();
@@ -721,11 +733,12 @@ function tableKeys(event) {
  * name opens its rows.
  */
 let overviewSort = { key : "name", dir : 1 };
+
 /**
  * Draws the Tables tab: the tables filtered as typed, in the order picked, with their totals.
  * @returns {void}
  */
-function renderOverview() {
+function renderTablesTab() {
     const search = /** @type {HTMLInputElement} */ (
         document.getElementById("overview-filter")
     ).value.trim().toLowerCase();
@@ -831,5 +844,32 @@ function sortOverview(key) {
             dir : [ "name", "engine", "collation", "comment" ].includes(key) ? 1 : -1,
         };
     }
-    renderOverview();
+    renderTablesTab();
 }
+
+
+
+// The public API
+export {
+    browse,
+    browsePath,
+    showBrowse,
+    loadTables,
+    renderBrowseHead,
+    renderTableList,
+    rowsCell,
+    countTable,
+    keysTo,
+    focusKeys,
+    marked,
+    gridContext,
+    pickRow,
+    pickAllRows,
+    pickedRows,
+    pickedTables,
+    markRow,
+    revealRow,
+    tableKeys,
+    renderTablesTab,
+    sortOverview,
+};

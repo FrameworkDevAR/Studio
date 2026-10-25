@@ -1,12 +1,10 @@
-"use strict";
-
 // The small helpers the rest shares: running commands, waiting, reading files.
 
-const { spawn } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
-const { sh, PATH } = require("./config");
+import { sh, PATH } from "./config.js";
 
 
 
@@ -128,7 +126,7 @@ function capitalize(word) {
 
 
 // The public API
-module.exports = {
+export {
     readFile,
     isRunning,
     waitForUrl,

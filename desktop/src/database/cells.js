@@ -1,7 +1,19 @@
-"use strict";
-
 // The grids' fading edges, the rows' menu, and the rows changed in place, in a dialog
 // or a cell at a time.
+
+import { api } from "../core/api.js";
+import { ask, closeMenus, esc, formDialog, toast } from "../core/helpers.js";
+import { codeArea, escapeCode, paintJson, paintMarkup } from "../core/paint.js";
+import { openExportDialog } from "./export.js";
+import { browse, loadTables, marked, pickRow, revealRow } from "./page.js";
+import { isBig, loadRows, renderRows, rowsQuestion } from "./rows.js";
+import { countOf } from "../pages/node.js";
+
+
+
+/** @import { DbStructureColumn } from "./structure.js" */
+
+
 
 // ------------------------------------------------------------------- fades ---
 
@@ -304,6 +316,15 @@ async function deleteRows(indexes) {
  * has a key.
  */
 let rowMenu = { indexes : [ 0 ], at : -1 };
+
+/**
+ * Keeps the rows, and the column, the row's menu acts on.
+ * @param {{ indexes: number[], at: number }} value
+ * @returns {void}
+ */
+function setRowMenu(value) {
+    rowMenu = value;
+}
 /**
  * Opens the rows' menu at a point, for the rows marked and the column clicked.
  * @param {number[]} indexes
@@ -826,3 +847,21 @@ async function editValue(index, at) {
     area.focus();
     area.setSelectionRange(0, 0);
 }
+
+
+
+// The public API
+export {
+    watchFades,
+    fadeEdges,
+    rowKey,
+    openRowDialog,
+    deleteRows,
+    setRowMenu,
+    openRowMenu,
+    showMenuAt,
+    rowAction,
+    rowsKeyed,
+    editCell,
+    editValue,
+};

@@ -1,14 +1,13 @@
-"use strict";
-
 // What the plugin works with: the config, the projects and their servers, the stack's
 // paths and versions, and the flags that say what is busy.
 
-const { execSync } = require("child_process");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+import { execSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const { expandHome, pathsOf, toolsOf } = require("../backend/core/paths");
+import { expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
+
 
 
 // ------------------------------------------------------------------ config ---
@@ -70,8 +69,8 @@ const EXTRA_SERVERS = PROJECTS.flatMap((project) => project.servers.map((server)
 })));
 
 // Studio, started on demand. node resolves the link SwiftBar runs this through,
-// so __dirname is the plugin's folder, inside Studio's.
-const STUDIO = { dir : path.join(__dirname, ".."), port : 9900 };
+// so import.meta.dirname is the plugin's folder, inside Studio's.
+const STUDIO = { dir : path.join(import.meta.dirname, ".."), port : 9900 };
 
 // Flags that let the menu show "Starting…" while an action runs: the stack's
 // holds its label, since it covers both start and stop all.
@@ -102,7 +101,8 @@ const GREY  = "#888888";
  * @returns {Object<string, *>}
  */
 function readConfig() {
-    const file = process.env.STUDIO_CONFIG || path.join(__dirname, "..", "config", "config.json");
+    const file = process.env.STUDIO_CONFIG
+        || path.join(import.meta.dirname, "..", "config", "config.json");
 
     try {
         return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -145,7 +145,7 @@ function versionOf(formula) {
 
 
 // The public API
-module.exports = {
+export {
     APACHE_LOG,
     VHOSTS,
     GREEN,

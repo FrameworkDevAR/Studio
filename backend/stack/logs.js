@@ -1,11 +1,9 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-
 // The logs: their sizes, their last lines, and clearing them.
 
-const { PATHS, MYSQL_DATA, tailOf, filesIn, formatBytes } = require("../core/system");
+import fs from "node:fs";
+import path from "node:path";
+
+import { PATHS, MYSQL_DATA, tailOf, filesIn, formatBytes } from "../core/system.js";
 
 
 
@@ -103,7 +101,7 @@ async function clearLog(name) {
 
 
 // The public API
-module.exports = {
+export {
     readLogSizes,
     readLog,
     clearLog,

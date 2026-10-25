@@ -1,10 +1,10 @@
-"use strict";
-
 // What a database holds: its tables, with their sizes, a table's columns, indexes and
 // foreign keys, and the engines MariaDB has.
 
-const { quote } = require("./databases");
-const { query, existingDatabase, existingTable, ident } = require("./client");
+import { quote } from "./databases.js";
+import { query, existingDatabase, existingTable, ident } from "./client.js";
+
+
 
 // Columns whose bytes are not text, shown by their size and never edited here.
 const BINARY  = new RegExp(
@@ -238,7 +238,7 @@ async function readEngines() {
 
 
 // The public API
-module.exports = {
+export {
     readTables,
     readStructure,
     readEngines,

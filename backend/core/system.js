@@ -1,17 +1,16 @@
-"use strict";
-
 // The stack's paths and the helpers every part of the server uses.
 
-const { execFile } = require("child_process");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
+import { execFile } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const { pathsOf, toolsOf } = require("./paths");
+import { pathsOf, toolsOf } from "./paths.js";
+
 
 
 // Studio's folder, which holds backend/ and everything around it.
-const ROOT = path.join(__dirname, "..", "..");
+const ROOT = path.join(import.meta.dirname, "..", "..");
 const HOME = os.homedir();
 
 // This machine's settings, which the plugin reads: the same file it looks for.
@@ -171,7 +170,7 @@ function formatBytes(value) {
 
 
 // The public API
-module.exports = {
+export {
     ROOT,
     HOME,
     CONFIG,
@@ -188,6 +187,7 @@ module.exports = {
     DISK,
     SWIFTBAR,
     PATH,
+
     run,
     versionOf,
     tailOf,

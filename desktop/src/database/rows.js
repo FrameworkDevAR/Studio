@@ -1,7 +1,15 @@
-"use strict";
-
 // A table's rows: read a page at a time, sorted, filtered by rules, and their columns'
 // widths and values.
+
+import { api } from "../core/api.js";
+import { ask, esc, toast } from "../core/helpers.js";
+import { escapeCode, paintJson } from "../core/paint.js";
+import { editValue, rowKey, rowsKeyed, watchFades } from "./cells.js";
+import { browse, markRow } from "./page.js";
+import { paintSql } from "./sql.js";
+import { countOf } from "../pages/node.js";
+
+
 
 /**
  * The rows asked of the server: the table, the page, the sort and the filters.
@@ -829,3 +837,29 @@ function showValue(name, value) {
         }
     });
 }
+
+
+
+// The public API
+export {
+    loadRows,
+    rowsQuestion,
+    renderRows,
+    tableKey,
+    renderRowsTitle,
+    renderPager,
+    cellOf,
+    isBig,
+    toggleDates,
+    sortRows,
+    turnPage,
+    applyFilters,
+    showFilterSql,
+    addFilter,
+    removeFilter,
+    clearFilters,
+    changeFilterOp,
+    startResize,
+    resetWidths,
+    openCell,
+};

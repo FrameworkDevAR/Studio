@@ -1,6 +1,8 @@
-"use strict";
-
 // The small pieces every page uses: the pill tabs, toggles, toasts and formatting.
+
+import { refresh } from "./api.js";
+
+
 
 /**
  * Gives every pill-tab control its sliding thumb. It follows the active tab
@@ -469,3 +471,25 @@ function closeMenus(keep = null) {
         }
     }
 }
+
+
+
+// The public API
+export {
+    setUpPillTabs,
+    mosaic,
+    isPressed,
+    setActive,
+    toast,
+    isListingNoise,
+    isErrorLine,
+    shortPath,
+    bytes,
+    packageRow,
+    markColumnEnds,
+    ask,
+    formDialog,
+    esc,
+    toggleMenu,
+    closeMenus,
+};

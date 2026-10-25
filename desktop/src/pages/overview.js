@@ -1,6 +1,16 @@
-"use strict";
-
 // The sidebar's badges and the Overview page.
+
+import { bytes, esc } from "../core/helpers.js";
+import { recentErrors, state } from "../core/state.js";
+import { renderModules } from "./apache.js";
+import { renderDatabases } from "./databases.js";
+import { renderLogMeta } from "./logs.js";
+import { renderNode } from "./node.js";
+import { renderPhp } from "./php.js";
+import { renderServices } from "./services.js";
+import { allApps, renderSites } from "./sites.js";
+
+
 
 /**
  * Draws every page and the sidebar again, from the state.
@@ -255,3 +265,11 @@ function renderRecentErrors() {
             </div>`;
     }).join("");
 }
+
+
+
+// The public API
+export {
+    render,
+    renderRecentErrors,
+};

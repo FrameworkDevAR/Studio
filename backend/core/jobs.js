@@ -1,8 +1,8 @@
-"use strict";
-
-const { spawn } = require("child_process");
-
 // The long changes the page follows as they go: npm and pecl installs.
+
+import { spawn } from "node:child_process";
+
+
 
 /**
  * Runs some steps as a job the page follows: it gets the job's id at once,
@@ -160,7 +160,7 @@ function spawnLines(command, args, {
 
 
 // The public API
-module.exports = {
+export {
     runJob,
     readJob,
     spawnLines,

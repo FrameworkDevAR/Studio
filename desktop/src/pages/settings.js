@@ -1,7 +1,11 @@
-"use strict";
-
 // The settings panels the PHP page and MariaDB's options share: a field for
 // each value, the changes waiting to be saved, and the dialog that adds one.
+
+import { api, refresh } from "../core/api.js";
+import { esc, mosaic, toast } from "../core/helpers.js";
+import { SETTING_HINTS, settingsKeys } from "../core/state.js";
+
+
 
 /**
  * What differs between the two: who reads the settings, where they show,
@@ -657,3 +661,18 @@ async function submitPick() {
         button.disabled = false;
     }
 }
+
+
+
+// The public API
+export {
+    renderSettingGroups,
+    toggleUnset,
+    saveSettings,
+    discardSettings,
+    pickSetting,
+    finishPick,
+    renderPickList,
+    choosePick,
+    submitPick,
+};

@@ -1,10 +1,9 @@
-"use strict";
-
 // A table's structure changed: its indexes, its foreign keys and its columns.
 
-const { readCharsets, quote, forgetDatabases } = require("./databases");
-const { query, ident } = require("./client");
-const { readTables, readStructure } = require("./schema");
+import { readCharsets, quote, forgetDatabases } from "./databases.js";
+import { query, ident } from "./client.js";
+import { readTables, readStructure } from "./schema.js";
+
 
 
 // ------------------------------------------------------------------ indexes ---
@@ -104,7 +103,7 @@ const FK_RULES = [ "RESTRICT", "CASCADE", "SET NULL", "NO ACTION" ];
 /**
  * A column's type as a foreign key compares it: ints without their display width, the rest as
  * they are.
- * @param {import("./schema").TableColumn} column
+ * @param {import("./schema.js").TableColumn} column
  * @returns {string}
  */
 function keyType(column) {
@@ -346,7 +345,7 @@ async function columnSql({
 /**
  * Where a column goes: first, after another, or, given nothing, where it is, or at the end for a
  * new one.
- * @param {import("./schema").TableStructure} structure
+ * @param {import("./schema.js").TableStructure} structure
  * @param {string | true} after
  * @returns {string}
  */
@@ -446,7 +445,7 @@ async function dropColumn({ db, table, column }) {
 
 
 // The public API
-module.exports = {
+export {
     addIndex,
     dropIndex,
     saveForeignKey,

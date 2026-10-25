@@ -1,6 +1,10 @@
-"use strict";
-
 // The Apache page: its modules and the config files it includes, and turning one on or off.
+
+import { act } from "../core/api.js";
+import { ask, esc, markColumnEnds } from "../core/helpers.js";
+import { moduleFilter, state } from "../core/state.js";
+
+
 
 /**
  * The Apache page: its modules, filtered by the search and by on or off, each
@@ -152,3 +156,12 @@ async function toggleModule(event, input) {
 
     act({ action : "module", name : input.dataset.module, enabled }, input);
 }
+
+
+
+// The public API
+export {
+    renderModules,
+    toggleInclude,
+    toggleModule,
+};

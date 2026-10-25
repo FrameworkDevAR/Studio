@@ -1,5 +1,3 @@
-"use strict";
-
 // Code painted as it is typed: JSON, PHP's ini, Apache's config and HTML; and a text box
 // with line numbers that paints its text under it.
 
@@ -232,3 +230,15 @@ function codeArea(box, paint, indent = "    ") {
 
     update();
 }
+
+
+
+// The public API
+export {
+    escapeCode,
+    paintJson,
+    paintIni,
+    paintApache,
+    paintMarkup,
+    codeArea,
+};

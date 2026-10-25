@@ -1,9 +1,7 @@
-"use strict";
-
 // The databases MariaDB holds and its users: listing them, and creating,
 // changing and dropping either.
 
-const { PHPMYADMIN, run } = require("../core/system");
+import { PHPMYADMIN, run } from "../core/system.js";
 
 
 
@@ -723,7 +721,7 @@ function escapeRegex(text) {
 
 
 // The public API
-module.exports = {
+export {
     readDatabases,
     forgetDatabases,
     readCharsets,

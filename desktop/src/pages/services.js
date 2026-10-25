@@ -1,6 +1,10 @@
-"use strict";
-
 // The Services page.
+
+import { esc } from "../core/helpers.js";
+import { LOGOS, logoSvg } from "../core/logos.js";
+import { SERVICE_INFO, state } from "../core/state.js";
+
+
 
 /**
  * The Services page: a card for each service, with its buttons, and for PHP,
@@ -93,3 +97,10 @@ function serviceCard({ logo, name, version, running, status = "", text, actions 
         </div>
     `;
 }
+
+
+
+// The public API
+export {
+    renderServices,
+};

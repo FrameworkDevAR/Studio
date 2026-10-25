@@ -1,14 +1,14 @@
-"use strict";
-
 // SQL run in a database, with the results a plain SELECT of one table gives changed in
 // place, and a dump imported.
 
-const zlib = require("zlib");
-const { spawn } = require("child_process");
+import zlib from "node:zlib";
+import { spawn } from "node:child_process";
 
-const { forgetDatabases } = require("./databases");
-const { query, existingDatabase, runEnv } = require("./client");
-const { readTables, readStructure } = require("./schema");
+import { forgetDatabases } from "./databases.js";
+import { query, existingDatabase, runEnv } from "./client.js";
+import { readTables, readStructure } from "./schema.js";
+
+
 
 // The most rows a query in the console shows.
 const RESULTS = 1000;
@@ -89,7 +89,7 @@ const unquoted   = (name) => (name.startsWith("`") ? name.slice(1, -1).replace(/
  * -- no expressions, no aliases -- and its primary key among them. Then
  * the table, its key, and each column of the result as the table's.
  * @param {string} db
- * @param {import("./client").ResultSet} set
+ * @param {import("./client.js").ResultSet} set
  * @returns {Promise<SqlEditable>}
  */
 async function editableOf(db, set) {
@@ -178,7 +178,7 @@ async function importDatabase(request, { db, name = "" }) {
 
 
 // The public API
-module.exports = {
+export {
     runSql,
     importDatabase,
 };

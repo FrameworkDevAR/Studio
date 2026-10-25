@@ -1,6 +1,15 @@
-"use strict";
-
 // The SQL box's autocomplete: the tables, their columns, the words and the functions.
+
+import { api } from "../core/api.js";
+import { esc } from "../core/helpers.js";
+import { browse } from "./page.js";
+import { SQL_WORDS, paintSqlBox, statementsOf } from "./sql.js";
+
+
+
+/** @import { DbStructureColumn } from "./structure.js" */
+
+
 
 // ------------------------------------------------------------ autocomplete ---
 
@@ -205,11 +214,12 @@ function showCompletion(asked = false) {
         ? items.filter((one) => !one.text.toLowerCase().startsWith(typed)
             && one.text.toLowerCase().includes(typed))
         : [];
+
     const seen   = new Set();
     const shown  = [ ...starts, ...holds ].filter((one) => {
         const key = `${one.text}|${one.kind}`;
         const same = one.text.toLowerCase() === typed
-            || one.call && one.text.toLowerCase() === `${typed}()`;
+            || "call" in one && one.call && one.text.toLowerCase() === `${typed}()`;
         return !seen.has(key) && seen.add(key) && !same;
     }).slice(0, 60);
     if (!shown.length) {
@@ -369,3 +379,14 @@ function completionKeys(event) {
 
     return true;
 }
+
+
+
+// The public API
+export {
+    completion,
+    showCompletion,
+    hideCompletion,
+    acceptCompletion,
+    completionKeys,
+};

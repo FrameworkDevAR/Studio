@@ -1,6 +1,12 @@
-"use strict";
-
 // The file editor: config.json, PHP's overrides file, and Apache's httpd.conf and vhosts.
+
+import { api, refresh } from "./api.js";
+import { ask, toast } from "./helpers.js";
+import { escapeCode, paintApache, paintIni, paintJson } from "./paint.js";
+import { setSettingsKeys } from "./state.js";
+import { pickSetting } from "../pages/settings.js";
+
+
 
 /**
  * What the editor can open: where it reads the file, how it paints and checks
@@ -199,7 +205,7 @@ async function saveEditor() {
         editorSaved = text.value;
         toast(result.message);
         /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
-        settingsKeys = {};
+        setSettingsKeys({});
         await refresh();
     } catch (error) {
         toast(error.message, true);
@@ -753,3 +759,14 @@ async function insertSetting() {
         closeEditor();
     });
 })();
+
+
+
+// The public API
+export {
+    openEditor,
+    closeEditor,
+    saveEditor,
+    openApacheConfig,
+    insertSetting,
+};

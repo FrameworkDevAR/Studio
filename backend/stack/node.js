@@ -1,12 +1,10 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-
 // Homebrew's Node.js: its version, npm and corepack, and the global packages.
 
-const { PATHS, run, versionOf, readJson } = require("../core/system");
-const { runJob, spawnLines } = require("../core/jobs");
+import fs from "node:fs";
+import path from "node:path";
+
+import { PATHS, run, versionOf, readJson } from "../core/system.js";
+import { runJob, spawnLines } from "../core/jobs.js";
 
 
 
@@ -296,7 +294,7 @@ async function uninstallPackage(name) {
  * Runs npm on the global packages, as a job the page follows, a package a
  * step. Whatever npm changed, the packages, their sizes and the outdated ones
  * are asked for again.
- * @param {import("../core/jobs").JobStep[]} steps
+ * @param {import("../core/jobs.js").JobStep[]} steps
  * @param {(worked: string[]) => string} done
  * @returns {{ job: string }}
  */
@@ -431,7 +429,7 @@ function realPathOf(file) {
 
 
 // The public API
-module.exports = {
+export {
     readNode,
     updatePackages,
     installPackage,

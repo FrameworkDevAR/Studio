@@ -1,24 +1,22 @@
-"use strict";
-
 // What the menu's items do when clicked: start and stop the stack, the apps and the
 // servers, and open them.
 
-const { execFileSync } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
-const {
+import {
     sh, BREW, STACK_FLAG, STOPPING_FLAG, SELF, HOME, DESKTOPS_FLAG, WORKTREES_NAME, EXTRA_SERVERS,
     STUDIO, BROWSER
-} = require("./config");
-const { refreshMenu, startDetached, sleep, waitForUrl, readFile } = require("./helpers");
-const {
+} from "./config.js";
+import { refreshMenu, startDetached, sleep, waitForUrl, readFile } from "./helpers.js";
+import {
     desktopApps, appRoots, appDirsOf, appInfo, byProjectThenApp, schemeOf, hostOf, appHomeOf
-} = require("./apps");
-const {
+} from "./apps.js";
+import {
     readViteServers, startingFlagOf, readExtraServers, readListeningPorts, waitForServer,
     readAppServers, readStoppingPids, urlOf
-} = require("./state");
+} from "./state.js";
 
 
 
@@ -179,7 +177,7 @@ function runAction(action, argument) {
         const url = `http://localhost:${STUDIO.port}/`;
 
         if (!Object.values(readListeningPorts()).includes(String(STUDIO.port))) {
-            startDetached("node", [ "backend/server.js" ], STUDIO.dir);
+            startDetached("node", [ "backend/main.js" ], STUDIO.dir);
             waitForUrl(url);
         }
 
@@ -304,6 +302,6 @@ end run
 
 
 // The public API
-module.exports = {
+export {
     runAction,
 };

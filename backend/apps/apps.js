@@ -1,8 +1,6 @@
-"use strict";
-
 // The apps and servers of each project, through the SwiftBar plugin's own actions.
 
-const { SWIFTBAR, run } = require("../core/system");
+import { SWIFTBAR, run } from "../core/system.js";
 
 
 
@@ -198,7 +196,7 @@ function projectRoots(apps) {
 
 
 // The public API
-module.exports = {
+export {
     projectRoots,
     readApps,
     startApp,

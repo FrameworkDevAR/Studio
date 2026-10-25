@@ -1,15 +1,14 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-
 // PHP's extensions added with pecl: read, installed, updated, built again and removed,
 // and found in pecl's channel.
 
-const { PATHS, run, filesIn, readFile } = require("../core/system");
-const { runJob, spawnLines } = require("../core/jobs");
-const { reloadApache } = require("./apache");
-const { askPhp, forgetBase, phpIniFile } = require("./ini");
+import fs from "node:fs";
+import path from "node:path";
+
+import { PATHS, run, filesIn, readFile } from "../core/system.js";
+import { runJob, spawnLines } from "../core/jobs.js";
+import { reloadApache } from "./apache.js";
+import { askPhp, forgetBase, phpIniFile } from "./ini.js";
+
 
 
 const PECL = path.join(PATHS.homebrew, "bin", "pecl");
@@ -184,7 +183,7 @@ async function uninstallExtension(name) {
  * about options to build with, so each is answered with its default. Once
  * done, php.ini loads what is installed and nothing that is not, and Apache
  * reloads to pick it up.
- * @param {import("../core/jobs").JobStep[]} steps
+ * @param {import("../core/jobs.js").JobStep[]} steps
  * @param {(worked: string[]) => string} done
  * @returns {{ job: string }}
  */
@@ -424,7 +423,7 @@ function decodeXml(text) {
 
 
 // The public API
-module.exports = {
+export {
     readPecl,
     checkUpgrades,
     upgrades,

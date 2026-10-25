@@ -1,6 +1,10 @@
-"use strict";
-
 // Talking to the server: the state, the actions and the recent errors.
+
+import { isErrorLine, isListingNoise, toast } from "./helpers.js";
+import { setRecentErrors, setState } from "./state.js";
+import { render, renderRecentErrors } from "../pages/overview.js";
+
+
 
 /**
  * Asks the server for a path, posting the body as JSON when there is one, and gives what it
@@ -54,7 +58,8 @@ async function act(body, button) {
  */
 async function refresh() {
     try {
-        state = await api("/api/state");
+        const fresh = await api("/api/state");
+        setState(fresh);
         render();
     } catch {
         document.getElementById("brand-status").innerHTML = `<i class="dot off"></i> Not reachable`;
@@ -67,7 +72,17 @@ async function refresh() {
  */
 async function loadRecentErrors() {
     const log = await api("/api/log?name=apache&lines=800");
-    recentErrors = log.lines.filter((line) => isErrorLine(line) && !isListingNoise(line))
-        .slice(-6).reverse();
+    const errors = log.lines.filter((line) => isErrorLine(line) && !isListingNoise(line));
+    setRecentErrors(errors.slice(-6).reverse());
     renderRecentErrors();
 }
+
+
+
+// The public API
+export {
+    api,
+    act,
+    refresh,
+    loadRecentErrors,
+};

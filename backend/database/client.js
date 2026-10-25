@@ -1,10 +1,8 @@
-"use strict";
-
 // The mariadb client, which every query goes through, and the names a query is
 // given: a database or a table that is there, and any name in backticks.
 
-const { PATH, run } = require("../core/system");
-const { readDatabases, forgetDatabases, quote } = require("./databases");
+import { PATH, run } from "../core/system.js";
+import { readDatabases, forgetDatabases, quote } from "./databases.js";
 
 
 
@@ -148,7 +146,7 @@ function ident(name) {
 
 
 // The public API
-module.exports = {
+export {
     query,
     decode,
     runEnv,

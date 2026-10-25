@@ -1,5 +1,3 @@
-"use strict";
-
 // The logos of the stack, from Simple Icons (CC0), each with its brand color.
 
 const LOGOS = {
@@ -133,3 +131,11 @@ const LOGOS = {
 function logoSvg(key) {
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${LOGOS[key].path}"/></svg>`;
 }
+
+
+
+// The public API
+export {
+    LOGOS,
+    logoSvg,
+};

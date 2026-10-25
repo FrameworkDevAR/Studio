@@ -1,9 +1,7 @@
-"use strict";
-
 // Apache, MariaDB and Redis: whether each runs, and starting and stopping them.
 
-const { BREW, HTTPD, DISK, run, versionOf } = require("../core/system");
-const { forgetDatabases } = require("../database/databases");
+import { BREW, HTTPD, DISK, run, versionOf } from "../core/system.js";
+import { forgetDatabases } from "../database/databases.js";
 
 
 
@@ -123,7 +121,7 @@ async function stopAll() {
 
 
 // The public API
-module.exports = {
+export {
     readServices,
     readDisk,
     serviceAction,

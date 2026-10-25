@@ -1,13 +1,11 @@
-"use strict";
-
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-
 // Apache's modules, which of them the sites use, its vhosts, its config files and its reload.
 
-const { HTTPD, APACHE_CTL, HTTPD_CONF, VHOSTS, run, readFile } = require("../core/system");
-const { readServices } = require("./services");
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { HTTPD, APACHE_CTL, HTTPD_CONF, VHOSTS, run, readFile } from "../core/system.js";
+import { readServices } from "./services.js";
 
 
 
@@ -532,7 +530,7 @@ async function reloadApache() {
 
 
 // The public API
-module.exports = {
+export {
     readModules,
     readListen,
     readVhosts,

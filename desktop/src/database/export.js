@@ -1,6 +1,13 @@
-"use strict";
-
 // A database's tables or a table's rows exported, and a dump or a CSV imported.
+
+import { api } from "../core/api.js";
+import { bytes, esc, formDialog, toast } from "../core/helpers.js";
+import { fadeEdges, rowKey, rowsKeyed, watchFades } from "./cells.js";
+import { browse, loadTables, pickedRows } from "./page.js";
+import { loadRows } from "./rows.js";
+import { countOf } from "../pages/node.js";
+
+
 
 // ------------------------------------------------------- export and import ---
 
@@ -345,8 +352,12 @@ function parseCsv(text, separator, most = Infinity) {
  */
 function guessSeparator(text) {
     const line   = text.replace(/^\uFEFF/, "").split(/\r?\n/)[0].replace(/"(?:[^"]|"")*"/g, "");
-    const counts = [ ",", ";", "\t", "|" ].map((one) => [ one, line.split(one).length - 1 ]);
-    return counts.sort((a, b) => b[1] - a[1])[0][1] ? counts[0][0] : ",";
+    const counts = [ ",", ";", "\t", "|" ].map((separator) => ({
+        separator,
+        count : line.split(separator).length - 1,
+    }));
+    const most = counts.sort((a, b) => b.count - a.count)[0];
+    return most.count ? most.separator : ",";
 }
 
 /**
@@ -478,8 +489,12 @@ async function openCsvImport(table) {
                 draw(true);
             });
 
-            form.elements.namedItem("separator").addEventListener("change", () => draw(true));
-            form.elements.namedItem("header").addEventListener("change", () => draw(true));
+            /** @type {HTMLSelectElement} */ (
+                form.elements.namedItem("separator")
+            ).addEventListener("change", () => draw(true));
+            /** @type {HTMLInputElement} */ (
+                form.elements.namedItem("header")
+            ).addEventListener("change", () => draw(true));
         },
         submit : async (form) => {
             const file = /** @type {HTMLInputElement} */ (
@@ -584,3 +599,12 @@ function upload(url, file, progress) {
         request.send(file);
     });
 }
+
+
+
+// The public API
+export {
+    openExportDialog,
+    importDatabase,
+    openCsvImport,
+};

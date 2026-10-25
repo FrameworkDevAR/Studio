@@ -1,31 +1,29 @@
 #!/usr/bin/env node
 
-"use strict";
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
 
-const fs = require("fs");
-const http = require("http");
-const path = require("path");
-
-const system = require("./core/system");
-const config = require("./core/config");
-const jobs = require("./core/jobs");
-const services = require("./stack/services");
-const apache = require("./stack/apache");
-const php = require("./stack/php");
-const pecl = require("./stack/pecl");
-const node = require("./stack/node");
-const logs = require("./stack/logs");
-const apps = require("./apps/apps");
-const icons = require("./apps/icons");
-const databases = require("./database/databases");
-const mariadb = require("./database/mariadb");
-const schema = require("./database/schema");
-const rows = require("./database/rows");
-const structure = require("./database/structure");
-const tables = require("./database/tables");
-const sql = require("./database/sql");
-const exporter = require("./database/exports");
-const importer = require("./database/imports");
+import * as system from "./core/system.js";
+import * as config from "./core/config.js";
+import * as jobs from "./core/jobs.js";
+import * as services from "./stack/services.js";
+import * as apache from "./stack/apache.js";
+import * as php from "./stack/php.js";
+import * as pecl from "./stack/pecl.js";
+import * as node from "./stack/node.js";
+import * as logs from "./stack/logs.js";
+import * as apps from "./apps/apps.js";
+import * as icons from "./apps/icons.js";
+import * as databases from "./database/databases.js";
+import * as mariadb from "./database/mariadb.js";
+import * as schema from "./database/schema.js";
+import * as rows from "./database/rows.js";
+import * as structure from "./database/structure.js";
+import * as tables from "./database/tables.js";
+import * as sql from "./database/sql.js";
+import * as exporter from "./database/exports.js";
+import * as importer from "./database/imports.js";
 
 
 

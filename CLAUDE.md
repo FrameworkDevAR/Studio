@@ -3,7 +3,7 @@
 A local control panel for the Homebrew dev stack (Apache, MariaDB, PHP, Node.js, Redis), and
 the apps and servers of each project. See the README.
 
-- `backend/` is the server. `server.js` answers the page and the api; the rest is in folders
+- `backend/` is the server. `main.js` answers the page and the api; the rest is in folders
   by what it covers, a file per part:
   - `core/`: `system.js` with the paths and helpers the others share, `paths.js` with the
     stack's paths and their defaults (for the plugin too), `config.js`, and `jobs.js`, which
@@ -16,12 +16,11 @@ the apps and servers of each project. See the README.
     `schema.js`, `rows.js`, `structure.js`, `tables.js`, `sql.js`, `exports.js`, `imports.js`.
 - `desktop/` is the whole page: `index.html`, its stylesheets in `styles/`, icons in `icons/`,
   fonts in `fonts/`, and its script in
-  `src/`: `core/` (state, helpers, routes, the editor and the selects, clicks and start),
-  `pages/` (a file per page, with `settings.js`, the settings panels PHP and MariaDB share)
-  and `database/` (a database's own page, a file per part). They are plain scripts sharing
-  one scope, loaded in order by `index.html`, with `core/state.js` first and `core/start.js`,
-  which calls into the others, last. The stylesheets are loaded in order too, and the
-  cascade depends on it.
+  `src/`: `main.js`, the one module `index.html` loads, which imports the rest, adds the
+  listeners and draws the page; `core/` (state, helpers, routes, the editor and the
+  selects, clicks); `pages/` (a file per page, with `settings.js`, the settings panels PHP
+  and MariaDB share); and `database/` (a database's own page, a file per part). The
+  stylesheets are loaded in order, and the cascade depends on it.
 - `swiftbar.10s.js` is the SwiftBar menu plugin, which SwiftBar runs through a link in
   `~/Documents/SwiftBar/`. It is the entry; its parts are in `swiftbar/`, which node finds
   through the link.
@@ -44,10 +43,16 @@ the apps and servers of each project. See the README.
 - Match the surrounding code: 4-space indents, double quotes, the colons of object
   literals aligned, `const` first. Files read top down — entry, then what it calls,
   then helpers — under `// ---- section ---` dividers.
-- Lines are at most 100 characters, comments too. Requires are not aligned:
-  `const fs = require("fs");`.
+- Everything is an ES module, the page's scripts and the server's alike (`package.json`
+  only says so; it lists no packages). Imports are not aligned, and give the path with
+  its `.js`: `import fs from "node:fs";`, `import * as php from "./stack/php.js";`. A
+  module only reads what it imports: one that changes another's variable calls its
+  setter, as `setState(...)`. A module run only for what it does when loaded is imported
+  bare: `import "./core/picker.js";`. A typedef from another file comes in with
+  `/** @import { Name } from "./file.js" */`.
+- Lines are at most 100 characters, comments too.
 - A file that grows long (over about 600 lines) is split by what its parts cover, into
-  the folder it belongs in. Backend modules never require each other in a circle.
+  the folder it belongs in. Backend modules never import each other in a circle.
 - Comments say why, not what, in full sentences: a `/** */` above each function, and
   a block comment above any rule or step that would otherwise be "tidied away".
 - Each function's `/** */` is JSDoc, as in the user's other projects: the description, then one
@@ -61,8 +66,9 @@ the apps and servers of each project. See the README.
 - An `await` stands on its own: `const apps = await readApps();`, then use the result.
   Not `(await readApps()).apps`, nor an `await` behind `&&`, `||` or `? :`.
 - Three blank lines between a file's parts: after the top constants, after the
-  typedefs (kept together there, one blank line apart), and before `module.exports`,
-  which follows `// The public API`.
+  typedefs (kept together there, one blank line apart), and before the `export { … }` at
+  the end, which follows `// The public API`. The imports come first, under the file's
+  header comment, with three blank lines after them.
 - Keep names plain and one word where possible, like the user's other projects
   (Framework, Runner, Diff, JSON).
 
@@ -109,7 +115,7 @@ the apps and servers of each project. See the README.
   from it, and the plugin refreshes itself by that name (`refreshplugin?name=swiftbar`).
   After changing it, `open -g "swiftbar://refreshplugin?name=swiftbar"` redraws the menu.
 - Restart the server by its port, not its name:
-  `kill $(lsof -t -iTCP:9900 -sTCP:LISTEN); backend/server.js &`
+  `kill $(lsof -t -iTCP:9900 -sTCP:LISTEN); backend/main.js &`
 - Check changes in a headless Chrome by measuring (the page's `state`, element sizes)
   rather than by screenshots where a number will do.
 - Ask before anything that starts many apps at once, clears a log, or otherwise

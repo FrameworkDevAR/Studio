@@ -1,7 +1,20 @@
-"use strict";
-
 // The tables' menu and what it does: add, rename, duplicate, empty, drop and maintain
 // them; and switching to another database from the title.
+
+import { api } from "../core/api.js";
+import { ask, bytes, closeMenus, esc, formDialog, toast } from "../core/helpers.js";
+import { navigate } from "../core/routes.js";
+import { state } from "../core/state.js";
+import { showMenuAt } from "./cells.js";
+import { NUMBER_TYPE, TYPE_LENGTHS, typeOptions } from "./columns.js";
+import { openCsvImport, openExportDialog } from "./export.js";
+import { loadEngines } from "./info.js";
+import { browse, browsePath, gridContext, loadTables, marked, showBrowse } from "./page.js";
+import { loadRows } from "./rows.js";
+import { loadCharsets } from "../pages/databases.js";
+import { countOf } from "../pages/node.js";
+
+
 
 // ---------------------------------------------------------------- table menu ---
 
@@ -608,3 +621,18 @@ function dbSwitchKeys(event) {
         closeMenus();
     }
 }
+
+
+
+// The public API
+export {
+    openTableMenu,
+    tableMenuButton,
+    toggleTableMenu,
+    tableAction,
+    openTableDialog,
+    toggleDbSwitch,
+    renderDbSwitch,
+    switchDatabase,
+    dbSwitchKeys,
+};

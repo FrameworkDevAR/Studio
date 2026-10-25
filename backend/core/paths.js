@@ -1,10 +1,9 @@
-"use strict";
 // The paths of the stack, and the apps Studio opens things with, shared by
 // the server and the SwiftBar plugin. Each can be set in config.json; what is
 // not set is the default below.
 
-const os = require("os");
-const path = require("path");
+import os from "node:os";
+import path from "node:path";
 
 
 
@@ -86,4 +85,11 @@ function expandHome(dir) {
 
 
 // The public API
-module.exports = { DEFAULTS, TOOLS, pathsOf, toolsOf, expandHome };
+export {
+    DEFAULTS,
+    TOOLS,
+
+    pathsOf,
+    toolsOf,
+    expandHome,
+};

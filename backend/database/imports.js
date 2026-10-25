@@ -1,16 +1,16 @@
-"use strict";
-
-const { spawn } = require("child_process");
-
 // A CSV file into a table, as Sequel Ace's import: each of its columns to a
 // column of the table, or left out; its rows read as they arrive and sent to
 // MariaDB in batches, in one transaction, so a failure leaves an InnoDB
 // table as it was. A row whose key is there already stops it, is skipped,
 // or updates that row.
 
-const { quote, forgetDatabases } = require("./databases");
-const { ident, runEnv } = require("./client");
-const { readStructure, readTables } = require("./schema");
+import { spawn } from "node:child_process";
+
+import { quote, forgetDatabases } from "./databases.js";
+import { ident, runEnv } from "./client.js";
+import { readStructure, readTables } from "./schema.js";
+
+
 
 const BATCH = 500;
 
@@ -264,4 +264,7 @@ async function importCsv(request, { db, table, spec = "{}" }) {
 
 
 // The public API
-module.exports = { importCsv, csvReader };
+export {
+    importCsv,
+    csvReader,
+};

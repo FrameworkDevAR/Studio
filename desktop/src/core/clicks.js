@@ -1,6 +1,80 @@
-"use strict";
-
 // Every click on the page, sent where it belongs.
+
+import { act } from "./api.js";
+import { closeEditor, insertSetting, openApacheConfig, openEditor, saveEditor } from "./editor.js";
+import { ask, setActive, toggleMenu } from "./helpers.js";
+import { navigate } from "./routes.js";
+import { setLogName, setModuleFilter, starting, state } from "./state.js";
+import { openRowDialog, rowAction } from "../database/cells.js";
+import { columnAction, openColumnDialog } from "../database/columns.js";
+import { importDatabase, openExportDialog } from "../database/export.js";
+import { copyCreate, resetNext, saveInfo } from "../database/info.js";
+import { browsePath, countTable, sortOverview } from "../database/page.js";
+import {
+    addFilter,
+    clearFilters,
+    openCell,
+    removeFilter,
+    sortRows,
+    toggleDates,
+    turnPage,
+} from "../database/rows.js";
+import {
+    clearSqlHistory,
+    forgetSql,
+    keepSql,
+    openResultExport,
+    renderSqlMenus,
+    runSql,
+    useSql,
+} from "../database/sql.js";
+import {
+    dropForeignKey,
+    dropIndex,
+    followForeignKey,
+    openForeignKeyDialog,
+    openIndexDialog,
+    pickIndexKind,
+} from "../database/structure.js";
+import {
+    openTableDialog,
+    switchDatabase,
+    tableAction,
+    toggleDbSwitch,
+    toggleTableMenu,
+} from "../database/tables.js";
+import { renderModules, toggleInclude, toggleModule } from "../pages/apache.js";
+import { dropDatabase, openDatabaseDialog, pickUserMode } from "../pages/databases.js";
+import { clearLog, copyLogEntry, loadLog, scrollLogToBottom } from "../pages/logs.js";
+import {
+    confirmUpdateAll,
+    installNpm,
+    isUpdating,
+    openNpmDialog,
+    showUpdateProgress,
+    uninstallPackage,
+    updatePackages,
+} from "../pages/node.js";
+import { installPecl, openPeclDialog, rebuildExtension, uninstallExtension } from "../pages/php.js";
+import {
+    choosePick,
+    discardSettings,
+    pickSetting,
+    saveSettings,
+    toggleUnset,
+} from "../pages/settings.js";
+import { renderSites } from "../pages/sites.js";
+import {
+    copyPassword,
+    dropUser,
+    makePassword,
+    openUserDialog,
+    pickAccess,
+    pickPreset,
+    toggleAdvanced,
+} from "../pages/users.js";
+
+
 
 /**
  * A click anywhere on the page: a link of the page's own changes the view, a
@@ -10,21 +84,25 @@
  * @returns {void}
  */
 function onClick(event) {
+    const clicked = /** @type {Element} */ (event.target);
+
     // The page's own links change the view in place, without a reload.
-    const link = event.target.closest("a[href^='/']");
+    const link = clicked.closest("a[href^='/']");
     if (link && !event.metaKey && !event.ctrlKey && !event.shiftKey && event.button === 0) {
         event.preventDefault();
         navigate(link.getAttribute("href"));
         return;
     }
 
-    const expandable = event.target.closest(".recent-line.expandable");
+    const expandable = clicked.closest(".recent-line.expandable");
     if (expandable) {
         expandable.classList.toggle("open");
         return;
     }
 
-    const target = event.target.closest("button, input[data-module], input[data-include]");
+    const target = /** @type {HTMLElement|null} */ (
+        clicked.closest("button, input[data-module], input[data-include]")
+    );
     if (!target) {
         return;
     }
@@ -95,7 +173,7 @@ function onClick(event) {
     } else if (target.dataset.countTable) {
         countTable(target);
     } else if (target.dataset.resetNext !== undefined) {
-        resetNext(target);
+        resetNext(/** @type {HTMLButtonElement} */ (target));
     } else if (target.dataset.copyCreate !== undefined) {
         copyCreate();
     } else if (target.dataset.infoSave !== undefined) {
@@ -264,11 +342,11 @@ function onClick(event) {
     } else if (target.dataset.discardSettings) {
         discardSettings(target.dataset.discardSettings);
     } else if (target.dataset.module) {
-        toggleModule(event, target);
+        toggleModule(event, /** @type {HTMLInputElement} */ (target));
     } else if (target.dataset.include) {
-        toggleInclude(event, target);
+        toggleInclude(event, /** @type {HTMLInputElement} */ (target));
     } else if (target.dataset.filter) {
-        moduleFilter = target.dataset.filter;
+        setModuleFilter(target.dataset.filter);
         setActive(target);
         renderModules();
     } else if (target.classList.contains("toggle")) {
@@ -277,8 +355,15 @@ function onClick(event) {
         // Turning Follow back on jumps to the newest lines, as it promises.
         loadLog(target.id === "log-follow" && pressed);
     } else if (target.dataset.log) {
-        logName = target.dataset.log;
+        setLogName(target.dataset.log);
         setActive(target);
         loadLog(true);
     }
 }
+
+
+
+// The public API
+export {
+    onClick,
+};

@@ -28,13 +28,13 @@
 //   3. Links use a bash= action, never href=, so a browser built on Chrome
 //      can reuse a tab already on the page instead of opening a new one.
 
-"use strict";
-
-const { readState } = require("./swiftbar/state");
-const {
+import { readState } from "./swiftbar/state.js";
+import {
     renderTitle, renderServices, renderProjects, renderAppsFooter, renderFooter
-} = require("./swiftbar/menu");
-const { runAction } = require("./swiftbar/actions");
+} from "./swiftbar/menu.js";
+import { runAction } from "./swiftbar/actions.js";
+
+
 
 main();
 

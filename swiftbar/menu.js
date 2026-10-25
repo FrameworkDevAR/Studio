@@ -1,26 +1,24 @@
-"use strict";
-
 // The menu as SwiftBar draws it: the title, the services, the projects with their apps
 // and servers, and the items each is made of.
 
-const path = require("path");
+import path from "node:path";
 
-const {
+import {
     APACHE_LOG, VHOSTS, GREEN, RED, PHP_INI, GREY, SERVERS_NAME, PROJECTS, WORKTREES_NAME, SELF,
     PHPMYADMIN, EDITOR
-} = require("./config");
-const { readFile } = require("./helpers");
-const {
+} from "./config.js";
+import { readFile } from "./helpers.js";
+import {
     projectRoots, appRootOf, appDirsOf, appInfo, byProjectThenApp, titleOf, schemeOf, hostOf,
     desktopApps
-} = require("./apps");
-const { urlOf } = require("./state");
+} from "./apps.js";
+import { urlOf } from "./state.js";
 
 
 
 /**
  * What the menu shows, as state.js reads it.
- * @typedef {import("./state").MenuState} MenuState
+ * @typedef {import("./state.js").MenuState} MenuState
  */
 
 /**
@@ -115,7 +113,7 @@ function renderServices({ apacheWorkers, mysqlUp, redisUp, stackBusy, versions }
 
 /**
  * A project with servers of its own: the running ones, then the idle ones under Start….
- * @param {import("./apps").Project} project
+ * @param {import("./apps.js").Project} project
  * @param {MenuState} state
  * @returns {void}
  */
@@ -241,7 +239,7 @@ function renderProjects(state) {
  * A submenu atop a worktrees project's Start…, starting one app in every
  * worktree where it is stopped: "desktop (3)". Only apps stopped in two or
  * more worktrees, since for one the entry below does the same.
- * @param {{ idle: import("./apps").AppInfo[] }[]} worktrees
+ * @param {{ idle: import("./apps.js").AppInfo[] }[]} worktrees
  * @returns {void}
  */
 function renderEveryWorktree(worktrees) {
@@ -318,8 +316,8 @@ function renderFooter() {
 
 /**
  * Everything up: the Vite apps plus the extra servers that are listening.
- * @param {import("./state").AppServer[]} servers
- * @param {import("./state").ExtraServer[]} extras
+ * @param {import("./state.js").AppServer[]} servers
+ * @param {import("./state.js").ExtraServer[]} extras
  * @returns {number}
  */
 function countRunning(servers, extras) {
@@ -482,7 +480,7 @@ function opensFile(file) {
 
 
 // The public API
-module.exports = {
+export {
     renderTitle,
     renderServices,
     renderProjects,

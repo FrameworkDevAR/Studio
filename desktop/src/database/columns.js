@@ -1,6 +1,17 @@
-"use strict";
-
 // Changing a table's columns: in a dialog, in place, moved by dragging, or dropped.
+
+import { api } from "../core/api.js";
+import { ask, esc, formDialog, toast } from "../core/helpers.js";
+import { showMenuAt } from "./cells.js";
+import { browse, gridContext, loadTables, marked, pickRow, revealRow } from "./page.js";
+import { loadStructure, renderStructureColumns } from "./structure.js";
+import { loadCharsets } from "../pages/databases.js";
+
+
+
+/** @import { DbStructureColumn } from "./structure.js" */
+
+
 
 // ---------------------------------------------------------- changing columns ---
 
@@ -595,6 +606,15 @@ async function saveColumnCell(edit, then = null) {
  * moves it there, after the column before, or first.
  */
 let columnDrag = "";
+
+/**
+ * Keeps the column being dragged, or none.
+ * @param {string} value
+ * @returns {void}
+ */
+function setColumnDrag(value) {
+    columnDrag = value;
+}
 /**
  * Moves the column dragged to the row it is dropped on, above it or below, unless that is where
  * it is already.
@@ -757,3 +777,20 @@ async function dropColumn(name) {
     loadStructure();
     loadTables();
 }
+
+
+
+// The public API
+export {
+    structureIsView,
+    NUMBER_TYPE,
+    TYPE_LENGTHS,
+    typeOptions,
+    openColumnDialog,
+    editColumnCell,
+    columnDrag,
+    setColumnDrag,
+    dropColumnAt,
+    openColumnMenu,
+    columnAction,
+};

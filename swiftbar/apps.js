@@ -1,12 +1,10 @@
-"use strict";
-
 // The apps of each project, found in its folders, with their names and addresses.
 
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
-const { PROJECTS, NO_PROJECT } = require("./config");
-const { subDirsOf, capitalize, filesIn, readFile } = require("./helpers");
+import { PROJECTS, NO_PROJECT } from "./config.js";
+import { subDirsOf, capitalize, filesIn, readFile } from "./helpers.js";
 
 
 
@@ -215,7 +213,7 @@ function hostOf(dir) {
 
 
 // The public API
-module.exports = {
+export {
     projectRoots,
     appRootOf,
     appDirsOf,

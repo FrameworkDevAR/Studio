@@ -1,17 +1,15 @@
-"use strict";
-
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-
 // MariaDB's options: the ones the page shows, the options file Studio writes
 // them to, and checking and applying a change.
 
-const {
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import {
     PATHS, MYSQL_CNF, MYSQL_DATA, run, readFile, filesIn, tailOf, versionOf
-} = require("../core/system");
-const { serviceAction } = require("../stack/services");
-const { rows, quote, forgetDatabases } = require("./databases");
+} from "../core/system.js";
+import { serviceAction } from "../stack/services.js";
+import { rows, quote, forgetDatabases } from "./databases.js";
 
 
 
@@ -262,7 +260,9 @@ function displayValue(key, value, known) {
 
     if (SIZES.test(key) && /^\d+$/.test(text) && Number(text) > 0) {
         const number = Number(text);
-        for (const [ unit, size ] of [ [ "G", 1024 ** 3 ], [ "M", 1024 ** 2 ], [ "K", 1024 ] ]) {
+        /** @type {[ string, number ][]} */
+        const units = [ [ "G", 1024 ** 3 ], [ "M", 1024 ** 2 ], [ "K", 1024 ] ];
+        for (const [ unit, size ] of units) {
             if (number % size === 0) {
                 return `${number / size}${unit}`;
             }
@@ -739,7 +739,7 @@ function withoutOption(text, key) {
 
 
 // The public API
-module.exports = {
+export {
     readMariadb,
     readOptionList,
     setOptions,

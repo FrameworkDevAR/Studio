@@ -1,6 +1,12 @@
-"use strict";
-
 // Which view shows, from the path.
+
+import { TITLES, VIEWS, state } from "./state.js";
+import { showBrowse } from "../database/page.js";
+import { renderDbText } from "../pages/databases.js";
+import { loadLog } from "../pages/logs.js";
+import { renderPhpText } from "../pages/php.js";
+
+
 
 /**
  * The view in the path, or the overview when it names none.
@@ -197,3 +203,14 @@ function showSitesTab() {
             "never by requesting them."
         : "The vhosts Apache serves, as configured. They are listed, never checked.";
 }
+
+
+
+// The public API
+export {
+    currentView,
+    phpTab,
+    dbTab,
+    navigate,
+    route,
+};

@@ -1,6 +1,14 @@
-"use strict";
-
 // The PHP page: its settings, where each comes from, and the extensions.
+
+import { api } from "../core/api.js";
+import { ask, esc, markColumnEnds, packageRow } from "../core/helpers.js";
+import { logoSvg } from "../core/logos.js";
+import { phpTab } from "../core/routes.js";
+import { SETTING_GROUPS, state, updating } from "../core/state.js";
+import { ago, followJob, isNewer, isUpdating } from "./node.js";
+import { renderSettingGroups } from "./settings.js";
+
+
 
 /**
  * The PHP page: its version, the count of settings saved here, the line under
@@ -453,3 +461,17 @@ async function installPecl(name) {
         renderExtensions();
     }
 }
+
+
+
+// The public API
+export {
+    renderPhp,
+    renderPhpText,
+    renderExtensions,
+    uninstallExtension,
+    rebuildExtension,
+    openPeclDialog,
+    searchPecl,
+    installPecl,
+};

@@ -1,6 +1,68 @@
-"use strict";
+// The one script the page loads: it imports the rest, then adds the listeners, draws the page
+// and starts the timers.
 
-// What runs once every script is in: the listeners, the first draw and the timers. Loaded last.
+import { loadRecentErrors, refresh } from "./core/api.js";
+import { onClick } from "./core/clicks.js";
+import { closeMenus, isPressed, markColumnEnds, setUpPillTabs } from "./core/helpers.js";
+// The custom selects, which take over every select as it shows.
+import "./core/picker.js";
+import { currentView, navigate, route } from "./core/routes.js";
+import { REFRESH_MS } from "./core/state.js";
+import {
+    deleteRows,
+    editCell,
+    openRowDialog,
+    openRowMenu,
+    rowAction,
+    rowsKeyed,
+    setRowMenu,
+} from "./database/cells.js";
+import {
+    columnDrag,
+    dropColumnAt,
+    editColumnCell,
+    openColumnMenu,
+    setColumnDrag,
+    structureIsView,
+} from "./database/columns.js";
+import {
+    acceptCompletion,
+    completion,
+    completionKeys,
+    hideCompletion,
+    showCompletion,
+} from "./database/complete.js";
+import {
+    browse,
+    focusKeys,
+    keysTo,
+    pickAllRows,
+    pickRow,
+    pickedRows,
+    pickedTables,
+    renderTableList,
+    renderTablesTab,
+    tableKeys,
+} from "./database/page.js";
+import {
+    applyFilters,
+    changeFilterOp,
+    renderRows,
+    resetWidths,
+    showFilterSql,
+    startResize,
+} from "./database/rows.js";
+import { editResultCell, paintSqlBox, runSql } from "./database/sql.js";
+import { openForeignKeyDialog } from "./database/structure.js";
+import { dbSwitchKeys, openTableMenu, renderDbSwitch } from "./database/tables.js";
+import { renderModules } from "./pages/apache.js";
+import { renderDbList, renderUsers } from "./pages/databases.js";
+import { loadLog, showLogBottom } from "./pages/logs.js";
+import { installNpm, renderNode, searchNpm } from "./pages/node.js";
+import { renderExtensions, searchPecl } from "./pages/php.js";
+import { choosePick, finishPick, renderPickList, submitPick } from "./pages/settings.js";
+
+
 
 const IS_MAC = /Mac/.test(navigator.platform);
 
@@ -64,7 +126,7 @@ function listenToFilters() {
     document.getElementById("db-filter").addEventListener("input", renderDbList);
     document.getElementById("user-filter").addEventListener("input", renderUsers);
     document.getElementById("table-filter").addEventListener("input", renderTableList);
-    document.getElementById("overview-filter").addEventListener("input", renderOverview);
+    document.getElementById("overview-filter").addEventListener("input", renderTablesTab);
     document.getElementById("column-filter").addEventListener("input", () => renderRows());
     document.getElementById("module-search").addEventListener("input", renderModules);
 
@@ -271,7 +333,7 @@ function listenToRows() {
         } else if (command && event.key === "c" && getSelection().isCollapsed
             && pickedRows().length) {
             event.preventDefault();
-            rowMenu = { indexes : pickedRows(), at : -1 };
+            setRowMenu({ indexes : pickedRows(), at : -1 });
             rowAction("copy");
         } else if ((event.key === "Backspace" || event.key === "Delete") && !event.shiftKey
             && pickedRows().length && rowsKeyed()) {
@@ -400,7 +462,7 @@ function listenToColumnDrag() {
             return;
         }
 
-        columnDrag = row.dataset.key;
+        setColumnDrag(row.dataset.key);
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", columnDrag);
         row.classList.add("dragging");
@@ -441,7 +503,7 @@ function listenToColumnDrag() {
     });
 
     box.addEventListener("dragend", () => {
-        columnDrag = "";
+        setColumnDrag("");
         clearDrop();
         box.querySelector(".dragging")?.classList.remove("dragging");
     });

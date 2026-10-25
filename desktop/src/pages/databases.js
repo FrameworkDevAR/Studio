@@ -1,16 +1,24 @@
-"use strict";
-
 // The Databases page: the databases, the users that reach them, and MariaDB's
 // options, with the dialogs that create, change and drop the first two.
 
+import { act, api } from "../core/api.js";
+import { ask, bytes, esc, formDialog, setActive, toast } from "../core/helpers.js";
+import { dbTab } from "../core/routes.js";
+import { OPTION_GROUPS, settingsKeys, state } from "../core/state.js";
+import { renderBrowseHead } from "../database/page.js";
+import { renderSettingGroups } from "./settings.js";
+import { hostSelect, passwordField, privilegeSummary } from "./users.js";
+
+
+
 /**
  * A database as the page lists it, as the server reads it.
- * @typedef {import("../../../backend/database/databases").DatabaseEntry} DbPageEntry
+ * @typedef {import("../../../backend/database/databases.js").DatabaseEntry} DbPageEntry
  */
 
 /**
  * A user as the server reads it, one per host.
- * @typedef {import("../../../backend/database/databases").DatabaseUser} DbPageUser
+ * @typedef {import("../../../backend/database/databases.js").DatabaseUser} DbPageUser
  */
 
 /**
@@ -490,7 +498,7 @@ function pickUserMode(button) {
     )) {
         pane.hidden = pane.dataset.modePane !== button.dataset.userMode;
         pane.querySelectorAll("input, select").forEach((field) => {
-            /** @type {HTMLInputElement} */ (field).disabled = pane.hidden;
+            /** @type {HTMLInputElement} */ (field).disabled = Boolean(pane.hidden);
         });
     }
 }
@@ -533,3 +541,18 @@ async function dropDatabase(name) {
         act({ action : "db-drop", name, users : going });
     }
 }
+
+
+
+// The public API
+export {
+    renderDatabases,
+    renderDbText,
+    renderDbList,
+    renderUsers,
+    charsetList,
+    loadCharsets,
+    openDatabaseDialog,
+    pickUserMode,
+    dropDatabase,
+};

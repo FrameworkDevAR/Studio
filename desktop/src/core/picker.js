@@ -1,11 +1,13 @@
-"use strict";
-
 // Selects that search: each select in a .select wrapper shows as a button,
 // and its options open in a list under it, filtered as typed, its groups
 // kept, with ↑, ↓, Enter and Escape. The select itself stays, hidden, with
 // its value, so forms, FormData and the code reading or setting .value, or
 // listening for change, go on as before. The list is a popover, so it shows
 // over a dialog too.
+
+import { esc } from "./helpers.js";
+
+
 
 /**
  * @type {{ select: HTMLSelectElement, button: HTMLButtonElement, at: number,
@@ -100,7 +102,8 @@ function enhanceSelect(select) {
  * @returns {void}
  */
 function enhanceSelects(root = document) {
-    root.querySelectorAll(".select > select").forEach(enhanceSelect);
+    root.querySelectorAll(".select > select").forEach((select) =>
+        enhanceSelect(/** @type {HTMLSelectElement} */ (select)));
 }
 new MutationObserver((records) => {
     for (const record of records) {
@@ -108,7 +111,7 @@ new MutationObserver((records) => {
             if (node.nodeType === 1) {
                 const element = /** @type {Element} */ (node);
                 if (element.matches(".select > select")) {
-                    enhanceSelect(element);
+                    enhanceSelect(/** @type {HTMLSelectElement} */ (element));
                 } else if (element.querySelector(".select > select")) {
                     enhanceSelects(element);
                 }

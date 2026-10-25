@@ -3,8 +3,6 @@
 // redrawn from it, except the PHP settings while one is being edited, so a
 // refresh never throws away what is being typed.
 
-"use strict";
-
 const REFRESH_MS = 5000;
 const VIEWS      = [
     "overview",
@@ -127,3 +125,73 @@ let logName      = "apache";
 /** @type {Record<string, string>} */
 let settingsKeys = {};
 let recentErrors = [];
+
+/**
+ * Keeps the state the server last gave.
+ * @param {*} value
+ * @returns {void}
+ */
+function setState(value) {
+    state = value;
+}
+
+/**
+ * Keeps the modules' filter picked.
+ * @param {string} value
+ * @returns {void}
+ */
+function setModuleFilter(value) {
+    moduleFilter = value;
+}
+
+/**
+ * Keeps the log shown.
+ * @param {string} value
+ * @returns {void}
+ */
+function setLogName(value) {
+    logName = value;
+}
+
+/**
+ * Keeps what each settings page was last drawn from.
+ * @param {Record<string, string>} value
+ * @returns {void}
+ */
+function setSettingsKeys(value) {
+    settingsKeys = value;
+}
+
+/**
+ * Keeps the recent errors of the logs.
+ * @param {string[]} value
+ * @returns {void}
+ */
+function setRecentErrors(value) {
+    recentErrors = value;
+}
+
+
+
+// The public API
+export {
+    REFRESH_MS,
+    VIEWS,
+    TITLES,
+    SERVICE_INFO,
+    SETTING_GROUPS,
+    SETTING_HINTS,
+    OPTION_GROUPS,
+    state,
+    updating,
+    starting,
+    moduleFilter,
+    logName,
+    settingsKeys,
+    recentErrors,
+    setState,
+    setModuleFilter,
+    setLogName,
+    setSettingsKeys,
+    setRecentErrors,
+};

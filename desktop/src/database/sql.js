@@ -1,7 +1,15 @@
-"use strict";
-
 // SQL to run: its statements, its results, changed in place when they can be, and the
 // queries run before and kept.
+
+import { api } from "../core/api.js";
+import { ask, esc, formDialog, toast } from "../core/helpers.js";
+import { escapeCode } from "../core/paint.js";
+import { watchFades } from "./cells.js";
+import { browse, loadTables } from "./page.js";
+import { cellOf, isBig } from "./rows.js";
+import { countOf } from "../pages/node.js";
+
+
 
 /**
  * A result of the SQL run: its statement, its columns and its rows, null for NULL, whether there
@@ -740,3 +748,22 @@ async function clearSqlHistory() {
         );
     }
 }
+
+
+
+// The public API
+export {
+    openSql,
+    SQL_WORDS,
+    paintSql,
+    paintSqlBox,
+    statementsOf,
+    runSql,
+    openResultExport,
+    editResultCell,
+    renderSqlMenus,
+    useSql,
+    keepSql,
+    forgetSql,
+    clearSqlHistory,
+};

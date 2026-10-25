@@ -1,6 +1,11 @@
-"use strict";
-
 // The Node.js page: Homebrew's node, with npm and corepack, and the global packages.
+
+import { api, refresh } from "../core/api.js";
+import { ask, esc, markColumnEnds, packageRow, toast } from "../core/helpers.js";
+import { state, updating } from "../core/state.js";
+import { renderPhp } from "./php.js";
+
+
 
 /**
  * A global package of npm's, as the server gives it: its version, the newest
@@ -750,3 +755,22 @@ function renderUpdateProgress() {
     document.getElementById("ask-cancel").hidden = true;
     document.getElementById("ask-ok").hidden     = true;
 }
+
+
+
+// The public API
+export {
+    renderNode,
+    openNpmDialog,
+    searchNpm,
+    isNewer,
+    ago,
+    installNpm,
+    uninstallPackage,
+    countOf,
+    confirmUpdateAll,
+    updatePackages,
+    isUpdating,
+    followJob,
+    showUpdateProgress,
+};

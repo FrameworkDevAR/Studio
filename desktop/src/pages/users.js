@@ -1,7 +1,15 @@
-"use strict";
-
 // The Databases page's users: their dialog, the privileges they are given, and their
 // passwords.
+
+import { act, api } from "../core/api.js";
+import { ask, esc, formDialog, setActive } from "../core/helpers.js";
+import { state } from "../core/state.js";
+
+
+
+/** @import { DbPageUser } from "./databases.js" */
+
+
 
 // ------------------------------------------------------------------- users ---
 
@@ -408,3 +416,19 @@ async function copyPassword(button) {
     button.textContent = "Copied";
     setTimeout(() => { button.textContent = "Copy"; }, 1500);
 }
+
+
+
+// The public API
+export {
+    openUserDialog,
+    pickAccess,
+    privilegeSummary,
+    pickPreset,
+    toggleAdvanced,
+    dropUser,
+    hostSelect,
+    passwordField,
+    makePassword,
+    copyPassword,
+};

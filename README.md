@@ -11,7 +11,7 @@ the logs, and everything stays on the machine.
 ## Running it
 
 ```
-backend/server.js
+backend/main.js
 ```
 
 It answers on [http://localhost:9900](http://localhost:9900), and only there. It needs

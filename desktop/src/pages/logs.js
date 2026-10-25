@@ -1,6 +1,10 @@
-"use strict";
-
 // The Logs page: loading a log, and reading its lines into entries.
+
+import { act, api, loadRecentErrors } from "../core/api.js";
+import { ask, bytes, esc, isPressed, shortPath, toast } from "../core/helpers.js";
+import { logName, state } from "../core/state.js";
+
+
 
 let logKey = "";
 
@@ -638,3 +642,15 @@ function formatLogText(text) {
             })
         .replace(/&quot;(.+?)&quot;/g, `<span class="quoted">$1</span>`);
 }
+
+
+
+// The public API
+export {
+    loadLog,
+    showLogBottom,
+    scrollLogToBottom,
+    renderLogMeta,
+    clearLog,
+    copyLogEntry,
+};

@@ -1,12 +1,10 @@
-"use strict";
-
 // What is done to a table as a whole: its options, and adding, renaming, copying,
 // emptying, dropping and maintaining tables.
 
-const { readCharsets, quote, forgetDatabases } = require("./databases");
-const { query, existingDatabase, existingTable, ident } = require("./client");
-const { readTables, readStructure, readEngines } = require("./schema");
-const { columnSql } = require("./structure");
+import { readCharsets, quote, forgetDatabases } from "./databases.js";
+import { query, existingDatabase, existingTable, ident } from "./client.js";
+import { readTables, readStructure, readEngines } from "./schema.js";
+import { columnSql } from "./structure.js";
 
 
 
@@ -139,7 +137,7 @@ async function unreferenced(old, doing) {
  * A new table, as Sequel Ace makes one: its name, a first column, as the
  * column dialog gives it, the primary key on it or not, and its engine,
  * collation and comment, or the database's and MariaDB's when not given.
- * @param {{ db: string, name: string, column: import("./structure").ColumnDefinition,
+ * @param {{ db: string, name: string, column: import("./structure.js").ColumnDefinition,
  *     primary?: boolean, engine?: string, collation?: string, comment?: string }} table
  * @returns {Promise<{ message: string, table: string }>}
  */
@@ -377,7 +375,7 @@ async function nextId({ db, table }) {
 
 
 // The public API
-module.exports = {
+export {
     changeTable,
     createTable,
     renameTable,

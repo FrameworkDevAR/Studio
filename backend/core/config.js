@@ -1,15 +1,13 @@
-"use strict";
-
-const fs = require("fs");
-const path = require("path");
-
 // The config, as the editor on the page reads, checks and saves it.
 
-const { DEFAULTS, TOOLS : TOOL_DEFAULTS, pathsOf, toolsOf } = require("./paths");
-const {
+import fs from "node:fs";
+import path from "node:path";
+
+import { DEFAULTS, TOOLS as TOOL_DEFAULTS, pathsOf, toolsOf } from "./paths.js";
+import {
     ROOT, CONFIG, PATHS, TOOLS, HTTPD_CONF, VHOSTS, MYSQL_CNF, run, readFile
-} = require("./system");
-const { phpIniFile } = require("../stack/php");
+} from "./system.js";
+import { phpIniFile } from "../stack/php.js";
 
 
 
@@ -197,7 +195,7 @@ async function openFile(which, included = "") {
 
 
 // The public API
-module.exports = {
+export {
     readConfigFile,
     saveConfig,
     openFile,

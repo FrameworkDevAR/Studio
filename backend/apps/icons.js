@@ -1,12 +1,12 @@
-"use strict";
-
 // The projects' own favicons, found among their files -- never by requesting
 // their sites -- for the badges of the Sites page.
 
-const fs = require("fs");
-const path = require("path");
+import fs from "node:fs";
+import path from "node:path";
 
-const { projectRoots } = require("./apps");
+import { projectRoots } from "./apps.js";
+
+
 
 // Folders never searched: they hold packages, not the project's own files.
 const SKIPPED_DIRS = [ "node_modules", "vendor", ".git" ];
@@ -26,8 +26,8 @@ let iconCache = { at : 0, data : {} };
 
 /**
  * The favicon file of each project that has one, by project.
- * @param {import("./apps").StudioApp[]} apps
- * @param {import("./apps").StudioServer[]} servers
+ * @param {import("./apps.js").StudioApp[]} apps
+ * @param {import("./apps.js").StudioServer[]} servers
  * @returns {Object<string, string>}
  */
 function readIcons(apps, servers) {
@@ -101,7 +101,7 @@ function iconFile(project) {
 
 
 // The public API
-module.exports = {
+export {
     readIcons,
     iconFile,
 };

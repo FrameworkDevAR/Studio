@@ -1,6 +1,15 @@
-"use strict";
-
 // A table's structure: its columns, indexes and foreign keys.
+
+import { act, api } from "../core/api.js";
+import { ask, bytes, esc, formDialog, setActive, toast } from "../core/helpers.js";
+import { navigate } from "../core/routes.js";
+import { watchFades } from "./cells.js";
+import { structureIsView } from "./columns.js";
+import { browse, browsePath, loadTables, markRow } from "./page.js";
+import { tableMenuButton } from "./tables.js";
+import { countOf } from "../pages/node.js";
+
+
 
 /**
  * A column of a table's structure, as the server reads it: its type as MariaDB writes it and its
@@ -539,6 +548,15 @@ async function dropForeignKey(name) {
  * filtered to it, as Sequel Ace's arrow in a cell does.
  */
 let pendingFilters = null;
+
+/**
+ * Keeps the filters to open the next table's rows with, or none.
+ * @param {*} value
+ * @returns {void}
+ */
+function setPendingFilters(value) {
+    pendingFilters = value;
+}
 /**
  * Opens the rows a cell's foreign key refers to, if its column has a key of its own and the cell
  * a value.
@@ -631,3 +649,19 @@ function defaultCell(column) {
     }
     return value === "" ? `<span class="null">empty</span>` : esc(value);
 }
+
+
+
+// The public API
+export {
+    loadStructure,
+    openIndexDialog,
+    pickIndexKind,
+    dropIndex,
+    openForeignKeyDialog,
+    dropForeignKey,
+    pendingFilters,
+    setPendingFilters,
+    followForeignKey,
+    renderStructureColumns,
+};
