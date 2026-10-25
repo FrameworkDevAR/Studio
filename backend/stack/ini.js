@@ -71,6 +71,25 @@ const OWNER_NAMES = {
     "gd"      : "GD", "soap" : "SOAP", "mysqli" : "MySQLi", "pgsql" : "PostgreSQL",
     "sqlite3" : "SQLite3",
 };
+
+
+
+/**
+ * What PHP's script gives, each part missing when PHP did not start.
+ * @typedef {{
+ *     version?: string,
+ *     values?: Object<string, string>,
+ *     extensions?: Object<string, string>,
+ *     owners?: Object<string, string>,
+ *     zend?: string[],
+ *     timezones?: string[],
+ *     extDir?: string,
+ *     mainIni?: string,
+ * }} PhpInfo
+ */
+
+
+
 /**
  * The plain name of what a setting is part of, or "" when PHP did not say.
  * @param {string} key
@@ -184,20 +203,6 @@ async function askPhp(overrides = undefined) {
 
     return { data, problems : startupProblems(lines.filter((line) => line !== json), dir) };
 }
-
-/**
- * What PHP's script gives, each part missing when PHP did not start.
- * @typedef {{
- *     version?: string,
- *     values?: Object<string, string>,
- *     extensions?: Object<string, string>,
- *     owners?: Object<string, string>,
- *     zend?: string[],
- *     timezones?: string[],
- *     extDir?: string,
- *     mainIni?: string,
- * }} PhpInfo
- */
 
 /**
  * PHP, run by its Homebrew path, with some more of the environment.

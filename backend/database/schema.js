@@ -13,7 +13,6 @@ const BINARY  = new RegExp(
 );
 
 
-// ------------------------------------------------------------------ reading ---
 
 /**
  * A table or view as the database's list shows it: its rows, exact or estimated, engine,
@@ -54,6 +53,10 @@ const BINARY  = new RegExp(
  * @typedef {{ db: string, table: string, columns: TableColumn[], indexes: TableIndex[],
  *     foreign: TableForeignKey[], primary: string[], create: string }} TableStructure
  */
+
+
+
+// ------------------------------------------------------------------ reading ---
 
 /**
  * The tables and views of a database, as phpMyAdmin lists them first: rows,

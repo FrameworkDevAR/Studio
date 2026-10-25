@@ -60,7 +60,9 @@ the apps and servers of each project. See the README.
 - Never a ternary inside a ternary: use `if / else`, or a small named function.
 - An `await` stands on its own: `const apps = await readApps();`, then use the result.
   Not `(await readApps()).apps`, nor an `await` behind `&&`, `||` or `? :`.
-- A module's `module.exports` comes after three blank lines and `// The public API`.
+- Three blank lines between a file's parts: after the top constants, after the
+  typedefs (kept together there, one blank line apart), and before `module.exports`,
+  which follows `// The public API`.
 - Keep names plain and one word where possible, like the user's other projects
   (Framework, Runner, Diff, JSON).
 

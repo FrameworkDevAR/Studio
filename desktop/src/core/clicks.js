@@ -193,7 +193,6 @@ function onClick(event) {
         /** @type {HTMLDialogElement} */ (document.getElementById("form")).close();
     } else if (target.dataset.unset !== undefined) {
         toggleUnset(target.closest(".setting"));
-
     } else if (target.dataset.logBottom !== undefined) {
         scrollLogToBottom();
     } else if (target.dataset.appStart !== undefined || target.dataset.appStop !== undefined) {

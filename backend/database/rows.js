@@ -20,6 +20,8 @@ const LONG    = /^(tinytext|text|mediumtext|longtext|json|varchar|char)$/;
  */
 const EXACT = 50_000;
 
+
+
 /**
  * A filter rule: the column, or * for any, its operator, and the value, with a second one for
  * BETWEEN.
@@ -30,6 +32,7 @@ const EXACT = 50_000;
  * A row's primary key, as its values by column, null for NULL.
  * @typedef {Object<string, string>} RowKey
  */
+
 
 
 /**

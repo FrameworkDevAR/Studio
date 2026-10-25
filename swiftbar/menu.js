@@ -17,7 +17,6 @@ const {
 const { urlOf } = require("./state");
 
 
-// -------------------------------------------------------------------- menu ---
 
 /**
  * What the menu shows, as state.js reads it.
@@ -28,6 +27,10 @@ const { urlOf } = require("./state");
  * A menu item's parameters, each printed as key=value after its text.
  * @typedef {Object<string, string | number | boolean>} MenuParams
  */
+
+
+
+// -------------------------------------------------------------------- menu ---
 
 /**
  * The menu bar itself: the stack's health and how many servers are up.

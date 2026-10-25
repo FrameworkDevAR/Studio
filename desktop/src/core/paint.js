@@ -14,6 +14,8 @@ const JSON_PARTS = new RegExp(
     "g",
 );
 
+
+
 /**
  * A text made safe to put in HTML: its &, < and > as entities.
  * @param {string} value

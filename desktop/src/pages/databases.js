@@ -24,6 +24,8 @@
  *     collation: string }} DbPageCharset
  */
 
+
+
 /**
  * The page: MariaDB's version, the counts on the tabs, then the databases,
  * the users and the options.

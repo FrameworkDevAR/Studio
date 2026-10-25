@@ -21,6 +21,8 @@ const SELECT_INDEX = /** @type {{ get: () => number, set: (index: number) => voi
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "selectedIndex")
 );
 
+
+
 /**
  * The button for a select, which shows its option picked, follows it, and opens the list.
  * @param {HTMLSelectElement} select

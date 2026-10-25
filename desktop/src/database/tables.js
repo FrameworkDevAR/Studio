@@ -12,6 +12,9 @@
  */
 let tableMenu = "";
 let tableMenuNames = [];
+
+
+
 /**
  * Opens a table's menu at a point, for it alone or for the tables marked with it.
  * @param {string} name
@@ -591,7 +594,6 @@ function switchDatabase(name) {
  * @returns {void}
  */
 function dbSwitchKeys(event) {
-
     const list = switchList();
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();

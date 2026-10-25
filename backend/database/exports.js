@@ -19,6 +19,8 @@ const { keysWhere, whereOf } = require("./rows");
 const prepared = new Map();
 const KEEP     = 5 * 60_000;
 
+
+
 /**
  * What the page asks to export: the database, the format, gzip, and a query's results, a
  * table's rows, by its filters, its order or by keys, or the tables picked, with the structure,
@@ -49,6 +51,8 @@ const KEEP     = 5 * 60_000;
  * A column as an export writes it: its name, whether it is binary, and its type.
  * @typedef {{ name: string, binary: boolean, dataType: string }} ExportColumn
  */
+
+
 
 /**
  * Checks what is asked for and keeps it, for the download to take: the

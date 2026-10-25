@@ -38,6 +38,7 @@ const COLUMN_TYPES = [
 ];
 const TEXT_TYPE = /^(char|varchar|tinytext|text|mediumtext|longtext|enum|set)\b/i;
 const NUMBER_TYPE = /^(tinyint|smallint|mediumint|int|bigint|decimal|float|double)$/;
+
 // What the length or values of a type are, as a hint, and what one picked anew starts with; a type
 // without is given none.
 const TYPE_LENGTHS = {
@@ -62,6 +63,8 @@ const TYPE_LENGTHS = {
     timestamp : [ "0 to 6 decimals" ],
     time      : [ "0 to 6 decimals" ],
 };
+
+
 
 /**
  * The types to pick from, grouped as phpMyAdmin's, the one given picked, under its own group when

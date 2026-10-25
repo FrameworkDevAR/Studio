@@ -3,6 +3,20 @@
 // A table's rows: read a page at a time, sorted, filtered by rules, and their columns'
 // widths and values.
 
+/**
+ * The rows asked of the server: the table, the page, the sort and the filters.
+ * @typedef {{ db: string, table: string, page: string, sort: string, dir: string,
+ *     filters: string, match: string }} DbRowsQuestion
+ */
+
+/**
+ * A rule of the filter bar: whether it is on, its column or any, its operator and its values.
+ * @typedef {{ on: boolean, column: string, op: string, value: string, value2: string }}
+ *     DbFilterRule
+ */
+
+
+
 // -------------------------------------------------------------------- rows ---
 
 /**
@@ -47,12 +61,6 @@ async function loadRows() {
         grid.classList.remove("loading");
     }
 }
-
-/**
- * The rows asked of the server: the table, the page, the sort and the filters.
- * @typedef {{ db: string, table: string, page: string, sort: string, dir: string,
- *     filters: string, match: string }} DbRowsQuestion
- */
 
 /**
  * The rows the page asks for now, as the server is asked for them.
@@ -468,12 +476,6 @@ function renderFilterBar(force = false) {
 }
 
 /**
- * A rule of the filter bar: whether it is on, its column or any, its operator and its values.
- * @typedef {{ on: boolean, column: string, op: string, value: string, value2: string }}
- *     DbFilterRule
- */
-
-/**
  * A new rule, on, on any column, with no value.
  * @returns {DbFilterRule}
  */
@@ -800,7 +802,6 @@ async function openCell(button) {
  * @returns {void}
  */
 function showValue(name, value) {
-
     let shown = value;
     let json  = false;
 

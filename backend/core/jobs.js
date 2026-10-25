@@ -4,6 +4,21 @@ const { spawn } = require("child_process");
 
 // The long changes the page follows as they go: npm and pecl installs.
 
+/**
+ * Runs some steps as a job the page follows: it gets the job's id at once,
+ * then asks how it goes until it is done, so the page is free meanwhile. A
+ * step is a package each, run in turn, each waiting, running, done or failed.
+ * The jobs of one queue wait for each other too, since two runs changing one
+ * folder at once can break it.
+ *
+ * Each step is run by runStep, which gives an error or "". Once all are run,
+ * after() runs, then done() says what worked.
+ */
+const jobs   = new Map();
+const queues = new Map();
+let jobCount = 0;
+
+
 
 /**
  * A job the page follows: its id, each step's state and error, its own state,
@@ -20,22 +35,6 @@ const { spawn } = require("child_process");
  * A step of a job: the package it is for, and the arguments of its run.
  * @typedef {{ name: string, args: string[] }} JobStep
  */
-
-
-
-/**
- * Runs some steps as a job the page follows: it gets the job's id at once,
- * then asks how it goes until it is done, so the page is free meanwhile. A
- * step is a package each, run in turn, each waiting, running, done or failed.
- * The jobs of one queue wait for each other too, since two runs changing one
- * folder at once can break it.
- *
- * Each step is run by runStep, which gives an error or "". Once all are run,
- * after() runs, then done() says what worked.
- */
-const jobs   = new Map();
-const queues = new Map();
-let jobCount = 0;
 
 
 

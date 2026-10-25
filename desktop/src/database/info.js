@@ -6,6 +6,9 @@
 
 /** The engines MariaDB has on, asked once, when the Information tab first needs them. */
 let engineList = null;
+
+
+
 /**
  * The engines, from the server the first time and as kept after: each with its comment, and
  * whether it is the default.

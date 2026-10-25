@@ -4,6 +4,8 @@
 
 let logKey = "";
 
+
+
 /**
  * A request of Apache's requests log: the method and path, the size of the
  * answer, the time it took, and the client when it is not this Mac.
@@ -20,6 +22,8 @@ let logKey = "";
  *     copy?: string, frames?: string[], thrown?: string, location?: string,
  *     count?: number, request?: StudioLogRequest }} StudioLogEntry
  */
+
+
 
 /**
  * Loads a log and draws it as entries. Skipped when nothing changed, and the

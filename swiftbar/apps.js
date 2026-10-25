@@ -9,7 +9,6 @@ const { PROJECTS, NO_PROJECT } = require("./config");
 const { subDirsOf, capitalize, filesIn, readFile } = require("./helpers");
 
 
-// -------------------------------------------------------------------- apps ---
 
 /**
  * A project of the config, with its defaults filled in.
@@ -26,6 +25,10 @@ const { subDirsOf, capitalize, filesIn, readFile } = require("./helpers");
  * An app: its name, its project's folder name, its own folder name, and where it is.
  * @typedef {{ name: string, project: string, app: string, dir: string }} AppInfo
  */
+
+
+
+// -------------------------------------------------------------------- apps ---
 
 /**
  * The folders that hold apps, in the config's order, each with its project:

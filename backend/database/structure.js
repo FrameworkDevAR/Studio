@@ -9,6 +9,16 @@ const { readTables, readStructure } = require("./schema");
 
 // ------------------------------------------------------------------ indexes ---
 
+/** The kinds of index the page makes, as ALTER TABLE writes each. */
+const INDEX_KINDS = {
+    index    : "INDEX",
+    unique   : "UNIQUE INDEX",
+    fulltext : "FULLTEXT INDEX",
+    primary  : "PRIMARY KEY",
+};
+
+
+
 /**
  * A column as the column dialog gives it: its name and type, its collation, whether it takes
  * NULL, what it starts with or is made from and the value or expression for it,
@@ -19,13 +29,7 @@ const { readTables, readStructure } = require("./schema");
  *     comment?: string }} ColumnDefinition
  */
 
-/** The kinds of index the page makes, as ALTER TABLE writes each. */
-const INDEX_KINDS = {
-    index    : "INDEX",
-    unique   : "UNIQUE INDEX",
-    fulltext : "FULLTEXT INDEX",
-    primary  : "PRIMARY KEY",
-};
+
 
 /**
  * Adds an index on the columns given, in their order. MariaDB builds it

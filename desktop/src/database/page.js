@@ -22,6 +22,20 @@ let browse = { db : "", tables : [], table : "", tab : "tables", page : 1, sort 
     rows : null, total : undefined, filters : [], draft : [], match : "all", widths : {},
     dates : {}, structure : null, results : [], sql : {} };
 
+
+
+/**
+ * A table of the database as the server lists it: its rows, exact or an estimate, its engine,
+ * collation, sizes, next id, dates and comment. A count held from before keeps the estimate.
+ * @typedef {{ name: string, view: boolean, engine: string, rows: number, exact: boolean,
+ *             data: number, index: number, size: number, free: number, collation: string,
+ *             comment: string, format: string, next: number, average: number, most: number,
+ *             created: string, updated: string, estimate?: number, held?: boolean
+ *           }} BrowseTable
+ */
+
+
+
 /**
  * The path of a tab of the database, with its table but for the Tables and SQL tabs.
  * @param {string} tab
@@ -336,16 +350,6 @@ function tableInfoValue(value) {
 
     return `<dd title="${esc(value)}">${esc(value)}</dd>`;
 }
-
-/**
- * A table of the database as the server lists it: its rows, exact or an estimate, its engine,
- * collation, sizes, next id, dates and comment. A count held from before keeps the estimate.
- * @typedef {{ name: string, view: boolean, engine: string, rows: number, exact: boolean,
- *             data: number, index: number, size: number, free: number, collation: string,
- *             comment: string, format: string, next: number, average: number, most: number,
- *             created: string, updated: string, estimate?: number, held?: boolean
- *           }} BrowseTable
- */
 
 /**
  * A table's rows: the count when it is exact, or the estimate as a button
@@ -819,7 +823,6 @@ function overviewArrow(key) {
  * @returns {void}
  */
 function sortOverview(key) {
-
     if (overviewSort.key === key) {
         overviewSort = { key, dir : -overviewSort.dir };
     } else {

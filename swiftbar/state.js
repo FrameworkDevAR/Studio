@@ -13,7 +13,6 @@ const { isRunning, waitForUrl, sleep, filesIn } = require("./helpers");
 const { appInfo, byProjectThenApp, appRoots, appDirsOf } = require("./apps");
 
 
-// ------------------------------------------------------------------- state ---
 
 /**
  * A running app: a Vite server, or another Node app, which is not Vite.
@@ -40,6 +39,10 @@ const { appInfo, byProjectThenApp, appRoots, appDirsOf } = require("./apps");
  *     stopping: Set<string>, portByPid: Object<string, string>,
  * }} MenuState
  */
+
+
+
+// ------------------------------------------------------------------- state ---
 
 /**
  * Everything the menu needs to know, gathered once.

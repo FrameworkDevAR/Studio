@@ -111,6 +111,8 @@ let editorEdited = false;
 let editorCheck = { text : null, problem : "", timer : null };
 let editorFile  = "";
 
+
+
 /**
  * Opens a file of EDITOR_FILES in the editor, read fresh from the server, the
  * caret at its start.

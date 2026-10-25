@@ -10,6 +10,15 @@
  */
 
 /**
+ * A job of the server's, each time it is asked about: where it stands, what it
+ * says at the end, and where each of its items stands.
+ * @typedef {{ state: string, message: string,
+ *     items: { state: string, error: string }[] }} StudioJob
+ */
+
+
+
+/**
  * The page: node's version and tools, or what is wrong with it, then the
  * global packages that hold the filter's text, the linked ones first.
  * @returns {void}
@@ -572,13 +581,6 @@ async function updatePackages(names, kind = "npm") {
 }
 
 // -------------------------------------------------------------------- jobs ---
-
-/**
- * A job of the server's, each time it is asked about: where it stands, what it
- * says at the end, and where each of its items stands.
- * @typedef {{ state: string, message: string,
- *     items: { state: string, error: string }[] }} StudioJob
- */
 
 // The last update, which the update dialog shows while it runs and after.
 let updateJob = null;

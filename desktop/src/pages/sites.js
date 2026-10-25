@@ -3,6 +3,21 @@
 // The Sites page: the apps and servers in a block per project, and the vhosts.
 
 /**
+ * A card of the Sites page: one app or server, with what its card shows.
+ * @typedef {{ key: string, target: string, label: string, running: boolean,
+ *     starting: boolean, stopping: boolean, url: string, port: number,
+ *     mark?: string }} SitesCard
+ */
+
+/**
+ * A block of the Sites page: a project, and the cards of its apps or servers;
+ * its kind is "servers" or "apps".
+ * @typedef {{ title: string, kind: string, project: string, cards: SitesCard[] }} SitesBlock
+ */
+
+
+
+/**
  * The host a project's apps answer on: the one most of them use, leaving out
  * localhost. A project may have an app or two set to another one.
  * @param {string} project
@@ -51,19 +66,6 @@ function blockSpans(needs) {
     fill();
     return spans;
 }
-
-/**
- * A card of the Sites page: one app or server, with what its card shows.
- * @typedef {{ key: string, target: string, label: string, running: boolean,
- *     starting: boolean, stopping: boolean, url: string, port: number,
- *     mark?: string }} SitesCard
- */
-
-/**
- * A block of the Sites page: a project, and the cards of its apps or servers;
- * its kind is "servers" or "apps".
- * @typedef {{ title: string, kind: string, project: string, cards: SitesCard[] }} SitesBlock
- */
 
 /**
  * How many of a block's apps could be started now.

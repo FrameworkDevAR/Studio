@@ -23,6 +23,20 @@ const PECL = path.join(PATHS.homebrew, "bin", "pecl");
  * something.
  */
 let peclCache = { at : 0, packages : {} };
+
+
+
+/**
+ * A release of a PECL package, as the search gives it: its version, whether it is stable,
+ * its summary, licence and date.
+ * @typedef {{
+ *     name: string, version: string, stable: boolean, summary: string, license: string,
+ *     date: string,
+ * }} PeclRelease
+ */
+
+
+
 /**
  * The version of each extension pecl installed, by name, kept for a minute.
  * @returns {Promise<Object<string, string>>}
@@ -339,15 +353,6 @@ async function searchExtensions(text) {
 
     return Promise.all(names.map(releaseOf));
 }
-
-/**
- * A release of a PECL package, as the search gives it: its version, whether it is stable,
- * its summary, licence and date.
- * @typedef {{
- *     name: string, version: string, stable: boolean, summary: string, license: string,
- *     date: string,
- * }} PeclRelease
- */
 
 /**
  * A PECL package's newest release: its version, date, summary and licence.

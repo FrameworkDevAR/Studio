@@ -42,6 +42,8 @@ const SETTING_SCOPES = {
     },
 };
 
+
+
 /**
  * A PHP setting or a MariaDB option, as the server gives it: its value, the
  * choices it takes, whether the file has it, and what it goes back to without it.
@@ -49,6 +51,8 @@ const SETTING_SCOPES = {
  *     options?: string[], timezone?: boolean, size?: boolean, base?: string,
  *     baseFrom?: string, owner?: string, comment?: string }} StudioSetting
  */
+
+
 
 /**
  * The settings, in groups, then the file's other settings, a group for each

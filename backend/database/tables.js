@@ -9,6 +9,7 @@ const { readTables, readStructure, readEngines } = require("./schema");
 const { columnSql } = require("./structure");
 
 
+
 /**
  * Changes a table's options, as Sequel Ace's Table Information does: its
  * engine, its encoding -- the default for new columns, or converting the

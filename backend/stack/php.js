@@ -14,6 +14,7 @@ const {
 const { readPecl, checkUpgrades, upgrades, extensionLines } = require("./pecl");
 
 
+
 /**
  * The PHP version, its settings and extensions. A setting in the overrides
  * file shows the file's value, since the CLI changes some of them (it always

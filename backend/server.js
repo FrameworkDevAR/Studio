@@ -6,33 +6,26 @@ const fs = require("fs");
 const http = require("http");
 const path = require("path");
 
-const {
-    ROOT, PHPMYADMIN, HTTPD_CONF, VHOSTS, MYSQL_DATA, MYSQL_CNF, versionOf
-} = require("./core/system");
-const {
-    readServices, readDisk, serviceAction, startAll, restartAll, stopAll
-} = require("./stack/services");
-const db = require("./database/databases");
+const system = require("./core/system");
+const config = require("./core/config");
+const jobs = require("./core/jobs");
+const services = require("./stack/services");
+const apache = require("./stack/apache");
+const php = require("./stack/php");
+const pecl = require("./stack/pecl");
+const node = require("./stack/node");
+const logs = require("./stack/logs");
+const apps = require("./apps/apps");
+const icons = require("./apps/icons");
+const databases = require("./database/databases");
 const mariadb = require("./database/mariadb");
 const schema = require("./database/schema");
-const tableRows = require("./database/rows");
+const rows = require("./database/rows");
 const structure = require("./database/structure");
 const tables = require("./database/tables");
 const sql = require("./database/sql");
 const exporter = require("./database/exports");
 const importer = require("./database/imports");
-const { readModules, readListen, readVhosts, setModule, reloadApache, readIncludes, setInclude,
-    apacheFile, readApacheFile, checkApacheFile, saveApacheFile } = require("./stack/apache");
-const php = require("./stack/php");
-const pecl = require("./stack/pecl");
-const {
-    readNode, updatePackages, installPackage, uninstallPackage, searchPackages
-} = require("./stack/node");
-const { readJob } = require("./core/jobs");
-const { readApps, startApp, stopApp, startGroup, startServer, stopServer } = require("./apps/apps");
-const { readLogSizes, readLog, clearLog } = require("./stack/logs");
-const { readConfigFile, saveConfig, openFile } = require("./core/config");
-const { readIcons, iconFile } = require("./apps/icons");
 
 
 
@@ -41,7 +34,7 @@ const { readIcons, iconFile } = require("./apps/icons");
 const PORT    = 9900;
 const HOST    = "127.0.0.1";
 // The page, served as it is.
-const DESKTOP = path.join(ROOT, "desktop");
+const DESKTOP = path.join(system.ROOT, "desktop");
 
 const MIME = {
     ".html" : "text/html; charset=utf-8",
@@ -60,8 +53,11 @@ http.createServer(handle).listen(PORT, HOST, () => {
     console.log(`Studio on http://localhost:${PORT}/`);
 });
 
+
+
 /**
- * Answers one request: the api, or a file of the page.
+ * Answers one request: the api, or a file of the page. An answer that is data goes back as
+ * JSON; a file, an icon or an export is sent as it is read.
  * @param {import("http").IncomingMessage} request
  * @param {import("http").ServerResponse} response
  * @returns {Promise<void>}
@@ -71,138 +67,83 @@ async function handle(request, response) {
         return send(response, 403, { error : "Forbidden" });
     }
 
-    const url = new URL(request.url, `http://localhost:${PORT}`);
+    // A POST changes something, so it needs the header only the page sends.
+    if (request.method === "POST" && request.headers["x-studio"] !== "1") {
+        return send(response, 403, { error : "Forbidden" });
+    }
 
     try {
-        if (url.pathname === "/api/state" && request.method === "GET") {
-            const state = await readState();
-            return send(response, 200, state);
+        const url    = new URL(request.url, `http://localhost:${PORT}`);
+        const answer = await route(request, response, url);
+        if (!response.headersSent) {
+            send(response, 200, answer);
         }
-        if (url.pathname === "/api/config" && request.method === "GET") {
-            return send(response, 200, readConfigFile());
-        }
-        if (url.pathname === "/api/icon" && request.method === "GET") {
-            return sendIcon(response, url.searchParams.get("project"));
-        }
-        if (url.pathname === "/api/log" && request.method === "GET") {
-            return send(response, 200, readLog(
-                url.searchParams.get("name"),
-                Number(url.searchParams.get("lines")) || 200,
-            ));
-        }
-        if (url.pathname === "/api/npm-search" && request.method === "GET") {
-            const packages = await searchPackages(url.searchParams.get("q"));
-            return send(response, 200, packages);
-        }
-        if (url.pathname === "/api/pecl-search" && request.method === "GET") {
-            const extensions = await pecl.searchExtensions(url.searchParams.get("q"));
-            return send(response, 200, extensions);
-        }
-        if (url.pathname === "/api/php-directives" && request.method === "GET") {
-            const directives = await php.readDirectives();
-            return send(response, 200, directives);
-        }
-        if (url.pathname === "/api/php-overrides" && request.method === "GET") {
-            return send(response, 200, php.readOverrides());
-        }
-        if (url.pathname === "/api/apache-file" && request.method === "GET") {
-            return send(response, 200, readApacheFile(
-                url.searchParams.get("kind"),
-                url.searchParams.get("file"),
-            ));
-        }
+    } catch (error) {
+        send(response, 500, { error : error.message });
+    }
+}
 
-        if (url.pathname === "/api/charsets" && request.method === "GET") {
-            const charsets = await db.readCharsets();
-            return send(response, 200, charsets);
-        }
-        if (url.pathname === "/api/mariadb-options" && request.method === "GET") {
-            const options = await mariadb.readOptionList();
-            return send(response, 200, options);
-        }
-        if (url.pathname === "/api/mariadb-file" && request.method === "GET") {
-            return send(response, 200, mariadb.readOptionsFile());
-        }
-        if (url.pathname === "/api/db-tables" && request.method === "GET") {
-            const list = await schema.readTables(url.searchParams.get("db"));
-            return send(response, 200, list);
-        }
-        if (url.pathname === "/api/db-structure" && request.method === "GET") {
-            const details = await schema.readStructure(
-                url.searchParams.get("db"),
-                url.searchParams.get("table"),
-            );
-            return send(response, 200, details);
-        }
-        if (url.pathname === "/api/db-rows" && request.method === "GET") {
-            const rows = await tableRows.readRows(
-                Object.fromEntries(url.searchParams),
-            );
-            return send(response, 200, rows);
-        }
-        if (url.pathname === "/api/engines" && request.method === "GET") {
-            const engines = await schema.readEngines();
-            return send(response, 200, engines);
-        }
-        if (url.pathname === "/api/db-counts" && request.method === "GET") {
-            const counts = await tableRows.countSmallTables(
-                url.searchParams.get("db"),
-            );
-            return send(response, 200, counts);
-        }
-        if (url.pathname === "/api/db-count" && request.method === "GET") {
-            const count = await tableRows.countRows(
-                Object.fromEntries(url.searchParams),
-            );
-            return send(response, 200, count);
-        }
+/**
+ * What a request asks for, by its method and path: the data to answer with, or nothing when
+ * the answer was sent already.
+ * @param {import("http").IncomingMessage} request
+ * @param {import("http").ServerResponse} response
+ * @param {URL} url
+ * @returns {Promise<*>}
+ */
+async function route(request, response, url) {
+    const query = url.searchParams;
 
-        // The export asked for in an action, by its id, as a download.
-        if (url.pathname === "/api/db-export" && request.method === "GET") {
-            return await exporter.runExport(response, url.searchParams.get("id"));
-        }
-        // The file to import is the request's body itself, streamed, so it is
-        // a POST with the header every action needs.
-        if (url.pathname === "/api/db-import" && request.method === "POST") {
-            if (request.headers["x-studio"] !== "1") {
-                return send(response, 403, { error : "Forbidden" });
-            }
-            const imported = await sql.importDatabase(
-                request,
-                Object.fromEntries(url.searchParams),
-            );
-            return send(response, 200, imported);
-        }
+    switch (`${request.method} ${url.pathname}`) {
+    // The page, the stack and the apps.
+    case "GET /api/state":           return readState();
+    case "GET /api/config":          return config.readConfigFile();
+    case "GET /api/icon":            return sendIcon(response, query.get("project"));
+    case "GET /api/log":             return logs.readLog(
+        query.get("name"),
+        Number(query.get("lines")) || 200,
+    );
+    case "GET /api/job":             return jobs.readJob(query.get("id"));
+    case "GET /api/npm-search":      return node.searchPackages(query.get("q"));
+    case "GET /api/pecl-search":     return pecl.searchExtensions(query.get("q"));
+    case "GET /api/php-directives":  return php.readDirectives();
+    case "GET /api/php-overrides":   return php.readOverrides();
+    case "GET /api/apache-file":     return apache.readApacheFile(
+        query.get("kind"),
+        query.get("file"),
+    );
 
-        // A CSV into a table, streamed as the import of a dump is, its options in the address.
-        if (url.pathname === "/api/db-import-csv" && request.method === "POST") {
-            if (request.headers["x-studio"] !== "1") {
-                return send(response, 403, { error : "Forbidden" });
-            }
-            const imported = await importer.importCsv(
-                request,
-                Object.fromEntries(url.searchParams),
-            );
-            return send(response, 200, imported);
-        }
+    // The databases.
+    case "GET /api/charsets":        return databases.readCharsets();
+    case "GET /api/mariadb-options": return mariadb.readOptionList();
+    case "GET /api/mariadb-file":    return mariadb.readOptionsFile();
+    case "GET /api/engines":         return schema.readEngines();
+    case "GET /api/db-tables":       return schema.readTables(query.get("db"));
+    case "GET /api/db-structure":    return schema.readStructure(
+        query.get("db"),
+        query.get("table"),
+    );
+    case "GET /api/db-rows":         return rows.readRows(Object.fromEntries(query));
+    case "GET /api/db-count":        return rows.countRows(Object.fromEntries(query));
+    case "GET /api/db-counts":       return rows.countSmallTables(query.get("db"));
+    // The export asked for in an action, by its id, as a download.
+    case "GET /api/db-export":       return exporter.runExport(response, query.get("id"));
+    // A dump, or a CSV into a table: the file is the request's body itself, streamed, and the
+    // options are in the address.
+    case "POST /api/db-import":      return sql.importDatabase(request, Object.fromEntries(query));
+    case "POST /api/db-import-csv":  return importer.importCsv(request, Object.fromEntries(query));
 
-        if (url.pathname === "/api/job" && request.method === "GET") {
-            return send(response, 200, readJob(url.searchParams.get("id")));
-        }
-        if (url.pathname === "/api/action" && request.method === "POST") {
-            if (request.headers["x-studio"] !== "1") {
-                return send(response, 403, { error : "Forbidden" });
-            }
-            const body   = await readBody(request);
-            const answer = await runAction(body);
-            return send(response, 200, answer);
-        }
+    // Every change the page asks for.
+    case "POST /api/action": {
+        const body = await readBody(request);
+        return runAction(body);
+    }
+
+    default:
         if (request.method === "GET" && !url.pathname.startsWith("/api/")) {
             return sendFile(response, url.pathname);
         }
-        send(response, 404, { error : "Not found" });
-    } catch (error) {
-        send(response, 500, { error : error.message });
+        return send(response, 404, { error : "Not found" });
     }
 }
 
@@ -259,7 +200,7 @@ function sendFile(response, pathname) {
  * @returns {void}
  */
 function sendIcon(response, project) {
-    const file = iconFile(project || "");
+    const file = icons.iconFile(project || "");
     if (!file || !fs.existsSync(file)) {
         return send(response, 404, { error : "Not found" });
     }
@@ -305,42 +246,42 @@ function readBody(request) {
  */
 async function readState() {
     const [
-        services, phpState, node, databases, options, { apps, servers, branches }, disk
+        serviceList, phpState, nodeState, databaseList, mariadbState, projects, disk,
     ] = await Promise.all([
-        readServices(),
+        services.readServices(),
         php.readPhp(),
-        readNode(),
-        db.readDatabases(),
+        node.readNode(),
+        databases.readDatabases(),
         mariadb.readMariadb(),
-        readApps(),
-        readDisk(),
+        apps.readApps(),
+        services.readDisk(),
     ]);
 
     return {
-        services,
-        php : phpState,
-        node,
-        databases,
-        mariadb : options,
-        apps,
-        servers,
-        branches,
+        services   : serviceList,
+        php        : phpState,
+        node       : nodeState,
+        databases  : databaseList,
+        mariadb    : mariadbState,
+        apps       : projects.apps,
+        servers    : projects.servers,
+        branches   : projects.branches,
         // The projects with a favicon, which the page asks /api/icon for.
-        icons      : Object.keys(readIcons(apps, servers)),
+        icons      : Object.keys(icons.readIcons(projects.apps, projects.servers)),
         disk,
-        listen     : readListen(),
-        logs       : readLogSizes(),
-        modules    : await readModules(),
-        includes   : readIncludes(),
-        apache     : { version : versionOf("httpd") },
-        vhosts     : readVhosts(),
-        phpmyadmin : { url : PHPMYADMIN, version : versionOf("phpmyadmin") },
+        listen     : apache.readListen(),
+        logs       : logs.readLogSizes(),
+        modules    : await apache.readModules(),
+        includes   : apache.readIncludes(),
+        apache     : { version : system.versionOf("httpd") },
+        vhosts     : apache.readVhosts(),
+        phpmyadmin : { url : system.PHPMYADMIN, version : system.versionOf("phpmyadmin") },
         files      : {
-            httpdConf : HTTPD_CONF,
-            vhosts    : VHOSTS,
+            httpdConf : system.HTTPD_CONF,
+            vhosts    : system.VHOSTS,
             phpIni    : php.phpIniFile(),
-            mysqlData : MYSQL_DATA,
-            mysqlCnf  : MYSQL_CNF,
+            mysqlData : system.MYSQL_DATA,
+            mysqlCnf  : system.MYSQL_CNF,
         },
     };
 }
@@ -355,69 +296,94 @@ async function readState() {
  */
 async function runAction(body) {
     switch (body.action) {
-    case "service":       return serviceAction(body.service, body.op);
-    case "start-all":     return startAll();
-    case "restart-all":   return restartAll();
-    case "stop-all":      return stopAll();
-    case "php-setting":   return php.setPhpSetting(
+    // The services.
+    case "service":         return services.serviceAction(body.service, body.op);
+    case "start-all":       return services.startAll();
+    case "restart-all":     return services.restartAll();
+    case "stop-all":        return services.stopAll();
+
+    // PHP's settings and its extensions.
+    case "php-setting":     return php.setPhpSetting(
         String(body.key || ""),
         String(body.value ?? "").trim(),
     );
-    case "php-settings":  return php.setPhpSettings(body.changes);
-    case "php-save":      return php.saveOverrides(body.text);
-    case "php-check":     return php.checkOverrides(body.text);
-    case "pecl-install":  return pecl.installExtension(body.name);
-    case "pecl-update":   return pecl.updateExtensions(body.name);
-    case "pecl-rebuild":  return pecl.reinstallExtension(body.name);
-    case "pecl-remove":   return pecl.uninstallExtension(body.name);
-    case "module":        return setModule(body.name, Boolean(body.enabled));
-    case "reload":        return reloadApache();
-    case "apache-check":  return checkApacheFile(body.kind, body.text, body.file);
-    case "apache-save":   return saveApacheFile(body.kind, body.text, body.file);
-    case "apache-include": return setInclude(String(body.file || ""), Boolean(body.enabled));
-    // A file Apache includes opens by its path, once it is known to be one.
-    case "open-file":     return openFile(
-        body.file,
-        body.file === "apacheInclude" ? apacheFile("include", body.path) : "",
+    case "php-settings":    return php.setPhpSettings(body.changes);
+    case "php-save":        return php.saveOverrides(body.text);
+    case "php-check":       return php.checkOverrides(body.text);
+    case "pecl-install":    return pecl.installExtension(body.name);
+    case "pecl-update":     return pecl.updateExtensions(body.name);
+    case "pecl-rebuild":    return pecl.reinstallExtension(body.name);
+    case "pecl-remove":     return pecl.uninstallExtension(body.name);
+
+    // Node's global packages.
+    case "npm-update":      return node.updatePackages(body.name);
+    case "npm-install":     return node.installPackage(body.name);
+    case "npm-uninstall":   return node.uninstallPackage(body.name);
+
+    // Apache: its modules, the files it includes, and its own files.
+    case "module":          return apache.setModule(body.name, Boolean(body.enabled));
+    case "reload":          return apache.reloadApache();
+    case "apache-check":    return apache.checkApacheFile(body.kind, body.text, body.file);
+    case "apache-save":     return apache.saveApacheFile(body.kind, body.text, body.file);
+    case "apache-include":  return apache.setInclude(
+        String(body.file || ""),
+        Boolean(body.enabled),
     );
-    case "db-create":     return db.createDatabase(body);
-    case "db-change":     return db.changeDatabase(body);
-    case "db-drop":       return db.dropDatabase(body);
-    case "user-create":   return db.createUser(body);
-    case "user-change":   return db.changeUser(body);
-    case "user-drop":     return db.dropUser(body);
+
+    // The apps and their servers.
+    case "app-start":       return body.id ? apps.startServer(body.id) : apps.startApp(body.dir);
+    case "app-stop":        return body.id ? apps.stopServer(body.id) : apps.stopApp(body.dir);
+    case "group-start":     return apps.startGroup(body.group);
+
+    // Studio's config, the logs, and a file opened in its editor. A file Apache includes
+    // opens by its path, once it is known to be one.
+    case "save-config":     return config.saveConfig(body.text);
+    case "clear-log":       return logs.clearLog(body.name);
+    case "open-file":       return config.openFile(
+        body.file,
+        body.file === "apacheInclude" ? apache.apacheFile("include", body.path) : "",
+    );
+
+    // The databases, their users, and MariaDB's settings.
+    case "db-create":       return databases.createDatabase(body);
+    case "db-change":       return databases.changeDatabase(body);
+    case "db-drop":         return databases.dropDatabase(body);
+    case "user-create":     return databases.createUser(body);
+    case "user-change":     return databases.changeUser(body);
+    case "user-drop":       return databases.dropUser(body);
     case "mariadb-options": return mariadb.setOptions(body.changes);
-    case "mariadb-save":  return mariadb.saveOptionsFile(body.text);
-    case "mariadb-check": return mariadb.checkOptions(body.text);
-    case "db-row":        return tableRows.readRow(body);
-    case "db-row-save":   return tableRows.saveRow(body);
-    case "db-row-delete": return tableRows.deleteRow(body);
-    case "db-rows-set":   return tableRows.setColumn(body);
-    case "db-sql":        return sql.runSql(body);
-    case "db-index-add":  return structure.addIndex(body);
-    case "db-index-drop": return structure.dropIndex(body);
-    case "db-fk-save":    return structure.saveForeignKey(body);
-    case "db-fk-drop":    return structure.dropForeignKey(body);
-    case "db-table-change": return tables.changeTable(body);
-    case "db-export":       return exporter.prepareExport(body);
+    case "mariadb-save":    return mariadb.saveOptionsFile(body.text);
+    case "mariadb-check":   return mariadb.checkOptions(body.text);
+
+    // A database's tables.
     case "db-table-create": return tables.createTable(body);
+    case "db-table-change": return tables.changeTable(body);
     case "db-table-rename": return tables.renameTable(body);
     case "db-table-copy":   return tables.duplicateTable(body);
     case "db-table-empty":  return tables.emptyTable(body);
     case "db-table-drop":   return tables.dropTable(body);
     case "db-table-upkeep": return tables.maintainTables(body);
+    case "db-next-id":      return tables.nextId(body);
+
+    // A table's columns, indexes and foreign keys.
     case "db-column-save":  return structure.saveColumn(body);
     case "db-column-move":  return structure.moveColumn(body);
     case "db-column-drop":  return structure.dropColumn(body);
-    case "db-next-id":    return tables.nextId(body);
-    case "save-config":   return saveConfig(body.text);
-    case "clear-log":     return clearLog(body.name);
-    case "app-start":     return body.id ? startServer(body.id) : startApp(body.dir);
-    case "app-stop":      return body.id ? stopServer(body.id) : stopApp(body.dir);
-    case "group-start":   return startGroup(body.group);
-    case "npm-update":    return updatePackages(body.name);
-    case "npm-install":   return installPackage(body.name);
-    case "npm-uninstall": return uninstallPackage(body.name);
-    default:              throw new Error(`Unknown action ${body.action}`);
+    case "db-index-add":    return structure.addIndex(body);
+    case "db-index-drop":   return structure.dropIndex(body);
+    case "db-fk-save":      return structure.saveForeignKey(body);
+    case "db-fk-drop":      return structure.dropForeignKey(body);
+
+    // A table's rows.
+    case "db-row":          return rows.readRow(body);
+    case "db-row-save":     return rows.saveRow(body);
+    case "db-row-delete":   return rows.deleteRow(body);
+    case "db-rows-set":     return rows.setColumn(body);
+
+    // SQL, and the export, which is then fetched by its id.
+    case "db-sql":          return sql.runSql(body);
+    case "db-export":       return exporter.prepareExport(body);
+
+    default:                throw new Error(`Unknown action ${body.action}`);
     }
 }

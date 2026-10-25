@@ -3,8 +3,6 @@
 // SQL to run: its statements, its results, changed in place when they can be, and the
 // queries run before and kept.
 
-// --------------------------------------------------------------------- sql ---
-
 /**
  * A result of the SQL run: its statement, its columns and its rows, null for NULL, whether there
  * were more than these, and, when its rows change in place, its table, its primary key and each
@@ -13,6 +11,10 @@
  *     edit: { db: string, table: string, primary: string[], columns: { name: string,
  *     binary: boolean, dataType: string, generated: boolean }[] } }} SqlResultSet
  */
+
+
+
+// --------------------------------------------------------------------- sql ---
 
 /**
  * The console: the SQL typed for this database, or a SELECT of the table to start from.

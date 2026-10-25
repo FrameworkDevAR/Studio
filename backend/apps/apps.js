@@ -4,6 +4,8 @@
 
 const { SWIFTBAR, run } = require("../core/system");
 
+
+
 /**
  * An app as the plugin lists it: its project, its folder, whether it runs, and where.
  * @typedef {{

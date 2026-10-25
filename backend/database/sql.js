@@ -13,12 +13,15 @@ const { readTables, readStructure } = require("./schema");
 // The most rows a query in the console shows.
 const RESULTS = 1000;
 
+
+
 /**
  * How a result's rows can be changed in place: the table, its key, and each column of the
  * result as the table's.
  * @typedef {{ db: string, table: string, primary: string[], columns: { name: string,
  *     binary: boolean, dataType: string, generated: boolean }[] }} SqlEditable
  */
+
 
 
 // ---------------------------------------------------------------------- sql ---

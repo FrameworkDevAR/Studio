@@ -13,6 +13,9 @@
 const fadeSizes = new ResizeObserver((entries) => entries.forEach(
     (entry) => fadeEdges(/** @type {HTMLElement} */ (entry.target)),
 ));
+
+
+
 /**
  * Fades a box's edges now, and again as it scrolls or changes size.
  * @param {HTMLElement} box
@@ -704,7 +707,6 @@ async function saveValue(index, at, value) {
  * @returns {Promise<void>}
  */
 async function editValue(index, at) {
-
     const { structure, rows, cut } = browse.rows;
     const column = structure.columns[at];
     let value = rows[index][at];

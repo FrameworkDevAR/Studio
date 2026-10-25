@@ -17,6 +17,8 @@ const SERVICES = {
     redis   : { name : "Redis",   process : [ "-x", "redis-server" ], start : "start" },
 };
 
+
+
 /**
  * Each service: whether it runs, and the version installed.
  * @returns {Promise<Object<string, { name: string, running: boolean, version: string }>>}

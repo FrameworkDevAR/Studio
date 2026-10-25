@@ -49,6 +49,8 @@ const PRIVILEGES = [
     [ "GRANT OPTION",            "Grant_priv",               "Grant" ],
 ].map(([ name, column, group, only = "" ]) => ({ name, column, group, only }));
 
+
+
 /**
  * A user as the page has it: its name and host, whether it reaches every database, the ones
  * granted to it, what it may do, whether its databases were given different privileges, and
@@ -82,6 +84,8 @@ const PRIVILEGES = [
  * @typedef {{ name: string, host?: string, password?: string, all?: boolean,
  *     databases?: string[], privileges?: string[] }} DatabaseUserForm
  */
+
+
 
 /**
  * The privileges one database or every one can be given, by name.

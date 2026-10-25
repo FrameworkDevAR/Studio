@@ -14,6 +14,8 @@ const { readStructure, readTables } = require("./schema");
 
 const BATCH = 500;
 
+
+
 /**
  * Reads a CSV a piece at a time: fields split at the separator outside
  * quotes, "" a quote in them, a line ending a row. A field empty and

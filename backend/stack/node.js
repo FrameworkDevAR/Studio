@@ -13,15 +13,20 @@ const { runJob, spawnLines } = require("../core/jobs");
 const NODE = path.join(PATHS.homebrew, "bin", "node");
 
 /**
- * A global package npm installed: its name, its version, and whether it is a link.
- * @typedef {{ name: string, version: string, linked: boolean }} GlobalPackage
- */
-
-/**
  * The Node.js version and the packages installed with npm -g. Asking npm
  * takes a moment, so the answer is kept for a minute.
  */
 let nodeCache = { at : 0, data : null };
+
+
+
+/**
+ * A global package npm installed: its name, its version, and whether it is a link.
+ * @typedef {{ name: string, version: string, linked: boolean }} GlobalPackage
+ */
+
+
+
 /**
  * Node.js and its global packages, each with its newest version and its size when known.
  * @returns {Promise<{

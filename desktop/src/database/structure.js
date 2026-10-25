@@ -2,8 +2,6 @@
 
 // A table's structure: its columns, indexes and foreign keys.
 
-// --------------------------------------------------------------- structure ---
-
 /**
  * A column of a table's structure, as the server reads it: its type as MariaDB writes it and its
  * bare type, what it starts with, its key, extra, comment and collation, and whether it is binary.
@@ -11,6 +9,10 @@
  *     default: string, value: { kind: string, value: string }, key: string, extra: string,
  *     comment: string, collation: string, binary: boolean }} DbStructureColumn
  */
+
+
+
+// --------------------------------------------------------------- structure ---
 
 /**
  * The table's columns, filtered as typed, and its indexes, to add and

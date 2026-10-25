@@ -47,6 +47,8 @@ const FIXED = new RegExp(
 /** The groups of a cnf file the server reads. */
 const SERVER_GROUP = /^(mysqld|server|mariadb|mariadbd|client-server)(-[\d.]+)?$/i;
 
+
+
 /**
  * A variable as MariaDB has it: its value now and by default, its type, the values an enum
  * takes, whether it can change as MariaDB runs, and what it is for.
@@ -65,6 +67,7 @@ const SERVER_GROUP = /^(mysqld|server|mariadb|mariadbd|client-server)(-[\d.]+)?$
  *     options: string[], size: boolean, dynamic: boolean, base: string,
  *     baseFrom: string, owner: string }} MariadbOption
  */
+
 
 
 /**

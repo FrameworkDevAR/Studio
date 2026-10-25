@@ -21,6 +21,8 @@ const LOGS = {
     redis   : PATHS.redisLog,
 };
 
+
+
 /**
  * The file of a log, by name, or undefined when it has none.
  * @param {string} name
