@@ -18,17 +18,17 @@ import { countOf } from "../pages/node.js";
 
 // ---------------------------------------------------------------- table menu ---
 
-/**
- * A table's menu, on a right click in the Tables tab or the side's list,
- * as Sequel Ace's: to open it, add a table, rename or duplicate this one,
- * copy its name or CREATE, and empty or drop it.
- */
+/** The table whose menu is open, and the tables it acts on. */
 let tableMenu = "";
 let tableMenuNames = [];
 
 
 
 /**
+ * A table's menu, on a right click in the Tables tab or the side's list,
+ * as Sequel Ace's: to open it, add a table, rename or duplicate this one,
+ * copy its name or CREATE, and empty or drop it.
+ *
  * Opens a table's menu at a point, for it alone or for the tables marked with it.
  * @param {string} name
  * @param {number} x
@@ -528,12 +528,13 @@ async function tableGone(old, name) {
 
 // ------------------------------------------------------- switching databases ---
 
+/** The database marked in the list to switch to, by its place. */
+let switchAt = 0;
+
 /**
  * The databases to switch to, from the title: filtered as typed, each with
  * its size and tables, the one open marked. ↑ and ↓ move, Enter goes.
- */
-let switchAt = 0;
-/**
+ *
  * Opens the databases to switch to, with the filter empty, or closes them.
  * @returns {void}
  */

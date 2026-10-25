@@ -17,11 +17,7 @@ import { countOf } from "../pages/node.js";
 
 // ------------------------------------------------------------------- fades ---
 
-/**
- * Fades a scrolling box's edges where more of it is hidden: the bottom and
- * the sides, and the top too, unless its header stays there. On the right,
- * the fade comes before a grid's edit buttons, which stay at that edge.
- */
+/** What sets a box's fades again once its size changes. */
 const fadeSizes = new ResizeObserver((entries) => entries.forEach(
     (entry) => fadeEdges(/** @type {HTMLElement} */ (entry.target)),
 ));
@@ -29,6 +25,10 @@ const fadeSizes = new ResizeObserver((entries) => entries.forEach(
 
 
 /**
+ * Fades a scrolling box's edges where more of it is hidden: the bottom and
+ * the sides, and the top too, unless its header stays there. On the right,
+ * the fade comes before a grid's edit buttons, which stay at that edge.
+ *
  * Fades a box's edges now, and again as it scrolls or changes size.
  * @param {HTMLElement} box
  * @returns {void}
@@ -308,13 +308,7 @@ async function deleteRows(indexes) {
 
 // ---------------------------------------------------------------- row menu ---
 
-/**
- * The rows' menu, on a right click, as Sequel Ace's: the rows marked copied
- * as text, with their column names, or as an INSERT, with or without their
- * auto_increment ids; the values of the column clicked, as they are or as
- * SQL; then to change or duplicate a row, or delete them, when the table
- * has a key.
- */
+/** The rows the rows' menu acts on, by index, and the column clicked. */
 let rowMenu = { indexes : [ 0 ], at : -1 };
 
 /**
@@ -325,7 +319,14 @@ let rowMenu = { indexes : [ 0 ], at : -1 };
 function setRowMenu(value) {
     rowMenu = value;
 }
+
 /**
+ * The rows' menu, on a right click, as Sequel Ace's: the rows marked copied
+ * as text, with their column names, or as an INSERT, with or without their
+ * auto_increment ids; the values of the column clicked, as they are or as
+ * SQL; then to change or duplicate a row, or delete them, when the table
+ * has a key.
+ *
  * Opens the rows' menu at a point, for the rows marked and the column clicked.
  * @param {number[]} indexes
  * @param {number} at
@@ -521,15 +522,16 @@ function rowsKeyed() {
         && !browse.tables.find((one) => one.name === structure.table)?.view;
 }
 
+/** The cell being changed where it is, while one is, or null. */
+let editing = null;
+
 /**
  * A cell changed where it is, as in Sequel Ace, by a double click, in a
  * field as wide as its column: Enter or a click away saves it, Escape
  * leaves it, Tab saves it and goes to the next cell, Shift-Tab to the one
  * before, and ↑ and ↓ to the same column of the row above or below. A big
  * value changes in a dialog instead, and a binary one only in the row's.
- */
-let editing = null;
-/**
+ *
  * Changes a cell where it is, or in a dialog when its value is big or binary.
  * @param {HTMLElement} td
  * @returns {void}

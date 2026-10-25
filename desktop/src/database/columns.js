@@ -407,6 +407,9 @@ function defaultOf(text, column) {
     return { value : "value", preset : text };
 }
 
+/** The column's cell being changed where it is, while one is, or null. */
+let columnEdit = null;
+
 /**
  * A column's cell changed where it is, as in Sequel Ace, by a double
  * click: its name, its type as MariaDB writes it, whether it takes NULL,
@@ -414,9 +417,7 @@ function defaultOf(text, column) {
  * Escape leaves it, Tab goes to the next cell and ↑ ↓ to the one above or
  * below; the extra, and a generated column's expression, change in the
  * column's dialog.
- */
-let columnEdit = null;
-/**
+ *
  * Opens a column's cell to change it in place, or the column's dialog for what the cell cannot
  * change.
  * @param {HTMLElement} td
@@ -600,11 +601,7 @@ async function saveColumnCell(edit, then = null) {
     then?.();
 }
 
-/**
- * A column dragged to another place, as in Sequel Ace: the line it would
- * land on shows above or below the row under the pointer, and dropping it
- * moves it there, after the column before, or first.
- */
+/** The name of the column being dragged, or "" when none is. */
 let columnDrag = "";
 
 /**
@@ -615,7 +612,12 @@ let columnDrag = "";
 function setColumnDrag(value) {
     columnDrag = value;
 }
+
 /**
+ * A column dragged to another place, as in Sequel Ace: the line it would
+ * land on shows above or below the row under the pointer, and dropping it
+ * moves it there, after the column before, or first.
+ *
  * Moves the column dragged to the row it is dropped on, above it or below, unless that is where
  * it is already.
  * @param {HTMLElement} tr
@@ -655,12 +657,13 @@ function dropColumnAt(tr, below) {
         .catch((error) => toast(error.message, true));
 }
 
+/** The name of the column whose menu is open. */
+let columnMenu = "";
+
 /**
  * The menu of a column, on a right click: to change, copy or add one after it, to move it, or to
  * drop it.
- */
-let columnMenu = "";
-/**
+ *
  * Opens a column's menu where the pointer is.
  * @param {string} name
  * @param {number} x

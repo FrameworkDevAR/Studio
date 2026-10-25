@@ -312,15 +312,19 @@ function extensionLines(mainIni) {
 }
 
 /**
+ * The names of all PECL's packages, as last read, and the newest release of each package asked
+ * for, by name.
+ */
+let peclNames  = { at : 0, list : [] };
+const releases = new Map();
+
+/**
  * Extensions on PECL for what is being typed into the install field. PECL
  * lists only the names of all its packages, so those are matched and put in
  * order -- the exact name, then names starting with the text -- and the
  * first few are asked for their newest release. Kept for 10 minutes; the
  * list of names for a day.
- */
-let peclNames  = { at : 0, list : [] };
-const releases = new Map();
-/**
+ *
  * The extensions on PECL that best match a text, each with its newest release.
  * @param {string} text
  * @returns {Promise<PeclRelease[]>}

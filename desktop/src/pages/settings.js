@@ -435,13 +435,16 @@ function discardSettings(scope) {
 // ------------------------------------------------------------ add setting ---
 
 /**
- * The dialog that picks a setting from all PHP or MariaDB knows, filtered as
- * typed, then takes its value. On the page it saves the setting; in the
- * editor it gives it, to be written into the text.
+ * The dialog's settings to pick from, the one picked, whether it is for the editor, whose settings
+ * they are, and what gives the setting back once picked.
  */
 let pick = { list : [], key : "", inEditor : false, scope : "php", resolve : null };
 
 /**
+ * The dialog that picks a setting from all PHP or MariaDB knows, filtered as
+ * typed, then takes its value. On the page it saves the setting; in the
+ * editor it gives it, to be written into the text.
+ *
  * Opens the dialog for a page's settings, or for the editor's text, and gives
  * the setting picked with its value once it is, or null when it closes.
  * @param {{ inEditor?: boolean, text?: string, scope?: string }} start

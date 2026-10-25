@@ -162,15 +162,16 @@ function checkSizes(root, globals) {
     });
 }
 
+/** The answers of the registry's search, by the text searched for, each with when it came. */
+const searches = new Map();
+
 /**
  * Packages on the registry for what is being typed into the install field.
  * npm's search matches whole words, so it is asked for more than are shown,
  * and those are put in a better order: the exact name, then names starting
  * with the text, then the most downloaded. Answers are kept for 10 minutes.
- */
-const searches = new Map();
-/**
- * The packages on the registry that best match a text, kept for 10 minutes.
+ *
+ * The packages on the registry that best match a text.
  * @param {string} text
  * @returns {Promise<{
  *     name: string, version: string, description: string, keywords: string[],

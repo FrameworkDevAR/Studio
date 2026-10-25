@@ -103,12 +103,8 @@ const EDITOR_FILES = {
 };
 
 /**
- * The editor, in a dialog over the page: the file's text with its line
- * numbers, checked as it is typed, so a mistake shows before saving and Save
- * stays off until the file reads. ⌘S saves, Esc closes, and Tab indents
- * with 4 spaces, as the files are written. ⌘/ comments the lines out or back
- * in, ⌘F finds, and Enter keeps the line's indent. A problem's line is marked
- * in red, and clicking the problem goes to it.
+ * The file open in the editor: which of EDITOR_FILES it is, its text as last saved, and below,
+ * the last check of its text and the file's path.
  */
 let editorKind  = "config";
 let editorSaved = "";
@@ -120,6 +116,12 @@ let editorFile  = "";
 
 
 /**
+ * The editor, in a dialog over the page: the file's text with its line numbers, checked as it is
+ * typed, so a mistake shows before saving and Save stays off until the file reads. ⌘S saves, Esc
+ * closes, and Tab indents with 4 spaces, as the files are written. ⌘/ comments the lines out or
+ * back in, ⌘F finds, and Enter keeps the line's indent. A problem's line is marked in red, and
+ * clicking the problem goes to it.
+ *
  * Opens a file of EDITOR_FILES in the editor, read fresh from the server, the
  * caret at its start.
  * @param {string} kind
@@ -490,14 +492,14 @@ function newLine() {
 
 // --------------------------------------------------------------------- find ---
 
+/** The matches of what is typed in the find bar, and which of them is the current one. */
+let findState = { matches : [], index : -1 };
+
 /**
  * The find bar: the matches of what is typed, any case, marked under the
  * text; Enter goes to the next, Shift+Enter to the one before, and Esc
  * closes it, leaving the match selected.
- */
-let findState = { matches : [], index : -1 };
-
-/**
+ *
  * Opens the find bar, with the selected text in it when that is on one line.
  * @returns {void}
  */

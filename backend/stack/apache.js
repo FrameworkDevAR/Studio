@@ -270,13 +270,17 @@ async function setModule(name, enabled) {
 }
 
 /**
+ * An Include line of httpd.conf, on or commented out: its indent, the #, the directive and the
+ * path it includes.
+ */
+const INCLUDE_LINE = /^(\s*)(#?)\s*(Include(?:Optional)?)\s+"?([^"\s]+)"?\s*$/;
+
+/**
  * The config files httpd.conf includes, on or commented out: each with the
  * note above it, as httpd.conf has one for each, and the module it waits
  * for when inside an <IfModule>. A path of several files, with a *, cannot
  * be edited here.
- */
-const INCLUDE_LINE = /^(\s*)(#?)\s*(Include(?:Optional)?)\s+"?([^"\s]+)"?\s*$/;
-/**
+ *
  * Each Include line of httpd.conf, with its file, its note and its module.
  * @returns {{
  *     file: string, name: string, enabled: boolean, note: string, module: string,

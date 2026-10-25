@@ -48,10 +48,8 @@ function setUpPillTabs(root = document) {
 }
 
 /**
- * Lays a container's panels out as a mosaic: as many columns as fit, each
- * panel put in the shortest so far, in order, and the last of each column
- * stretched so they all end on one line. Laid out again as its width changes,
- * as when its page is shown.
+ * The mosaic's columns, at least this wide with this gap between them, and what lays a box out
+ * again once its width changes.
  */
 const MOSAIC_WIDTH = 300;
 const MOSAIC_GAP   = 18;
@@ -63,7 +61,10 @@ const mosaicSizes  = new ResizeObserver((entries) => entries.forEach((entry) => 
 }));
 
 /**
- * Lays a box's panels out in as many columns as fit, and keeps it laid out.
+ * Lays a container's panels out as a mosaic: as many columns as fit, each
+ * panel put in the shortest so far, in order, and the last of each column
+ * stretched so they all end on one line. Laid out again as its width changes,
+ * as when its page is shown.
  * @param {HTMLElement} box
  * @returns {void}
  */

@@ -18,13 +18,10 @@ import { countOf } from "../pages/node.js";
 
 
 /**
- * What the page shows: the database and its tables, the table picked, the
- * tab, and the page of rows with its sort. The path holds the
- * database, the tab and the table, as /database/shop/rows/orders.
- */
-/**
- * Also the filters, applied and as typed, the widths dragged and the
- * timestamp columns shown as dates, by table, and the SQL's last results.
+ * What the page shows: the database and its tables, the table picked, the tab, and the page of
+ * rows with its sort. Also the filters, applied and as typed, the widths dragged and the timestamp
+ * columns shown as dates, by table, and the SQL's last results. The path holds the database, the
+ * tab and the table, as /database/shop/rows/orders.
  * @type {{ db: string, tables: any[], table: string, tab: string, page: number, sort: string,
  *          dir: string, rows: any, total: any, filters: any[], draft: any[], match: string,
  *          widths: Record<string, any>, dates: Record<string, string[]>, structure: any,
@@ -411,14 +408,15 @@ async function countTable(button) {
     showCounts();
 }
 
+/** The timer that opens the table stepped to, once the keys rest. */
+let tableStep;
+
 /**
  * ↑ and ↓ go to the table above or below in the side's list, as in
  * Sequel Ace. The mark moves at once and the table opens when the keys
  * rest, so holding one runs through the list without loading each table
  * on the way, or leaving each in the history.
- */
-let tableStep;
-/**
+ *
  * Marks the table above or below the one marked, and opens it once the keys rest.
  * @param {number} by
  * @returns {void}
@@ -461,6 +459,9 @@ function steppedIndex(at, by, count) {
     return Math.min(count - 1, Math.max(0, at + by));
 }
 
+/** What has the keys: "list", a grid by its id, or "" for nothing. */
+let keysTo = "list";
+
 /**
  * The keys go to the list after a click in it, or while its filter is
  * typed in, or to a grid after a click on one of its rows, which it
@@ -468,9 +469,7 @@ function steppedIndex(at, by, count) {
  * with them. What has them shows its mark as in macOS: the accent while
  * it has them, grey when something else has them or the window is in the
  * back.
- */
-let keysTo = "list";
-/**
+ *
  * Gives the keys to the list, to a grid by its id, or to nothing, and shows the marks for it.
  * @param {string} to
  * @returns {void}
@@ -726,15 +725,15 @@ function tableKeys(event) {
     }
 }
 
+/** What the Tables tab is sorted by, and which way: 1 up, -1 down. */
+let overviewSort = { key : "name", dir : 1 };
+
 /**
  * Every table with what it holds, as phpMyAdmin starts: rows, engine,
  * collation, the data's and indexes' sizes, the space it could give back
  * and its comment, with the totals under them. A header sorts by it; a
  * name opens its rows.
- */
-let overviewSort = { key : "name", dir : 1 };
-
-/**
+ *
  * Draws the Tables tab: the tables filtered as typed, in the order picked, with their totals.
  * @returns {void}
  */

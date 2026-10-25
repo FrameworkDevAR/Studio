@@ -10,5 +10,11 @@
         "strictNullChecks"           : false,
         "useUnknownInCatchVariables" : false
     },
-    "include" : [ "swiftbar.10s.js", "backend/**/*.js", "desktop/**/*.js" ]
+    "include" : [
+        "swiftbar.10s.js",
+        "swiftbar/**/*.js",
+        "backend/**/*.js",
+        "desktop/**/*.js",
+        "checks/**/*.js"
+    ]
 }

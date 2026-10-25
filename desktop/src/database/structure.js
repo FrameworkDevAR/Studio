@@ -544,8 +544,7 @@ async function dropForeignKey(name) {
 }
 
 /**
- * Opens the row a foreign key's value refers to: the other table's rows,
- * filtered to it, as Sequel Ace's arrow in a cell does.
+ * The table a foreign key leads to and the filters its rows open with, until they do; or null.
  */
 let pendingFilters = null;
 
@@ -557,9 +556,11 @@ let pendingFilters = null;
 function setPendingFilters(value) {
     pendingFilters = value;
 }
+
 /**
- * Opens the rows a cell's foreign key refers to, if its column has a key of its own and the cell
- * a value.
+ * Opens the row a foreign key's value refers to: the other table's rows, filtered to it, as
+ * Sequel Ace's arrow in a cell does: the rows a cell's foreign key refers to, if its column has
+ * a key of its own and the cell a value.
  * @param {number} at The column's place.
  * @param {number} index The row's place.
  * @returns {void}

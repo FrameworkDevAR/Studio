@@ -25,6 +25,8 @@ the apps and servers of each project. See the README.
   `~/Documents/SwiftBar/`. It is the entry; its parts are in `swiftbar/`, which node finds
   through the link.
 - `config/` holds the config and its example.
+- `checks/` holds the checks: `code.js` for the rules below and the types, `api.sh` for the
+  api's answers.
 
 ## Commits
 
@@ -51,7 +53,7 @@ the apps and servers of each project. See the README.
   bare: `import "./core/picker.js";`. A typedef from another file comes in with
   `/** @import { Name } from "./file.js" */`.
 - Lines are at most 100 characters, comments too.
-- A file that grows long (over about 600 lines) is split by what its parts cover, into
+- A file that grows long (over about 900 lines) is split by what its parts cover, into
   the folder it belongs in. Backend modules never import each other in a circle.
 - Comments say why, not what, in full sentences: a `/** */` above each function, and
   a block comment above any rule or step that would otherwise be "tidied away".
@@ -87,8 +89,9 @@ the apps and servers of each project. See the README.
   values. This repo is public: never commit `config.json` or copy its values anywhere
   else.
 - Both scripts start with `#!/usr/bin/env node`; SwiftBar finds node through a link in
-  `/usr/local/bin`. Never put an absolute path to node in them. Starting and stopping go through the
-  plugin's own actions (`start-app`, `stop-proc`, `start-extra`, `start-extras`).
+  `/usr/local/bin`. Never put an absolute path to node in them. Starting and stopping go
+  through the plugin's own actions (`start-app`, `stop-proc`, `start-extra`,
+  `start-extras`).
 - Never check sites by requesting them: the requests fill the Apache log with noise
   (folder listings log AH01630, some apps log PHP warnings). Apache sites are listed,
   never checked.
@@ -116,6 +119,12 @@ the apps and servers of each project. See the README.
   After changing it, `open -g "swiftbar://refreshplugin?name=swiftbar"` redraws the menu.
 - Restart the server by its port, not its name:
   `kill $(lsof -t -iTCP:9900 -sTCP:LISTEN); backend/main.js &`
+- Before a change is done, `checks/code.js` must say "All good": every function's JSDoc,
+  no nested ternary, no buried await, no line over 100, no type error. It uses VS Code's
+  TypeScript, or the one `TYPESCRIPT` points to.
+- A change to the backend runs `checks/api.sh` before and after, with Studio restarted in
+  between, and the two outputs are compared: it acts on a throwaway `studio_probe`
+  database only, and drops it.
 - Check changes in a headless Chrome by measuring (the page's `state`, element sizes)
   rather than by screenshots where a number will do.
 - Ask before anything that starts many apps at once, clears a log, or otherwise

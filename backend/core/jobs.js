@@ -5,14 +5,8 @@ import { spawn } from "node:child_process";
 
 
 /**
- * Runs some steps as a job the page follows: it gets the job's id at once,
- * then asks how it goes until it is done, so the page is free meanwhile. A
- * step is a package each, run in turn, each waiting, running, done or failed.
- * The jobs of one queue wait for each other too, since two runs changing one
- * folder at once can break it.
- *
- * Each step is run by runStep, which gives an error or "". Once all are run,
- * after() runs, then done() says what worked.
+ * The jobs by id, the last few kept; the last run of each queue, which the next one waits for;
+ * and the count that numbers the jobs.
  */
 const jobs   = new Map();
 const queues = new Map();
@@ -39,7 +33,13 @@ let jobCount = 0;
 
 
 /**
- * Queues the steps as a new job, and gives its id at once.
+ * Runs some steps as a job the page follows, queued as a new job: it gets the job's id at once,
+ * then asks how it goes until it is done, so the page is free meanwhile. A step is a package
+ * each, run in turn, each waiting, running, done or failed. The jobs of one queue wait for each
+ * other too, since two runs changing one folder at once can break it.
+ *
+ * Each step is run by runStep, which gives an error or "". Once all are run, after() runs, then
+ * done() says what worked.
  * @param {string} queue
  * @param {JobStep[]} steps
  * @param {{
