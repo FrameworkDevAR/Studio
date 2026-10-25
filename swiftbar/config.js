@@ -102,6 +102,7 @@ const GREY  = "#888888";
  */
 function readConfig() {
     const file = process.env.STUDIO_CONFIG || path.join(__dirname, "..", "config", "config.json");
+
     try {
         return JSON.parse(fs.readFileSync(file, "utf8"));
     } catch {

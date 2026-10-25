@@ -40,11 +40,13 @@ const TOOLS = {
  */
 function pathsOf(config) {
     const paths    = { ...DEFAULTS };
+
     for (const [ key, value ] of Object.entries((config && config.paths) || {})) {
         if (key in DEFAULTS && typeof value === "string" && value) {
             paths[key] = expandHome(value);
         }
     }
+
     return {
         ...paths,
         brew      : path.join(paths.homebrew, "bin", "brew"),
@@ -60,11 +62,13 @@ function pathsOf(config) {
  */
 function toolsOf(config) {
     const tools = { ...TOOLS };
+
     for (const key of Object.keys(TOOLS)) {
         if (config && typeof config[key] === "string" && config[key]) {
             tools[key] = config[key];
         }
     }
+
     return tools;
 }
 

@@ -33,6 +33,7 @@ function waitForUrl(url, attempts = 75, waitMs = 200) {
         }
         sleep(waitMs);
     }
+
     return false;
 }
 

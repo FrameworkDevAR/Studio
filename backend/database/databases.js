@@ -107,6 +107,7 @@ async function readDatabases() {
     if (Date.now() - databaseCache.at < 30_000 && databaseCache.data) {
         return databaseCache.data;
     }
+
     // A change made while this reads makes its answer old, so it is not kept.
     const version = databaseCache.version;
 
@@ -118,6 +119,7 @@ async function readDatabases() {
         WHERE s.schema_name NOT IN (${SYSTEM_SCHEMAS.map(quote).join(", ")})
         GROUP BY s.schema_name ORDER BY s.schema_name
     `;
+
     // As the user running Studio, which Homebrew's MariaDB lets in through its
     // socket; a ~/.my.cnf can name another.
     const columns = (all) => PRIVILEGES
@@ -148,6 +150,7 @@ async function readDatabases() {
         // A user reaches every database once it may do anything to their data.
         const all    = global.some((one) => ![ "Server", "Grant" ]
             .includes(PRIVILEGES.find((item) => item.name === one).group));
+
         return {
             name,
             host,
@@ -159,6 +162,7 @@ async function readDatabases() {
             admin      : name === "root" || `${name}@${host}` === current,
         };
     });
+
     const owners = usersOf(names, accounts);
     const list   = result.map(([ name, size, tables, set, order ]) => {
         return {
@@ -173,11 +177,14 @@ async function readDatabases() {
             }`,
         };
     });
+
     const privileges = PRIVILEGES.map(({ name, group, only }) => ({ name, group, only }));
     const data       = { available : true, list, users : accounts, charset, collation, privileges };
+
     if (version === databaseCache.version) {
         databaseCache = { at : Date.now(), data, version };
     }
+
     return data;
 }
 
@@ -192,6 +199,7 @@ async function readDatabases() {
  */
 function usersOf(databases, accounts) {
     const stem = (name) => name.replace(/_[^_]+$/, "");
+
     return (database) => {
         const granted = accounts.filter((user) => user.databases.includes(database));
         const named   = accounts.filter((user) => user.all && !user.admin && !granted.includes(user)
@@ -231,6 +239,7 @@ async function readCharsets() {
     if (!sets || !collations) {
         throw new Error("MariaDB is not running");
     }
+
     return sets.map(([ name, description ]) => {
         const own = collations.filter(([ set ]) => set === name);
         return {
@@ -260,6 +269,7 @@ async function createDatabase({ name, charset, collation, user }) {
         `CREATE DATABASE ${ident(name)}${charset ? encoding(charset, collation) : ""};`,
     ];
     let   given = "";
+
     if (user && user.mode === "new") {
         const account = accountOf(user.name, user.host);
         steps.push(`CREATE USER ${account.sql} IDENTIFIED BY ${quote(password(user.password))};`);
@@ -275,6 +285,7 @@ async function createDatabase({ name, charset, collation, user }) {
         ));
         given = `, for ${account.name}`;
     }
+
     await execute(steps);
     return { message : `Created ${name}${given}` };
 }
@@ -291,6 +302,7 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
     name = await existingDatabase(name);
     const steps = [];
     let   tables = [];
+
     if (charset) {
         steps.push(`ALTER DATABASE ${ident(name)}${encoding(charset, collation)};`);
         if (convert) {
@@ -300,13 +312,16 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
                 CONVERT TO${encoding(charset, collation)};`));
         }
     }
+
     const { users : accounts } = await fresh();
     if (Array.isArray(users)) {
         const wanted = await Promise.all(users.map(existingAccount));
+
         for (const account of accounts.filter((one) => !one.admin)) {
             const key = `${account.name}@${account.host}`;
             const has = account.databases.includes(name);
             const now = wanted.some((one) => one.key === key);
+
             if (now && !has && !account.all) {
                 steps.push(grantStep(
                     accountOf(account.name, account.host),
@@ -315,14 +330,17 @@ async function changeDatabase({ name, charset, collation, convert, users }) {
                     false,
                 ));
             }
+
             if (!now && has) {
                 steps.push(...await revokeSteps(account, name));
             }
         }
     }
+
     if (!steps.length) {
         return { message : `${name} has no changes` };
     }
+
     await execute(steps, 10 * 60_000);
     return { message : `Saved ${name}${tables.length
         ? `, and converted its ${tables.length === 1 ? "table" : `${tables.length} tables`}`
@@ -339,9 +357,11 @@ async function dropDatabase({ name, users }) {
     name = await existingDatabase(name);
     const { users : accounts } = await fresh();
     const steps = [ `DROP DATABASE ${ident(name)};` ];
+
     for (const account of accounts.filter((one) => one.databases.includes(name))) {
         steps.push(...await revokeSteps(account, name));
     }
+
     const going = await Promise.all((Array.isArray(users) ? users : []).map(existingAccount));
     for (const account of going) {
         if (account.admin) {
@@ -349,6 +369,7 @@ async function dropDatabase({ name, users }) {
         }
         steps.push(`DROP USER ${account.sql};`);
     }
+
     await execute(steps);
     return { message : `Dropped ${name}${going.length
         ? `, and ${going.map((one) => one.name).join(", ")}` : ""}` };
@@ -364,6 +385,7 @@ async function dropDatabase({ name, users }) {
 async function revokeSteps(account, name) {
     const found = await rows(`SELECT Db FROM mysql.db
         WHERE User = ${quote(account.name)} AND Host = ${quote(account.host)}`) || [];
+
     return found
         .map(([ pattern ]) => pattern)
         .filter((pattern) => pattern === name || pattern.replace(/\\(.)/g, "$1") === name)
@@ -387,6 +409,7 @@ async function createUser({ name, host, password : secret, all, databases, privi
         `CREATE USER ${account.sql} IDENTIFIED BY ${quote(password(secret))};`,
         ...await accessSteps(account, all, databases, privileges),
     ];
+
     await execute(steps);
     return { message : `Created ${account.name}` };
 }
@@ -405,28 +428,35 @@ async function changeUser({
     if (old.admin) {
         throw new Error(`${old.name} looks after MariaDB, and is changed in phpMyAdmin`);
     }
+
     const account = accountOf(name, host);
     const steps   = [];
+
     if (account.key !== old.key) {
         steps.push(`RENAME USER ${old.sql} TO ${account.sql};`);
     }
+
     if (secret) {
         steps.push(`ALTER USER ${account.sql} IDENTIFIED BY ${quote(password(secret))};`);
     }
+
     const sorted = (list) => [ ...(list || []) ].sort().join(",");
     const before = `${old.all ? "*" : sorted(old.databases)}:${old.mixed ? "mixed"
         : sorted(old.privileges)}`;
     const after  = `${all ? "*" : sorted(databases)}:${sorted(privileges
         || privilegesFor(Boolean(all)))}`;
+
     if (before !== after) {
         steps.push(
             `REVOKE ALL PRIVILEGES, GRANT OPTION FROM ${account.sql};`,
             ...await accessSteps(account, all, databases, privileges),
         );
     }
+
     if (!steps.length) {
         return { message : `${old.name} has no changes` };
     }
+
     await execute(steps);
     return { message : `Saved ${account.name}` };
 }
@@ -441,6 +471,7 @@ async function dropUser({ account : key }) {
     if (account.admin) {
         throw new Error(`${account.name} looks after MariaDB, and is not dropped`);
     }
+
     await execute([ `DROP USER ${account.sql};` ]);
     return { message : `Dropped ${account.name}` };
 }
@@ -457,6 +488,7 @@ async function accessSteps(account, all, databases, privileges) {
     if (all) {
         return [ grantStep(account, "*.*", privileges, true) ];
     }
+
     const names = await Promise.all((Array.isArray(databases) ? databases : [])
         .map(existingDatabase));
     return names.map((db) => grantStep(account, `${ident(db)}.*`, privileges, false));
@@ -479,6 +511,7 @@ function grantStep(account, scope, privileges, all) {
     if (!chosen.length) {
         throw new Error("Pick at least one privilege");
     }
+
     const list = chosen.length === offered.length ? "ALL PRIVILEGES" : chosen.join(", ");
     return `GRANT ${list} ON ${scope} TO ${account.sql}${picked.includes("GRANT OPTION")
         ? " WITH GRANT OPTION" : ""};`;
@@ -509,6 +542,7 @@ async function rows(query) {
 async function execute(steps, timeout = 60_000) {
     const result = await run("mariadb", [ "-N", "-B" ], timeout, steps.join("\n"));
     forgetDatabases();
+
     if (!result.ok) {
         throw new Error(result.stderr.replace(/^ERROR \d+ \([\w]+\) at line \d+: /m, "").trim()
             || "MariaDB refused it");
@@ -559,12 +593,14 @@ async function existingAccount(key) {
  */
 function databaseName(name) {
     name = String(name || "").trim();
+
     if (!/^[\w$-]{1,64}$/.test(name)) {
         throw new Error("A database name is up to 64 letters, digits, _, - or $");
     }
     if (SYSTEM_SCHEMAS.includes(name.toLowerCase())) {
         throw new Error(`${name} is MariaDB's own`);
     }
+
     return name;
 }
 
@@ -577,6 +613,7 @@ function databaseName(name) {
 function accountOf(name, host) {
     name = String(name || "").trim();
     host = String(host || "localhost").trim();
+
     if (!/^[\w.$-]{1,80}$/.test(name)) {
         throw new Error("A user name is up to 80 letters, digits, _, ., - or $");
     }
@@ -586,6 +623,7 @@ function accountOf(name, host) {
     if (!/^[\w.%:-]{1,255}$/.test(host)) {
         throw new Error("A host is a name or address, as localhost, 127.0.0.1 or %");
     }
+
     return { name, host, key : `${name}@${host}`, sql : `${quote(name)}@${quote(host)}` };
 }
 
@@ -615,6 +653,7 @@ function encoding(charset, collation) {
         }
         return value;
     };
+
     return ` CHARACTER SET ${word(charset)}${collation ? ` COLLATE ${word(collation)}` : ""}`;
 }
 
@@ -643,6 +682,7 @@ function quote(value) {
  */
 function likeRegex(pattern) {
     let source = "";
+
     for (let i = 0; i < pattern.length; i++) {
         const char = pattern[i];
         if (char === "\\" && i + 1 < pattern.length) {
@@ -651,6 +691,7 @@ function likeRegex(pattern) {
             source += char === "%" ? ".*" : char === "_" ? "." : escapeRegex(char);
         }
     }
+
     return new RegExp(`^${source}$`);
 }
 

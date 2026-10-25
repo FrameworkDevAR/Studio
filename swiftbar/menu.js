@@ -158,6 +158,7 @@ function renderServers(project, { extras, stopping }) {
  */
 function renderProjects(state) {
     const { servers, stopping, portByPid } = state;
+
     for (const project of PROJECTS) {
         if (project.servers.length) {
             renderServers(project, state);
@@ -165,6 +166,7 @@ function renderProjects(state) {
         if (!project.dir) {
             continue;
         }
+
         const worktrees = projectRoots()
             .filter((root) => root.project === project)
             .map(({ root }) => {
@@ -207,6 +209,7 @@ function renderProjects(state) {
         if (!idle.length) {
             continue;
         }
+
         item("Start…", { color : GREY });
         if (project.worktrees) {
             renderEveryWorktree(idle);
@@ -216,6 +219,7 @@ function renderProjects(state) {
                 onClick("start-apps", `"${idle[0].idle.map((app) => app.dir).join(":")}"`),
             );
         }
+
         idle.forEach((worktree, index) => {
             if (index) {
                 separator(1);
@@ -242,11 +246,13 @@ function renderEveryWorktree(worktrees) {
     for (const app of worktrees.flatMap((worktree) => worktree.idle)) {
         dirsByApp.set(app.app, [ ...(dirsByApp.get(app.app) || []), app.dir ]);
     }
+
     const shared = [ ...dirsByApp ].filter(([ , dirs ]) => dirs.length > 1)
         .sort(([ a ], [ b ]) => a.localeCompare(b));
     if (!shared.length) {
         return;
     }
+
     subItem("🚀 In every worktree");
     for (const [ app, dirs ] of shared) {
         item(`${app} (${dirs.length})`, onClick("start-apps", `"${dirs.join(":")}"`), 2);
@@ -279,6 +285,7 @@ function renderAppsFooter({ servers, desktopsBusy }) {
     if (!desktopsBusy && !missing.length && !servers.length) {
         return;
     }
+
     separator();
     if (desktopsBusy) {
         item(`🟡 ${desktopsBusy}`, { color : GREY });
@@ -288,6 +295,7 @@ function renderAppsFooter({ servers, desktopsBusy }) {
             onClick("start-desktops"),
         );
     }
+
     if (servers.length) {
         item(`Stop all apps (${servers.length})`, onClick("stop-vite"));
     }
@@ -340,12 +348,14 @@ function runningServer({ name, url, pid, dir, stopping }) {
         item(`🟡 ${name} — stopping…`, { color : GREY });
         return;
     }
+
     if (url) {
         item(`🟢 ${name}`, onClick("open-url", url, { refresh : false }));
         subItem("Open", onClick("open-url", url, { refresh : false }));
     } else {
         item(`🟢 ${name}`);
     }
+
     subItem("Open in Terminal", opensTerminal(dir));
     separator(1);
     subItem("Stop", onClick("stop-proc", pid));
@@ -398,6 +408,7 @@ function onClick(action, argument, { terminal = false, refresh = true } = {}) {
         bash   : `"${SELF}"`,
         param1 : action,
     };
+
     if (argument !== undefined) {
         params.param2 = argument;
     }
@@ -405,6 +416,7 @@ function onClick(action, argument, { terminal = false, refresh = true } = {}) {
     if (refresh) {
         params.refresh = true;
     }
+
     return params;
 }
 

@@ -20,19 +20,23 @@ async function loadRows() {
         document.getElementById("rows-pager").innerHTML   = "";
         return;
     }
+
     const asked  = rowsQuestion();
     const grid   = document.getElementById("rows-grid");
     const timer  = setTimeout(() => grid.classList.add("loading"), 250);
+
     try {
         const rows = await api(`/api/db-rows?${new URLSearchParams(asked)}`);
         // Only the answer to the last question shows, when several were asked one after another.
         if (JSON.stringify(asked) !== JSON.stringify(rowsQuestion())) {
             return;
         }
+
         browse.rows  = rows;
         browse.total = browse.filters.length ? null : undefined;
         renderFilterBar();
         renderRows();
+
         if (browse.filters.length) {
             countRows(asked);
         }
@@ -105,8 +109,10 @@ function renderRows() {
         .value.trim().toLowerCase();
     const shown  = structure.columns.map((column, at) => at)
         .filter((at) => structure.columns[at].name.toLowerCase().includes(search));
+
     renderRowsTitle();
     /** @type {HTMLElement} */ (document.querySelector("[data-row-new]")).hidden = !keyed;
+
     const note = document.getElementById("rows-note");
     note.hidden      = keyed;
     note.textContent = table?.view ? "A view, so its rows are only read here."
@@ -160,6 +166,7 @@ function renderRows() {
                 ? "No row matches the filters." : "No rows yet."}</td></tr>`}
         </tbody>
     `;
+
     applyWidths(grid, browse.widths[tableKey()]);
     markRow(grid);
     renderPager();
@@ -197,6 +204,7 @@ function renderPager() {
     const total = browse.total === undefined
         ? (table && !table.view ? `${table.exact ? "" : "~"}${table.rows.toLocaleString()}` : "")
         : browse.total === null ? "…" : browse.total.toLocaleString();
+
     document.getElementById("rows-pager").innerHTML = rows.length || page > 1 ? `
         <span class="muted">Rows ${(first + (rows.length ? 1 : 0)).toLocaleString()}–${
             (first + rows.length).toLocaleString()}${total ? ` of ${total}` : ""}</span>
@@ -224,10 +232,12 @@ function cellOf(value, column, cut, at, asDate = false) {
     if (column.binary) {
         return `<td data-at="${at}"><span class="null">${esc(value)}</span></td>`;
     }
+
     const kind = /int|decimal|float|double|bit/.test(column.dataType) ? "num" : "";
     if (asDate && /^\d{9,13}$/.test(value)) {
         return `<td data-at="${at}" class="date" title="${esc(value)}">${esc(dateOf(value))}</td>`;
     }
+
     const text = value.length > cut ? `${value.slice(0, cut)}…` : value;
     const long = isBig(value);
     const open = long ? `<button class="cell-open" data-cell-open="${at}" title="See it whole"
@@ -248,9 +258,11 @@ function withLink(cell, linked, at) {
     if (!linked) {
         return cell;
     }
+
     const arrow = `<button class="fk-follow" data-fk-follow="${at}"
         title="Open the row it refers to" aria-label="Open the row it refers to"><svg
         viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>`;
+
     return cell.replace(/^<td ([^>]*?)class="([^"]*)"/, "<td $1class=\"$2 linked\"")
         .replace(/^<td (?![^>]*class=)/, "<td class=\"linked\" ")
         .replace(/<\/td>$/, `${arrow}</td>`);
@@ -301,6 +313,7 @@ function dateOf(value) {
 function toggleDates(name) {
     const key   = tableKey();
     const dates = browse.dates[key] || [];
+
     browse.dates[key] = dates.includes(name)
         ? dates.filter((one) => one !== name)
         : [ ...dates, name ];
@@ -361,9 +374,11 @@ function renderFilterBar(force = false) {
         bar.classList.toggle("applied", browse.filters.length > 0);
         return;
     }
+
     bar.dataset.table = tableKey();
     const columns = browse.rows.structure.columns;
     const rules   = browse.draft.length ? browse.draft : [ blankRule() ];
+
     bar.classList.toggle("applied", browse.filters.length > 0);
     bar.innerHTML = `
         <div class="filter-rules">
@@ -434,10 +449,12 @@ function readFilterBar() {
     const bar = document.getElementById("rows-filters");
     browse.match = /** @type {HTMLSelectElement} */ (bar.querySelector("[data-f=match]"))?.value
         || "all";
+
     browse.draft = [ ...bar.querySelectorAll(".filter-rule") ].map((line) => {
         const get = (name) => /** @type {HTMLInputElement} */ (
             line.querySelector(`[data-f="${name}"]`)
         );
+
         return {
             on     : get("on").checked,
             column : get("column").value,
@@ -446,6 +463,7 @@ function readFilterBar() {
             value2 : get("value2").value,
         };
     });
+
     return browse.draft;
 }
 
@@ -483,6 +501,7 @@ function showFilterSql() {
         box.title     = "";
         return;
     }
+
     const quote = (value) => `'${String(value).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
     const like  = (value) => String(value).replace(/[\\%_]/g, "\\$&");
     const list  = (value) => value.split(",").map((one) => one.trim()).filter(Boolean)
@@ -504,12 +523,14 @@ function showFilterSql() {
     };
     const one = (op, name, value, second) => (ops[op] ? ops[op](name, value, second)
         : `${name} ${op === "!=" ? "<>" : op} ${quote(value)}`);
+
     const columns = browse.rows.structure.columns.filter((column) => !column.binary)
         .map((column) => `\`${column.name}\``);
     const parts   = rules.map((rule) => {
         if (rule.column !== "*") {
             return one(rule.op, `\`${rule.column}\``, rule.value, rule.value2);
         }
+
         const negative = {
             "not contains" : "contains",
             "!="           : "=",
@@ -520,8 +541,10 @@ function showFilterSql() {
         const each     = columns.slice(0, 2)
             .map((name) => one(negative || rule.op, name, rule.value, rule.value2));
         const rest     = columns.length > 2 ? ` OR … ${columns.length - 2} more` : "";
+
         return `${negative ? "NOT " : ""}(${each.join(" OR ")}${rest})`;
     });
+
     const where = `WHERE ${parts.join(browse.match === "any" ? " OR " : " AND ")}`;
     box.innerHTML = paintSql(where);
     box.title     = where;
@@ -572,6 +595,7 @@ function clearFilters() {
 function changeFilterOp(select) {
     readFilterBar();
     renderFilterBar(true);
+
     if (NO_VALUE.includes(select.value)) {
         applyFilters();
     } else {
@@ -597,6 +621,7 @@ function applyWidths(grid, widths) {
     grid.querySelectorAll("th").forEach((th) => {
         /** @type {HTMLElement} */ (th).style.width = "";
     });
+
     if (widths) {
         freezeWidths(grid, widths);
     }
@@ -626,23 +651,29 @@ function startResize(event) {
     const handle = /** @type {HTMLElement} */ (event.target);
     const th     = /** @type {HTMLElement} */ (handle.closest("th"));
     const grid   = /** @type {HTMLElement} */ (handle.closest("table"));
+
     event.preventDefault();
     if (!grid.classList.contains("fixed")) {
         freezeWidths(grid);
     }
+
     const startX     = event.clientX;
     const startWidth = th.offsetWidth;
     const startTable = grid.offsetWidth;
+
     handle.setPointerCapture(event.pointerId);
     document.body.classList.add("resizing");
+
     const move = (moved) => {
         const width = Math.max(48, startWidth + moved.clientX - startX);
         th.style.width   = `${width}px`;
         grid.style.width = `${startTable + width - startWidth}px`;
     };
+
     const stop = () => {
         handle.removeEventListener("pointermove", move);
         document.body.classList.remove("resizing");
+
         if (grid.id === "rows-grid") {
             browse.widths[tableKey()] = Object.fromEntries(
                 [ ...grid.querySelectorAll("thead th[data-col]") ].map((one) => [
@@ -652,6 +683,7 @@ function startResize(event) {
             );
         }
     };
+
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", stop, { once : true });
 }
@@ -681,14 +713,17 @@ async function openCell(button) {
     const at  = Number(button.dataset.cellOpen);
     let value;
     let name;
+
     if (tr.dataset.row !== undefined && rowsKeyed()) {
         editValue(Number(tr.dataset.row), at);
         return;
     }
+
     if (tr.dataset.row !== undefined) {
         const { structure, rows, cut } = browse.rows;
         name  = structure.columns[at].name;
         value = rows[Number(tr.dataset.row)][at];
+
         if (value.length > cut && structure.primary.length) {
             try {
                 value = (await api("/api/action", {
@@ -707,6 +742,7 @@ async function openCell(button) {
         name  = result.columns[at];
         value = result.rows[Number(tr.dataset.r)][at];
     }
+
     showValue(name, value);
 }
 
@@ -720,6 +756,7 @@ function showValue(name, value) {
 
     let shown = value;
     let json  = false;
+
     if (/^\s*[[{]/.test(value)) {
         try {
             shown = JSON.stringify(JSON.parse(value), null, 2);
@@ -728,6 +765,7 @@ function showValue(name, value) {
             // Not JSON after all: shown as text.
         }
     }
+
     const done = ask({
         title  : name,
         text   : `${json ? "JSON · " : ""}${countOf(value.length, "character")}`,
@@ -735,6 +773,7 @@ function showValue(name, value) {
         ok     : "Copy",
         closeX : true,
     });
+
     /** @type {HTMLElement} */ (document.getElementById("ask")).dataset.mode = "view";
     done.then((copy) => {
         if (copy) {

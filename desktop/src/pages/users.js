@@ -44,6 +44,7 @@ function openUserDialog(key = "") {
         </div>
         ${privilegesField(user)}
     `;
+
     formDialog({
         title  : user ? `Change ${user.name}` : "New user",
         text   : user ? ""
@@ -53,11 +54,13 @@ function openUserDialog(key = "") {
         ready  : (fields) => {
             const form = fields.closest("form");
             syncPrivileges(form);
+
             // A user given privileges of its own shows them at once.
             if (form.querySelector("[data-preset].active")?.getAttribute("data-preset")
                 === "custom") {
                 toggleAdvanced(form.querySelector("[data-advanced]"), true);
             }
+
             fields.querySelector("[data-privileges]")
                 .addEventListener("change", () => markPreset(form));
         },
@@ -234,16 +237,19 @@ function pickedPrivileges(form, every) {
  */
 function syncPrivileges(form) {
     const every = isEveryDatabase(form);
+
     for (const box of /** @type {NodeListOf<HTMLElement>} */ (
         form.querySelectorAll("[data-only]")
     )) {
         box.hidden = box.dataset.only === (every ? "database" : "server");
     }
+
     /** @type {HTMLElement} */ (form.querySelector("[data-group=Server]")).hidden = !every;
     const active = /** @type {HTMLElement} */ (form.querySelector("[data-preset].active"));
     if (active && active.dataset.preset !== "custom") {
         applyPreset(form, active.dataset.preset);
     }
+
     markPreset(form);
 }
 
@@ -256,6 +262,7 @@ function syncPrivileges(form) {
 function applyPreset(form, preset) {
     const wanted = preset === "all" ? scopePrivileges(isEveryDatabase(form))
         : PRIVILEGE_PRESETS[preset];
+
     for (const box of privilegeBoxes(form)) {
         if (box.value !== "GRANT OPTION") {
             box.checked = wanted.includes(box.value);
@@ -285,6 +292,7 @@ function pickPreset(button) {
         setActive(button);
         return;
     }
+
     applyPreset(form, button.dataset.preset);
     markPreset(form);
 }
@@ -333,9 +341,11 @@ function hostSelect(host) {
         [ "127.0.0.1", "127.0.0.1" ],
         [ "%", "Anywhere (%)" ],
     ];
+
     if (!hosts.some(([ one ]) => one === host)) {
         hosts.push([ host, host ]);
     }
+
     return `<span class="field select"><select name="host">${hosts
         .map(([ one, label ]) => `<option value="${esc(one)}"
             ${one === host ? "selected" : ""}>${esc(label)}</option>`)
@@ -387,6 +397,7 @@ async function copyPassword(button) {
     if (!field.value) {
         return;
     }
+
     await navigator.clipboard.writeText(field.value);
     button.textContent = "Copied";
     setTimeout(() => { button.textContent = "Copy"; }, 1500);

@@ -63,11 +63,13 @@ function navigate(pathname) {
  */
 function route() {
     const view = currentView();
+
     for (const section of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("section[data-view]")
     )) {
         section.classList.toggle("active", section.dataset.view === view);
     }
+
     // A database's own page is part of Databases in the sidebar.
     for (const link of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("nav a")
@@ -77,6 +79,7 @@ function route() {
             link.dataset.view === (view === "database" ? "databases" : view),
         );
     }
+
     document.title = `${TITLES[view]} · Studio`;
     window.scrollTo(0, 0);
 
@@ -106,17 +109,20 @@ function route() {
  */
 function showDbTab() {
     const tab = dbTab();
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#db-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.dbTab === tab);
     }
+
     document.getElementById("db-list-pane").hidden      = tab !== "databases";
     document.getElementById("db-list-actions").hidden   = tab !== "databases";
     document.getElementById("db-users-pane").hidden     = tab !== "users";
     document.getElementById("db-user-actions").hidden   = tab !== "users";
     document.getElementById("db-options-pane").hidden   = tab !== "options";
     document.getElementById("db-option-actions").hidden = tab !== "options";
+
     if (state) {
         renderDbText();
     }
@@ -128,11 +134,13 @@ function showDbTab() {
  */
 function showApacheTab() {
     const tab = apacheTab();
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#apache-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.apacheTab === tab);
     }
+
     document.getElementById("apache-modules-pane").hidden = tab !== "modules";
     document.getElementById("apache-configs-pane").hidden = tab !== "configs";
     document.getElementById("apache-text").innerHTML = tab === "modules"
@@ -150,15 +158,18 @@ function showApacheTab() {
  */
 function showPhpTab() {
     const tab = phpTab();
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#php-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.phpTab === tab);
     }
+
     document.getElementById("php-settings-pane").hidden    = tab !== "settings";
     document.getElementById("php-settings-actions").hidden = tab !== "settings";
     document.getElementById("php-ext-pane").hidden         = tab !== "extensions";
     document.getElementById("php-ext-actions").hidden      = tab !== "extensions";
+
     if (state) {
         renderPhpText();
     }
@@ -170,11 +181,13 @@ function showPhpTab() {
  */
 function showSitesTab() {
     const tab = sitesTab();
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#site-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.siteTab === tab);
     }
+
     document.getElementById("apps-pane").hidden   = tab !== "apps";
     document.getElementById("apache-pane").hidden = tab !== "apache";
     document.getElementById("edit-vhosts").hidden = tab !== "apache";

@@ -23,12 +23,14 @@ const { columnSql } = require("./structure");
 async function changeTable({ db, table, engine, charset, collation, convert, comment, next }) {
     const structure = await readStructure(db, table);
     const specs     = [];
+
     if (engine) {
         if (!(await readEngines()).some((one) => one.name === engine)) {
             throw new Error(`MariaDB has no engine ${engine}`);
         }
         specs.push(`ENGINE = ${engine}`);
     }
+
     if (charset) {
         const set = (await readCharsets()).find((one) => one.name === charset);
         if (!set || (collation && !set.collations.includes(collation))) {
@@ -36,30 +38,36 @@ async function changeTable({ db, table, engine, charset, collation, convert, com
                 collation ? ` with ${collation}` : ""
             }`);
         }
+
         specs.push(`${convert ? "CONVERT TO" : "DEFAULT"} CHARACTER SET ${charset}${
             collation ? ` COLLATE ${collation}` : ""
         }`);
     }
+
     if (typeof comment === "string") {
         if (comment.length > 2048) {
             throw new Error("A table's comment is up to 2048 characters");
         }
         specs.push(`COMMENT = ${quote(comment)}`);
     }
+
     if (next !== undefined && next !== null && next !== "") {
         if (!/^\d{1,19}$/.test(String(next)) || Number(next) < 1) {
             throw new Error("The next id is a whole number from 1");
         }
         specs.push(`AUTO_INCREMENT = ${next}`);
     }
+
     if (!specs.length) {
         throw new Error("Nothing changed");
     }
+
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)} ${specs.join(", ")};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Changed ${structure.table}` };
 }
@@ -90,6 +98,7 @@ async function kindOf(db, table) {
     ({ db, table } = await existingTable(db, table));
     const [ set ] = await query(`SELECT TABLE_TYPE FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = ${quote(db)} AND TABLE_NAME = ${quote(table)};`);
+
     return {
         db,
         table,
@@ -113,6 +122,7 @@ async function unreferenced(old, doing) {
             AND NOT (TABLE_SCHEMA = ${quote(old.db)} AND TABLE_NAME = ${quote(old.table)})
         ORDER BY TABLE_NAME;
     `);
+
     const names = set.rows.map(([ name ]) => name);
     if (names.length) {
         throw new Error(`${names.join(", ")} ${names.length === 1 ? "refers" : "refer"} to ${
@@ -134,10 +144,12 @@ async function createTable({
 }) {
     db   = await existingDatabase(db);
     name = tableName(name);
+
     const specs = [ await columnSql(column || {}) ];
     if (primary) {
         specs.push(`PRIMARY KEY (${ident(column.name)})`);
     }
+
     const options = [];
     if (engine) {
         if (!(await readEngines()).some((one) => one.name === engine)) {
@@ -145,6 +157,7 @@ async function createTable({
         }
         options.push(`ENGINE = ${engine}`);
     }
+
     if (collation) {
         const set = (await readCharsets()).find((one) => one.collations.includes(collation));
         if (!set) {
@@ -152,15 +165,19 @@ async function createTable({
         }
         options.push(`DEFAULT CHARSET = ${set.name} COLLATE = ${collation}`);
     }
+
     if (String(comment).length > 2048) {
         throw new Error("A table's comment is up to 2048 characters");
     }
+
     if (comment) {
         options.push(`COMMENT = ${quote(String(comment))}`);
     }
+
     await query(`CREATE TABLE ${ident(db)}.${ident(name)} (\n  ${
         specs.join(",\n  ")
     }\n) ${options.join(" ")};`);
+
     forgetDatabases();
     return { message : `Created the table ${name}`, table : name };
 }
@@ -190,20 +207,25 @@ async function duplicateTable({ db, table, name, data = true }) {
     const old = await kindOf(db, table);
     name = tableName(name);
     const target = `${ident(old.db)}.${ident(name)}`;
+
     if (old.view) {
         const [ set ] = await query(`SELECT VIEW_DEFINITION FROM information_schema.VIEWS
             WHERE TABLE_SCHEMA = ${quote(old.db)} AND TABLE_NAME = ${quote(old.table)};`);
         await query(`CREATE VIEW ${target} AS ${set.rows[0][0]};`);
+
         forgetDatabases();
         return { message : `Copied the view ${old.table} to ${name}`, table : name };
     }
+
     const structure = await readStructure(old.db, old.table);
     await query(`CREATE TABLE ${target} LIKE ${old.target};`);
+
     if (data) {
         const columns = structure.columns
             .filter((one) => one.value.kind !== "virtual" && one.value.kind !== "stored")
             .map((one) => ident(one.name))
             .join(", ");
+
         try {
             await query(
                 `INSERT INTO ${target} (${columns}) SELECT ${columns} FROM ${old.target};`,
@@ -216,6 +238,7 @@ async function duplicateTable({ db, table, name, data = true }) {
             throw error;
         }
     }
+
     forgetDatabases();
     const left = structure.foreign.length ? ", without its foreign keys" : "";
     return {
@@ -234,6 +257,7 @@ async function emptyTable({ db, table }) {
     if (old.view) {
         throw new Error(`${old.table} is a view: it holds no rows of its own`);
     }
+
     await unreferenced(old, "emptied");
     await query(`TRUNCATE TABLE ${old.target};`, "", 10 * 60_000);
     forgetDatabases();
@@ -250,6 +274,7 @@ async function dropTable({ db, table }) {
     if (!old.view) {
         await unreferenced(old, "dropped");
     }
+
     await query(`DROP ${old.view ? "VIEW" : "TABLE"} ${old.target};`, "", 10 * 60_000);
     forgetDatabases();
     return { message : `Dropped the ${old.view ? "view" : "table"} ${old.table}` };
@@ -279,6 +304,7 @@ async function maintainTables({ db, tables = [], op }) {
     if (!verb) {
         throw new Error("Optimize, analyze, check or repair");
     }
+
     db = await existingDatabase(db);
     const all  = await readTables(db);
     const list = [].concat(tables).map(String);
@@ -286,11 +312,13 @@ async function maintainTables({ db, tables = [], op }) {
     if (gone) {
         throw new Error(`There is no table ${gone} in ${db}`);
     }
+
     const picked = all.filter((one) => list.includes(one.name) && (op === "check" || !one.view))
         .map((one) => one.name);
     if (!picked.length) {
         throw new Error(list.length ? "Views can only be checked" : "Pick a table");
     }
+
     const start = Date.now();
     const [ set ] = await query(
         `${verb} TABLE ${picked.map((name) => `${ident(db)}.${ident(name)}`).join(", ")};`,
@@ -298,19 +326,23 @@ async function maintainTables({ db, tables = [], op }) {
         60 * 60_000,
     );
     forgetDatabases();
+
     const byTable = new Map(picked.map((name) => [ name, [] ]));
     for (const [ table, , type, text ] of set.rows) {
         // MariaDB names each db.table.
         const name = String(table).slice(db.length + 1);
+
         // InnoDB's way of saying it optimized, which reads as if it didn't.
         const said = /does not support optimize, doing recreate \+ analyze instead/i.test(text)
             ? "InnoDB optimizes by rebuilding the table and analyzing it, which it did"
             : text;
+
         (byTable.get(name) || byTable.set(name, []).get(name)).push({
             type : String(type).toLowerCase(),
             text : said,
         });
     }
+
     return {
         time    : Date.now() - start,
         results : [ ...byTable ].map(([ table, said ]) => ({ table, said })),
@@ -329,6 +361,7 @@ async function nextId({ db, table }) {
     if (!column) {
         throw new Error(`${structure.table} has no auto_increment column`);
     }
+
     const [ set ] = await query(`SELECT COALESCE(MAX(${ident(column.name)}), 0) + 1
         FROM ${ident(structure.db)}.${ident(structure.table)};`);
     return { next : set.rows[0][0] };

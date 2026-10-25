@@ -39,16 +39,19 @@ function logFile(name) {
 function readLogSizes() {
     /** @type {Object<string, { file: string, size: number, archived: number }>} */
     const sizes = {};
+
     for (const name of Object.keys(LOGS)) {
         const file = logFile(name);
         if (!file || !fs.existsSync(file)) {
             sizes[name] = { file : file || "", size : 0, archived : 0 };
             continue;
         }
+
         const archived = filesIn(path.dirname(file), `${path.basename(file)}.`)
             .reduce((sum, copy) => sum + fs.statSync(copy).size, 0);
         sizes[name] = { file, size : fs.statSync(file).size, archived };
     }
+
     return sizes;
 }
 
@@ -63,6 +66,7 @@ function readLog(name, lines) {
     if (!file || !fs.existsSync(file)) {
         return { name, file : file || "", lines : [] };
     }
+
     const count = Math.min(Math.max(lines, 10), 2000);
     return { name, file, lines : tailOf(file, count) };
 }
@@ -79,11 +83,14 @@ async function clearLog(name) {
     if (!file || !fs.existsSync(file)) {
         throw new Error("Unknown log");
     }
+
     const freed  = readLogSizes()[name];
     fs.truncateSync(file, 0);
+
     for (const copy of filesIn(path.dirname(file), `${path.basename(file)}.`)) {
         fs.rmSync(copy, { force : true });
     }
+
     return {
         message : `Cleared ${path.basename(file)}, freeing ${formatBytes(
             freed.size + freed.archived,

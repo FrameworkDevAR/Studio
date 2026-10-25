@@ -32,6 +32,7 @@ const { SWIFTBAR, run } = require("../core/system");
  */
 async function readApps() {
     const result = await run(SWIFTBAR, [ "json" ]);
+
     try {
         const { apps, servers } = JSON.parse(result.stdout);
         return {
@@ -59,13 +60,16 @@ async function readBranches(apps) {
     if (Date.now() - branchCache.at < 15_000) {
         return branchCache.data;
     }
+
     const roots    = projectRoots(apps);
     /** @type {Object<string, string>} */
     const branches = {};
+
     await Promise.all(Object.entries(roots).map(async ([ project, root ]) => {
         const found = await run("git", [ "-C", root, "branch", "--show-current" ]);
         branches[project] = found.ok ? found.stdout.trim() : "";
     }));
+
     branchCache = { at : Date.now(), data : branches };
     return branches;
 }
@@ -82,9 +86,11 @@ async function startApp(dir) {
     if (!app) {
         throw new Error("Unknown app");
     }
+
     if (!app.running) {
         await run(SWIFTBAR, [ "start-app", app.dir ]);
     }
+
     return { message : `Starting ${app.name}…` };
 }
 
@@ -98,6 +104,7 @@ async function stopApp(dir) {
     if (!app || !app.pid) {
         throw new Error("That app is not running");
     }
+
     await run(SWIFTBAR, [ "stop-proc", String(app.pid) ]);
     return { message : `Stopping ${app.name}…` };
 }

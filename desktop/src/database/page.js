@@ -44,16 +44,19 @@ async function showBrowse() {
     // A table the keys were going to doesn't open over a page gone to since.
     clearTimeout(tableStep);
     focusKeys(keysTo);
+
     // The database alone lists its tables, as phpMyAdmin starts.
     const [ , , db = "", tab = "tables", table = "" ] = location.pathname.split("/")
         .map(decodeURIComponent);
     const tabName = [ "tables", "structure", "rows", "info", "sql" ].includes(tab) ? tab : "tables";
+
     if (db !== browse.db) {
         browse = { ...browse, db, tables : [], table : "", rows : null };
         document.getElementById("browse-tables").innerHTML = `<div class="pkg-none">Reading the
             tables…</div>`;
         await loadTables();
     }
+
     const picked = table
         || browse.table
         || browse.tables.find((one) => !one.view)?.name
@@ -73,6 +76,7 @@ async function showBrowse() {
         };
         /** @type {HTMLInputElement} */ (document.getElementById("column-filter")).value = "";
     }
+
     // A foreign key followed: its table opens filtered to the row it refers to.
     if (pendingFilters?.table === picked) {
         browse = {
@@ -84,13 +88,16 @@ async function showBrowse() {
             match   : "all",
         };
     }
+
     pendingFilters = null;
     browse.tab = tabName;
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#browse-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.browseTab === tabName);
     }
+
     // The Tables tab is the list itself, so the side's list would only repeat it.
     document.querySelector(".browse").classList.toggle("whole", tabName === "tables");
     document.getElementById("browse-overview").hidden  = tabName !== "tables";
@@ -102,6 +109,7 @@ async function showBrowse() {
     document.title = `${db} · Studio`;
     renderBrowseHead();
     renderTableList();
+
     if (tabName === "tables") {
         renderOverview();
     } else if (tabName === "rows") {
@@ -126,6 +134,7 @@ async function loadTables() {
     const known = new Map(browse.tables
         .filter((one) => one.exact)
         .map((one) => [ one.name, one.rows ]));
+
     try {
         const list = await api(`/api/db-tables?db=${encodeURIComponent(db)}`);
         for (const table of db === browse.db ? list : []) {
@@ -136,16 +145,20 @@ async function loadTables() {
                 table.held     = true;
             }
         }
+
         browse.tables = list;
     } catch (error) {
         browse.tables = [];
         toast(error.message, true);
     }
+
     renderTableList();
     renderBrowseHead();
+
     if (browse.tab === "tables") {
         renderOverview();
     }
+
     countSmallTables();
 }
 
@@ -157,14 +170,17 @@ async function loadTables() {
 async function countSmallTables() {
     const db = browse.db;
     let counts;
+
     try {
         counts = await api(`/api/db-counts?db=${encodeURIComponent(db)}`);
     } catch {
         return;
     }
+
     if (db !== browse.db) {
         return;
     }
+
     for (const table of browse.tables) {
         if (table.name in counts) {
             table.rows  = counts[table.name];
@@ -176,6 +192,7 @@ async function countSmallTables() {
         }
         delete table.held;
     }
+
     showCounts();
 }
 
@@ -187,11 +204,14 @@ function showCounts() {
     if (browse.tab === "tables") {
         renderOverview();
     }
+
     renderTableList();
+
     if (browse.tab === "rows" && browse.rows) {
         renderRowsTitle();
         renderPager();
     }
+
     const rows  = document.getElementById("info-rows");
     const table = browse.tables.find((one) => one.name === browse.table);
     if (rows && table) {
@@ -221,6 +241,7 @@ function renderTableList() {
     const shown  = browse.tables.filter((one) => one.name.toLowerCase().includes(search));
     const tab    = browse.tab === "structure" || browse.tab === "info" ? browse.tab : "rows";
     const marked = [ "structure", "rows", "info" ].includes(browse.tab);
+
     document.getElementById("browse-tables").innerHTML = shown.map((one) => `
         <a href="${esc(browsePath(tab, one.name))}"
             data-table="${esc(one.name)}"
@@ -232,6 +253,7 @@ function renderTableList() {
     `).join("") || `<div class="pkg-none">${browse.tables.length
         ? "No table matches."
         : "No tables yet."}</div>`;
+
     watchFades(document.getElementById("browse-tables"));
     renderTableInfo(marked ? browse.table : "");
 }
@@ -250,11 +272,13 @@ function renderTableInfo(name) {
     if (!table) {
         return;
     }
+
     // A date of this year with its time, one of before with its year, to fit the panel.
     const when  = (text) => {
         if (!text) {
             return "";
         }
+
         const date = new Date(text.replace(" ", "T"));
         return date.getFullYear() === new Date().getFullYear()
             ? date.toLocaleString([], {
@@ -265,6 +289,7 @@ function renderTableInfo(name) {
             })
             : date.toLocaleDateString([], { dateStyle : "medium" });
     };
+
     // The same lines for every table, empty ones as a dash, so the panel never changes height.
     const charset = table.collation.split("_")[0];
     const lines   = [
@@ -282,6 +307,7 @@ function renderTableInfo(name) {
         [ "Created", when(table.created) ],
         [ "Updated", when(table.updated) ],
     ];
+
     box.innerHTML = `
         <dl>${lines.map(([ label, value ]) => `<div><dt>${label}</dt>${!value
             ? `<dd class="none">—</dd>`
@@ -329,8 +355,10 @@ const counting = new Set();
 async function countTable(button) {
     const db   = browse.db;
     const name = button.dataset.countTable;
+
     counting.add(`${db}.${name}`);
     showCounts();
+
     try {
         const { count } = await api(`/api/db-count?${new URLSearchParams({ db, table : name })}`);
         const table     = db === browse.db && browse.tables.find((one) => one.name === name);
@@ -341,6 +369,7 @@ async function countTable(button) {
     } catch (error) {
         toast(error.message, true);
     }
+
     counting.delete(`${db}.${name}`);
     showCounts();
 }
@@ -364,14 +393,18 @@ function stepTable(by) {
     if (!links.length) {
         return;
     }
+
     const at   = links.findIndex((one) => one.classList.contains("active"));
     const next = links[at < 0 ? (by > 0 ? 0 : links.length - 1)
         : Math.min(links.length - 1, Math.max(0, at + by))];
+
     for (const link of links) {
         link.classList.toggle("active", link === next);
     }
+
     next.scrollIntoView({ block : "nearest" });
     renderTableInfo(next.querySelector(".table-name").textContent);
+
     clearTimeout(tableStep);
     tableStep = setTimeout(() => navigate(new URL(next.href).pathname), 180);
 }
@@ -394,6 +427,7 @@ function focusKeys(to) {
     keysTo = to;
     const front = document.hasFocus();
     document.querySelector(".browse-aside").classList.toggle("focused", to === "list" && front);
+
     for (const grid of document.querySelectorAll(".browse-main .data-grid[id]")) {
         grid.classList.toggle("focused", grid.id === to && front);
     }
@@ -430,8 +464,10 @@ function pickRow(tr, how = "") {
         && how
         && old
         && old.context === gridContext(grid.id);
+
     let keys   = [ key ];
     let anchor = key;
+
     if (more && how === "toggle") {
         keys = old.keys.includes(key) ? old.keys.filter((one) => one !== key)
             : [ ...old.keys, key ];
@@ -442,6 +478,7 @@ function pickRow(tr, how = "") {
         anchor = old.anchor;
         keys   = from < 0 ? [ key ] : all.slice(from, to + 1);
     }
+
     marked[grid.id] = { key, anchor, keys, context : gridContext(grid.id) };
     markRow(grid);
 }
@@ -474,6 +511,7 @@ function pickedRows() {
     if (!one || one.context !== gridContext("rows-grid") || !browse.rows) {
         return [];
     }
+
     return one.keys
         .map(Number)
         .filter((index) => index < browse.rows.rows.length)
@@ -489,6 +527,7 @@ function pickedTables() {
     if (!one || one.context !== gridContext("overview-grid")) {
         return [];
     }
+
     const names = new Set(one.keys || [ one.key ]);
     return [ ...document.querySelectorAll("#overview-grid tbody tr[data-key]") ]
         .map((tr) => /** @type {HTMLElement} */ (tr).dataset.key)
@@ -505,12 +544,14 @@ function markRow(grid) {
     for (const row of grid.querySelectorAll("tbody tr.selected")) {
         row.classList.remove("selected");
     }
+
     if (one && one.context === gridContext(grid.id)) {
         for (const key of one.keys || [ one.key ]) {
             grid.querySelector(`tbody tr[data-key="${CSS.escape(key)}"]`)
                 ?.classList.add("selected");
         }
     }
+
     grid.classList.toggle("focused", keysTo === grid.id && document.hasFocus());
 }
 
@@ -527,6 +568,7 @@ function stepRow(grid, by, extend = false) {
     if (!rows.length) {
         return;
     }
+
     // From the row marked last, of the ones marked.
     const lead = marked[grid.id]?.key;
     const at   = rows.findIndex((one) => one.classList.contains("selected")
@@ -535,6 +577,7 @@ function stepRow(grid, by, extend = false) {
         : rows.findIndex((one) => one.classList.contains("selected"));
     const next = rows[at < 0 ? (by > 0 ? 0 : rows.length - 1)
         : Math.min(rows.length - 1, Math.max(0, at + by))];
+
     pickRow(next, extend ? "range" : "");
     revealRow(grid, next);
 }
@@ -551,6 +594,7 @@ function revealRow(grid, tr) {
     const edges = box.getBoundingClientRect();
     const top   = edges.top + (grid.tHead?.offsetHeight || 0);
     const floor = edges.bottom - (grid.tFoot?.offsetHeight || 0) - 28;
+
     if (row.top < top) {
         box.scrollTop -= top - row.top;
     } else if (row.bottom > floor) {
@@ -568,6 +612,7 @@ function openRow(grid) {
     if (!row) {
         return;
     }
+
     if (grid.id === "overview-grid") {
         navigate(browsePath("rows", row.dataset.key));
     } else if (grid.id === "rows-grid" && rowsKeyed()) {
@@ -589,6 +634,7 @@ function tableKeys(event) {
         && target.id !== "table-filter";
     const step   = event.key === "ArrowUp" || event.key === "ArrowDown";
     const extend = event.shiftKey && step && keysTo === "rows-grid";
+
     if (!step && event.key !== "Enter"
         || event.metaKey
         || event.ctrlKey
@@ -600,6 +646,7 @@ function tableKeys(event) {
     if (currentView() !== "database" || document.querySelector("dialog[open]")) {
         return;
     }
+
     const by = event.key === "ArrowDown" ? 1 : -1;
     if (step
         && (keysTo === "list" || target.id === "table-filter")
@@ -609,6 +656,7 @@ function tableKeys(event) {
         stepTable(by);
         return;
     }
+
     const grid = keysTo && keysTo !== "list" ? document.getElementById(keysTo) : null;
     // A grid on a tab gone from keeps its mark, but not the keys.
     if (grid && grid.offsetParent && target.id !== "table-filter") {
@@ -657,9 +705,11 @@ function renderOverview() {
         [ "comment", "Comment" ],
     ];
     const right  = [ "rows", "data", "index", "size", "free" ];
+
     document.getElementById("overview-count").textContent = browse.tables.length
         ? String(browse.tables.length)
         : "";
+
     document.getElementById("overview-grid").innerHTML = `
         <thead><tr>${head.map(([ key, label ]) => `
             <th><button class="sort ${right.includes(key) ? "right" : ""} ${overviewSort.key === key
@@ -701,6 +751,7 @@ function renderOverview() {
             <td></td><td></td><td></td>
         </tr></tfoot>` : ""}
     `;
+
     markRow(document.getElementById("overview-grid"));
     watchFades(/** @type {HTMLElement} */ (document.getElementById("overview-grid").parentElement));
 }

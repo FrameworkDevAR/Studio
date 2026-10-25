@@ -45,6 +45,7 @@ function renderServices() {
         actions : `<a class="button ghost small" href="${phpmyadmin.url}" target="_blank"
             rel="noopener">Open</a>`,
     }));
+
     // Node.js is not a service either: nothing runs until an app starts it.
     cards.push(serviceCard({
         logo    : "node",
@@ -56,6 +57,7 @@ function renderServices() {
             "Runs the apps' servers and npm. It is not a service, so there is nothing to start.",
         actions : `<a class="button ghost small" href="/node">Packages</a>`,
     }));
+
     document.getElementById("service-cards").innerHTML = cards.join("");
 }
 

@@ -22,21 +22,25 @@ function setUpPillTabs(root = document) {
             if (!active || !active.offsetWidth) {
                 return;
             }
+
             thumb.style.width     = `${active.offsetWidth}px`;
             thumb.style.transform = `translateX(${active.offsetLeft}px)`;
             if (!control.classList.contains("ready")) {
                 requestAnimationFrame(() => control.classList.add("ready"));
             }
         };
+
         new MutationObserver(place).observe(control, {
             subtree         : true,
             attributes      : true,
             attributeFilter : [ "class" ],
         });
+
         const sizes = new ResizeObserver(place);
         for (const button of control.querySelectorAll("button")) {
             sizes.observe(button);
         }
+
         place();
     }
 }
@@ -69,6 +73,7 @@ function mosaic(box) {
     if (!box.offsetWidth) {
         return;
     }
+
     box.dataset.mosaicWidth = String(box.offsetWidth);
     const count   = Math.max(1, Math.min(
         panels.length,
@@ -78,13 +83,16 @@ function mosaic(box) {
         { length : count },
         () => Object.assign(document.createElement("div"), { className : "mosaic-col" }),
     );
+
     box.querySelectorAll(":scope > .mosaic-col").forEach((column) => column.remove());
     box.prepend(...columns);
+
     // Each panel is measured in a column, all being as wide, before it is placed.
     panels.forEach((panel) => {
         panel.classList.remove("fill");
         columns[0].append(panel);
     });
+
     const heights = panels.map((panel) => panel.offsetHeight);
     const tall    = columns.map(() => 0);
     panels.forEach((panel, index) => {
@@ -92,6 +100,7 @@ function mosaic(box) {
         columns[shortest].append(panel);
         tall[shortest] += heights[index] + MOSAIC_GAP;
     });
+
     columns.forEach((column) => column.lastElementChild?.classList.add("fill"));
 }
 
@@ -126,15 +135,18 @@ function setActive(button) {
 function toast(message, isError = false) {
     const box     = document.getElementById("toasts");
     const element = document.createElement("div");
+
     element.className = `toast ${isError ? "error" : ""}`;
     element.textContent = message;
     box.append(element);
+
     // A popover, shown again for each toast, sits in the top layer above any
     // dialog already open, which a z-index alone cannot do.
     if (box.matches(":popover-open")) {
         box.hidePopover();
     }
     box.showPopover();
+
     setTimeout(() => {
         element.remove();
         if (!box.children.length && box.matches(":popover-open")) {
@@ -181,10 +193,12 @@ function bytes(value) {
     const units = [ "B", "KB", "MB", "GB", "TB" ];
     let size = value;
     let unit = 0;
+
     while (size >= 1024 && unit < units.length - 1) {
         size /= 1024;
         unit++;
     }
+
     return `${size.toFixed(size < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`;
 }
 
@@ -219,6 +233,7 @@ function packageRow({
     const [ , scope, rest ] = name.match(/^(@[^/]+\/)?(.*)$/);
     const shown = version.replace(/\+.*/, "");
     const text  = `${scope ? `<span class="pkg-scope">${esc(scope)}</span>` : ""}${esc(rest)}`;
+
     return `
         <div class="pkg ${latest ? "outdated" : ""}">
             <span class="pkg-name">
@@ -282,6 +297,7 @@ function ask({
 }) {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("ask"));
     dialog.dataset.mode = "ask";
+
     document.getElementById("ask-title").textContent = title;
     document.getElementById("ask-text").textContent  = text;
     document.getElementById("ask-body").innerHTML    = body;
@@ -290,17 +306,21 @@ function ask({
     document.getElementById("ask-note").className    = "editor-status";
     document.getElementById("ask-x").hidden          = !closeX;
     document.getElementById("ask-cancel").hidden     = closeX;
+
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("ask-ok"));
     button.textContent = ok;
     button.className   = danger ? "danger-fill" : "";
     button.disabled    = false;
     button.hidden      = false;
+
     /** @type {HTMLElement} */ (dialog.querySelector(".editor-foot")).hidden = false;
     dialog.returnValue = "";
+
     if (!dialog.open) {
         dialog.showModal();
     }
     button.focus();
+
     return new Promise((resolve) => {
         const form   = dialog.querySelector("form");
         const submit = (event) => {
@@ -315,6 +335,7 @@ function ask({
             dialog.removeEventListener("close", close);
             resolve(answer);
         };
+
         form.addEventListener("submit", submit);
         dialog.addEventListener("close", close);
     });
@@ -350,15 +371,18 @@ function formDialog({
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("form-ok"));
     const status = document.getElementById("form-status");
     const fields = document.getElementById("form-body");
+
     document.getElementById("form-title").textContent = title;
     document.getElementById("form-text").textContent  = text;
     document.getElementById("form-text").hidden       = !text;
+
     fields.innerHTML   = body;
     button.textContent = ok;
     button.className   = danger ? "danger-fill" : "";
     button.disabled    = false;
     status.textContent = "";
     status.className   = "editor-status";
+
     const drop = /** @type {HTMLButtonElement} */ (document.getElementById("form-remove"));
     drop.hidden      = !remove;
     drop.textContent = remove?.label || "";
@@ -367,16 +391,20 @@ function formDialog({
             dialog.close();
         }
     };
+
     ready?.(fields);
     setUpPillTabs(fields);
+
     form.onsubmit = async (event) => {
         event.preventDefault();
         if (button.disabled) {
             return;
         }
+
         button.disabled    = true;
         status.textContent = "Saving…";
         status.className   = "editor-status";
+
         try {
             const result = await submit(form);
             dialog.close();
@@ -389,6 +417,7 @@ function formDialog({
             button.disabled = false;
         }
     };
+
     dialog.showModal();
     /** @type {HTMLElement} */ (
         fields.querySelector("input:not([readonly]):not([disabled]), select")

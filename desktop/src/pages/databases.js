@@ -35,6 +35,7 @@ function renderDatabases() {
         = phpmyadmin.url;
     /** @type {HTMLAnchorElement} */ (document.getElementById("phpmyadmin-users-link")).href
         = `${phpmyadmin.url}/index.php?route=/server/privileges`;
+
     document.getElementById("db-version").textContent = mariadb.version
         ? `MariaDB ${mariadb.version}` : "";
     document.getElementById("db-problem").hidden       = databases.available;
@@ -46,10 +47,12 @@ function renderDatabases() {
         ? String(mariadb.settings.filter((option) => option.inFile).length
             + mariadb.overrides.length)
         : "";
+
     renderDbText();
     renderBrowseHead();
     renderDbList();
     renderUsers();
+
     if (mariadb.available) {
         renderSettingGroups("mariadb", OPTION_GROUPS, mariadb.settings, mariadb.overrides);
     } else {
@@ -92,6 +95,7 @@ function renderDbList() {
         || db.users.some((user) => user.toLowerCase().includes(search)));
     const total   = databases.list.reduce((sum, db) => sum + db.size, 0);
     const largest = Math.max(1, ...databases.list.map((db) => db.size));
+
     document.getElementById("db-total").textContent = databases.available
         ? `${databases.list.length} · ${bytes(total)}` : "";
     document.getElementById("db-list").innerHTML = !databases.available
@@ -159,6 +163,7 @@ function renderUsers() {
         d="M13.5 6.5l4 4"/></svg>`;
     const bin    = `<svg viewBox="0 0 24 24"><path
         d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>`;
+
     document.getElementById("user-count").textContent = state.databases.available
         ? String(accountRows().length) : "";
     document.getElementById("db-users").innerHTML = !state.databases.available
@@ -211,6 +216,7 @@ function renderUsers() {
  */
 function accountRows() {
     const rows = [];
+
     for (const user of state.databases.users) {
         const key  = `${user.name}@${user.host}`;
         const same = user.admin && rows.find((row) => row.admin && row.name === user.name);
@@ -220,6 +226,7 @@ function accountRows() {
             rows.push({ ...user, key, hosts : [ user.host ] });
         }
     }
+
     return rows;
 }
 
@@ -252,6 +259,7 @@ async function openDatabaseDialog(name = "") {
         toast(error.message, true);
         return;
     }
+
     const { databases } = state;
     const db       = databases.list.find((one) => one.name === name);
     const accounts = state.databases.users.filter((user) => !user.admin);
@@ -285,6 +293,7 @@ async function openDatabaseDialog(name = "") {
         ` : ""}
         ${db ? databaseUsersField(db, accounts) : newUserField(accounts)}
     `;
+
     formDialog({
         title  : db ? `Change ${db.name}` : "New database",
         text   : db ? "" : "A database for a site, and the user it logs in as.",
@@ -295,6 +304,7 @@ async function openDatabaseDialog(name = "") {
             const data = new FormData(form);
             const set  = String(data.get("charset"));
             const sort = String(data.get("collation"));
+
             if (db) {
                 const changed = set !== db.charset || sort !== db.collation;
                 return api("/api/action", {
@@ -306,6 +316,7 @@ async function openDatabaseDialog(name = "") {
                     users     : data.getAll("users"),
                 });
             }
+
             const mode = /** @type {HTMLElement} */ (form.querySelector("[data-user-mode].active"))
                 ?.dataset.userMode || "none";
             return api("/api/action", {
@@ -421,6 +432,7 @@ function setUpDatabaseFields(fields, db) {
                 && sort.value === db.collation;
         }
     };
+
     fill(db?.collation || (set.value === state.databases.charset ? state.databases.collation : ""));
     set.addEventListener("change", () => {
         fill(sort.value);
@@ -448,6 +460,7 @@ function setUpDatabaseFields(fields, db) {
 function pickUserMode(button) {
     const form = button.closest("form");
     setActive(button);
+
     for (const pane of /** @type {NodeListOf<HTMLElement>} */ (
         form.querySelectorAll("[data-mode-pane]")
     )) {

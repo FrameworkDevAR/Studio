@@ -62,6 +62,7 @@ async function readPhp() {
     const added = new Set(filesIn(php.extDir || "", "")
         .filter((file) => file.endsWith(".so"))
         .map((file) => path.basename(file, ".so").toLowerCase()));
+
     const loaded = Object.entries(php.extensions || {}).map(([ name, version ]) => {
         const id = name.toLowerCase();
         return {
@@ -125,6 +126,7 @@ async function readDirectives() {
     const { data } = await askPhp();
     const overrides = readIniFile();
     const switches  = readSwitches(data.mainIni || "");
+
     return Object.entries(data.values || {}).map(([ key, value ]) => ({
         key,
         value    : displayValue(key, key in overrides ? overrides[key] : value, switches),
@@ -153,8 +155,10 @@ async function setPhpSettings(changes) {
     if (!list.length) {
         throw new Error("Nothing to save");
     }
+
     const known = (await askPhp()).data.values || {};
     let content = readFile(phpIniFile());
+
     for (const { key, value, remove } of list) {
         // An override taken out, so php.ini's value is back.
         if (remove) {
@@ -164,6 +168,7 @@ async function setPhpSettings(changes) {
             content = content.replace(new RegExp(`${settingLine(key).source}\\n?`, "gm"), "");
             continue;
         }
+
         checkSetting(key, value, known);
         const line    = `${key} = ${iniValue(value)}`;
         const pattern = settingLine(key);
@@ -198,6 +203,7 @@ function setPhpSetting(key, value) {
  */
 function checkSetting(key, value, known) {
     const rule = PHP_SETTINGS[key];
+
     if (!/^[a-z_][\w.]*$/i.test(key)) {
         throw new Error(`${key} is not a setting name`);
     }
@@ -233,6 +239,7 @@ async function saveOverrides(text) {
     if (typeof text !== "string") {
         throw new Error("No text to save");
     }
+
     const reload = await writeOverrides(text.replace(/\r\n/g, "\n"));
     return { message : `Saved ${path.basename(phpIniFile())}. ${reload.message}` };
 }
@@ -259,12 +266,14 @@ async function writeOverrides(text) {
     if (problems.length) {
         throw new Error(`PHP does not take it: ${problems[0]}`);
     }
+
     const file = phpIniFile();
     if (fs.existsSync(file)) {
         fs.copyFileSync(file, `${file}.bak`);
     } else {
         fs.mkdirSync(path.dirname(file), { recursive : true });
     }
+
     fs.writeFileSync(file, text);
     return reloadApache();
 }

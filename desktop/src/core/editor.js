@@ -123,12 +123,14 @@ async function openEditor(kind) {
     const open = /** @type {HTMLElement} */ (document.querySelector("[data-editor-open]"));
     const data = await api(file.url);
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
+
     editorSaved  = data.exists ? data.text : "";
     editorEdited = false;
     editorCheck = { text : null, problem : "", timer : null };
     editorFile  = data.file;
     text.value  = data.text;
     closeFind(false);
+
     document.getElementById("editor-title").textContent = file.title;
     document.getElementById("editor-path").textContent  = data.exists ? data.file
         : `${data.file} — new${kind === "config" ? ", from the example" : ""}`;
@@ -137,6 +139,7 @@ async function openEditor(kind) {
     document.getElementById("editor-insert").hidden      = kind !== "php" && kind !== "mariadb";
     document.getElementById("editor-insert").textContent = kind === "mariadb" ? "Insert option"
         : "Insert setting";
+
     updateEditor();
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).showModal();
     text.focus();
@@ -158,6 +161,7 @@ async function closeEditor() {
     })) {
         return;
     }
+
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
 }
 
@@ -172,13 +176,16 @@ async function saveEditor() {
     if (button.disabled) {
         return;
     }
+
     button.disabled = true;
+
     try {
         const result = await api("/api/action", {
             action : EDITOR_FILES[editorKind].save,
             text   : text.value,
             ...EDITOR_FILES[editorKind].body,
         });
+
         editorSaved = text.value;
         toast(result.message);
         /** @type {HTMLDialogElement} */ (document.getElementById("editor")).close();
@@ -200,6 +207,7 @@ function updateEditor() {
     const text   = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const lines  = text.value.split("\n").length;
     const status = document.getElementById("editor-status");
+
     // A trailing newline keeps the paint as tall as the text when it ends in one.
     document.getElementById("editor-paint").innerHTML = `${file.paint(text.value)}\n`;
 
@@ -207,6 +215,7 @@ function updateEditor() {
     editorEdited = editorEdited || dirty;
     let   error  = file.check(text.value);
     let   asking = false;
+
     // PHP or Apache is asked about a text that reads, once per text.
     if (!error && file.server && dirty) {
         if (editorCheck.text === text.value) {
@@ -216,12 +225,14 @@ function updateEditor() {
             checkOnServer(text.value);
         }
     }
+
     // The line the problem is on, when it is in this file, numbered in red.
     const bad = problemLine(error, text.value);
     document.getElementById("editor-lines").innerHTML = Array.from(
         { length : lines },
         (_, index) => (index + 1 === bad ? `<span class="bad">${index + 1}</span>` : index + 1),
     ).join("\n");
+
     if (bad) {
         status.dataset.line = String(bad);
         status.title        = `Go to line ${bad}`;
@@ -229,6 +240,7 @@ function updateEditor() {
         delete status.dataset.line;
         status.title = "";
     }
+
     renderMarks();
     status.className   = `editor-status ${error ? "bad" : dirty ? "dirty" : ""}`;
     status.textContent = error ? error
@@ -251,6 +263,7 @@ function checkOnServer(value) {
     clearTimeout(editorCheck.timer);
     editorCheck.timer = setTimeout(async () => {
         let problem = "";
+
         try {
             const result = await api("/api/action", {
                 action : file.server,
@@ -261,7 +274,9 @@ function checkOnServer(value) {
         } catch (error) {
             problem = error.message;
         }
+
         editorCheck = { text : value, problem, timer : null };
+
         // Only when the text is still the one asked about.
         if (/** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text")).value
             === value) {
@@ -281,14 +296,17 @@ function problemLine(problem, value) {
     if (!problem) {
         return 0;
     }
+
     const named = problem.match(/\b(?:of|in)\s+(\S+\.(?:conf|ini|json))\b/);
     if (named && named[1].split("/").pop() !== editorFile.split("/").pop()) {
         return 0;
     }
+
     const line = problem.match(/\bline (\d+)/i);
     if (line) {
         return Number(line[1]);
     }
+
     const position = problem.match(/\bposition (\d+)/i);
     return position ? value.slice(0, Number(position[1])).split("\n").length : 0;
 }
@@ -302,6 +320,7 @@ function goToLine(line) {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const lines = text.value.split("\n");
     const start = lines.slice(0, line - 1).reduce((sum, one) => sum + one.length + 1, 0);
+
     text.focus();
     text.setSelectionRange(start, start + (lines[line - 1] || "").length);
     reveal(start);
@@ -321,6 +340,7 @@ function reveal(offset) {
     if (top < text.scrollTop || top > text.scrollTop + text.clientHeight - height * 2) {
         text.scrollTop = Math.max(0, top - text.clientHeight / 3);
     }
+
     const canvas = /** @type {any} */ (reveal).canvas
         || (/** @type {any} */ (reveal).canvas = document.createElement("canvas"));
     const pen    = canvas.getContext("2d");
@@ -344,9 +364,11 @@ function replaceText(from, to, value, select = [ from + value.length, from + val
     const text = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     text.focus();
     text.setSelectionRange(from, to);
+
     if (!document.execCommand("insertText", false, value)) {
         text.setRangeText(value, from, to, "end");
     }
+
     text.setSelectionRange(select[0], select[1]);
     updateEditor();
 }
@@ -363,6 +385,7 @@ function toggleComment() {
     if (!mark) {
         return;
     }
+
     const value = text.value;
     const from  = value.lastIndexOf("\n", text.selectionStart - 1) + 1;
     // A selection ending at a line's start leaves that line out.
@@ -376,6 +399,7 @@ function toggleComment() {
     const next  = lines.map((line) => (!line.trim() ? line
         : out ? line.replace(new RegExp(`^(\\s*)\\${mark} ?`), "$1")
             : line.replace(/^(\s*)/, `$1${mark}`))).join("\n");
+
     const single = lines.length === 1 && text.selectionStart === text.selectionEnd;
     const caret  = Math.max(from, text.selectionStart + next.length - (to - from));
     replaceText(from, to, next, single ? [ caret, caret ] : [ from, from + next.length ]);
@@ -406,6 +430,7 @@ function newLine() {
         const close = `</${section[1]}>`;
         const after = value.slice(end === -1 ? value.length : end + 1).split("\n")
             .find((line) => line.trim());
+
         if (after?.trim().toLowerCase() === close.toLowerCase()
             && after.match(/^[ \t]*/)[0] === indent) {
             return replaceText(caret, text.selectionEnd, `\n${inner}`);
@@ -417,6 +442,7 @@ function newLine() {
             [ caret + inner.length + 1, caret + inner.length + 1 ],
         );
     }
+
     const opens = file.lang === "json" && /[{[]\s*$/.test(before);
     if (opens) {
         const closing = /^\s*[}\]]/.test(rest);
@@ -451,6 +477,7 @@ function openFind() {
     if (picked && !picked.includes("\n")) {
         input.value = picked;
     }
+
     bar.hidden = false;
     input.focus();
     input.select();
@@ -466,6 +493,7 @@ function closeFind(focus = true) {
     document.getElementById("editor-find").hidden = true;
     findState = { matches : [], index : -1 };
     renderMarks();
+
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     if (focus) {
         text.focus();
@@ -482,6 +510,7 @@ function searchText(from = 0) {
     const needle = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"))
         .value.toLowerCase();
     const hay    = text.value.toLowerCase();
+
     findState.matches = [];
     for (
         let at = needle ? hay.indexOf(needle) : -1;
@@ -490,6 +519,7 @@ function searchText(from = 0) {
     ) {
         findState.matches.push([ at, at + needle.length ]);
     }
+
     findState.index = findState.matches.length
         ? Math.max(0, findState.matches.findIndex(([ at ]) => at >= from))
         : -1;
@@ -516,14 +546,17 @@ function stepFind(step) {
 function showMatch() {
     const text  = /** @type {HTMLTextAreaElement} */ (document.getElementById("editor-text"));
     const input = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"));
+
     document.getElementById("editor-find-count").textContent = !input.value ? ""
         : findState.matches.length ? `${findState.index + 1} of ${findState.matches.length}`
             : "No matches";
+
     const match = findState.matches[findState.index];
     if (match) {
         text.setSelectionRange(match[0], match[1]);
         reveal(match[0]);
     }
+
     renderMarks();
 }
 
@@ -538,6 +571,7 @@ function renderMarks() {
         marks.innerHTML = "";
         return;
     }
+
     let html = "";
     let last = 0;
     findState.matches.forEach(([ from, to ], index) => {
@@ -546,6 +580,7 @@ function renderMarks() {
         }">${escapeCode(text.value.slice(from, to))}</mark>`;
         last  = to;
     });
+
     marks.innerHTML = `${html}${escapeCode(text.value.slice(last))}\n`;
 }
 
@@ -581,12 +616,14 @@ async function insertSetting() {
         text.focus();
         return;
     }
+
     const line    = `${picked.key} = ${picked.value}`;
     // MariaDB reads innodb-buffer-pool-size as innodb_buffer_pool_size, so either is its line.
     const name    = picked.key.replace(/\./g, "\\.").replace(/[_-]/g, "[_-]");
     const pattern = new RegExp(`^[ \\t]*${name}[ \\t]*(=.*)?$`, "m");
     const found   = text.value.match(pattern);
     let   start;
+
     if (found) {
         start = found.index;
         text.setRangeText(line, start, start + found[0].length, "end");
@@ -597,6 +634,7 @@ async function insertSetting() {
         text.setRangeText(`${gap}${line}`, start, start, "end");
         start += gap.length;
     }
+
     text.focus();
     text.setSelectionRange(start + line.length - String(picked.value).length, start + line.length);
     updateEditor();
@@ -607,6 +645,7 @@ async function insertSetting() {
     const lines  = document.getElementById("editor-lines");
     const editor = document.getElementById("editor");
     text.addEventListener("input", updateEditor);
+
     // The text is typed in a transparent area over its painted copy, which
     // follows it as it scrolls, as do the line numbers.
     const paint = document.getElementById("editor-paint");
@@ -616,6 +655,7 @@ async function insertSetting() {
         paint.style.transform = `translate(${-text.scrollLeft}px, ${-text.scrollTop}px)`;
         marks.style.transform = paint.style.transform;
     });
+
     text.addEventListener("keydown", (event) => {
         const command = event.metaKey || event.ctrlKey;
         if (event.key === "Tab" && !event.shiftKey) {
@@ -630,6 +670,7 @@ async function insertSetting() {
             newLine();
         }
     });
+
     editor.addEventListener("keydown", (event) => {
         if ((event.metaKey || event.ctrlKey) && event.key === "s") {
             event.preventDefault();
@@ -639,12 +680,14 @@ async function insertSetting() {
             openFind();
         }
     });
+
     // The find bar: typing finds, Enter steps, Esc closes it and not the dialog.
     const findText = /** @type {HTMLInputElement} */ (document.getElementById("editor-find-text"));
     findText.addEventListener(
         "input",
         () => searchText(findState.matches[findState.index]?.[0] || 0),
     );
+
     findText.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -655,6 +698,7 @@ async function insertSetting() {
             closeFind();
         }
     });
+
     document.getElementById("editor-find").addEventListener("click", (event) => {
         const button = /** @type {HTMLElement} */ (event.target).closest("button");
         if (button?.dataset.findStep) {
@@ -663,6 +707,7 @@ async function insertSetting() {
             closeFind();
         }
     });
+
     // A problem naming a line goes to it.
     document.getElementById("editor-status").addEventListener("click", (event) => {
         const line = Number(/** @type {HTMLElement} */ (event.currentTarget).dataset.line);
@@ -670,6 +715,7 @@ async function insertSetting() {
             goToLine(line);
         }
     });
+
     // Esc would close the dialog at once; it goes through the same question.
     editor.addEventListener("cancel", (event) => {
         event.preventDefault();

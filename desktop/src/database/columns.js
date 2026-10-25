@@ -72,6 +72,7 @@ const TYPE_LENGTHS = {
 function typeOptions(base) {
     const known  = COLUMN_TYPES.some(([ , types ]) => types.includes(base.toLowerCase()));
     let   chosen = false;
+
     return `${known ? "" : `<optgroup label="This column's"><option value="${esc(base)}" selected>${
         esc(base.toUpperCase())
     }</option></optgroup>`}${COLUMN_TYPES.map(([ group, types ]) => `<optgroup label="${group}">${
@@ -79,6 +80,7 @@ function typeOptions(base) {
         if (type === "-") {
             return `<option disabled>──────</option>`;
         }
+
         // Only the first of a type's places, as Common has them again, is picked.
         const on = !chosen && type === base.toLowerCase();
         chosen ||= on;
@@ -101,6 +103,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
     const structure = browse.structure;
     const old       = structure.columns.find((one) => one.name === name);
     const adding    = !old || copy;
+
     let charsets;
     try {
         charsets = await loadCharsets();
@@ -108,6 +111,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
         toast(error.message, true);
         return;
     }
+
     const tableCollation = browse.tables.find((one) => one.name === structure.table)?.collation
         || "";
     const column = old ? { ...old, name : copy ? `${old.name}_copy` : old.name } : {
@@ -119,6 +123,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
         comment   : "",
         collation : "",
     };
+
     const others = structure.columns.filter((one) => one.name !== name || copy);
     const place  = copy ? name : after ?? (adding ? structure.columns.at(-1)?.name : "");
     const kinds  = [
@@ -130,9 +135,11 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
         [ "stored", "Generated, stored" ],
     ];
     const picked = column.collation && column.collation !== tableCollation ? column.collation : "";
+
     // The type apart: its name, its length or values in brackets, and unsigned or zerofill after.
     const [ , base = column.type, length = "", flags = "" ] = column.type
         .match(/^([a-z][a-z0-9 ]*?)\s*(?:\((.*)\))?((?:\s+(?:unsigned|signed|zerofill))*)$/i) || [];
+
     formDialog({
         title  : adding ? `New column in ${structure.table}` : `Change the column ${old.name}`,
         text   :
@@ -204,11 +211,13 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                     form.elements.namedItem("type")
                 ).value;
                 const hint = TYPE_LENGTHS[type];
+
                 size.disabled    = !hint;
                 size.placeholder = hint ? hint[0] : "None for this type";
                 /** @type {HTMLElement} */ (
                     fields.querySelector("[data-column-unsigned]")
                 ).hidden = !NUMBER_TYPE.test(type);
+
                 const made = kind === "virtual" || kind === "stored";
                 const box  = /** @type {HTMLElement} */ (
                     fields.querySelector("[data-column-preset]")
@@ -220,6 +229,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                 /** @type {HTMLInputElement} */ (box.querySelector("input")).placeholder = made
                     ? "`price` * `count`"
                     : kind === "expression" ? "current_timestamp()" : "";
+
                 /** @type {HTMLElement} */ (
                     fields.querySelector("[data-column-checks]")
                 ).hidden = made;
@@ -230,7 +240,9 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                     fields.querySelector("[data-column-collation]")
                 ).style.visibility = TEXT_TYPE.test(type) ? "" : "hidden";
             };
+
             form.addEventListener("input", update);
+
             // A type picked anew starts with its usual length, or none when it takes none.
             /** @type {HTMLSelectElement} */ (
                 form.elements.namedItem("type")
@@ -247,12 +259,14 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
             const name  = String(data.get("type"));
             const text  = TEXT_TYPE.test(name);
             const sized = String(data.get("length") ?? "").trim();
+
             // Unsigned for a number, and zerofill kept when it had it.
             const marks = NUMBER_TYPE.test(name)
                 ? `${data.get("unsigned") === "on" ? " unsigned" : ""}${
                     /zerofill/i.test(flags) ? " zerofill" : ""
                 }`
                 : "";
+
             const definition = {
                 name      : String(data.get("name")),
                 type      : `${name}${sized && TYPE_LENGTHS[name] ? `(${sized})` : ""}${marks}`,
@@ -266,6 +280,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                 collation : text ? String(data.get("collation")) || tableCollation : "",
                 comment   : String(data.get("comment")),
             };
+
             const result = await api("/api/action", {
                 action : "db-column-save",
                 db     : browse.db,
@@ -274,6 +289,7 @@ async function openColumnDialog(name = null, { copy = false, after = null } = {}
                 definition,
                 after  : String(data.get("after")),
             });
+
             marked["structure-grid"] = {
                 key     : definition.name,
                 context : gridContext("structure-grid"),
@@ -306,16 +322,20 @@ function columnDefinition(column, changes = {}) {
         comment   : column.comment,
         ...changes,
     };
+
     if (!TEXT_TYPE.test(definition.type)) {
         definition.collation = "";
     }
+
     // A column made to refuse NULL no longer starts with it.
     if (!definition.nullable && definition.value === "null") {
         definition.value = "none";
     }
+
     if (!/^(timestamp|datetime)\b/i.test(definition.type)) {
         definition.update = false;
     }
+
     return definition;
 }
 
@@ -367,6 +387,7 @@ function editColumnCell(td) {
     if (columnEdit || structureIsView()) {
         return;
     }
+
     const tr     = /** @type {HTMLElement} */ (td.closest("tr"));
     const name   = tr.dataset.key;
     const field  = td.dataset.field;
@@ -376,6 +397,7 @@ function editColumnCell(td) {
         openColumnDialog(name);
         return;
     }
+
     /** @type {any} An input, or a select for NULL. */
     let input;
     if (field === "null") {
@@ -393,9 +415,11 @@ function editColumnCell(td) {
         input.placeholder = field === "default" ? "none" : "";
         input.spellcheck  = false;
     }
+
     input.className   = "cell-input";
     // The cell's width less its padding while changed, so the column keeps its.
     input.style.width = `${td.clientWidth - 4}px`;
+
     const cells = () => [ ...document.querySelectorAll("#structure-grid tbody td[data-field]") ];
     const edit  = {
         name,
@@ -406,14 +430,17 @@ function editColumnCell(td) {
         at   : cells().indexOf(td),
         row  : [ ...tr.parentElement.children ].indexOf(tr),
     };
+
     columnEdit   = edit;
     tr.draggable = false;
     td.classList.add("editing");
     td.replaceChildren(input);
     input.focus();
+
     if (input instanceof HTMLInputElement) {
         input.select();
     }
+
     // Where to go after: a cell along, or the same one a row up or down, found again once the grid
     // is drawn again.
     const along = (by) => () => {
@@ -422,6 +449,7 @@ function editColumnCell(td) {
             changeColumnAt(next);
         }
     };
+
     const down = (by) => () => {
         const row  = document.querySelectorAll("#structure-grid tbody tr[data-key]")[edit.row + by];
         const next = /** @type {HTMLElement} */ (row?.querySelector(`td[data-field="${field}"]`));
@@ -429,6 +457,7 @@ function editColumnCell(td) {
             changeColumnAt(next);
         }
     };
+
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -448,9 +477,11 @@ function editColumnCell(td) {
             saveColumnCell(edit, down(event.key === "ArrowUp" ? -1 : 1));
         }
     });
+
     if (input instanceof HTMLSelectElement) {
         input.addEventListener("change", () => saveColumnCell(edit));
     }
+
     input.addEventListener("blur", () => saveColumnCell(edit));
 }
 
@@ -479,6 +510,7 @@ async function saveColumnCell(edit, then = null) {
     if (edit.done) {
         return;
     }
+
     edit.done = true;
     const text = edit.input.value;
     if (text !== edit.old) {
@@ -489,6 +521,7 @@ async function saveColumnCell(edit, then = null) {
                     : edit.field === "comment" ? { comment : text }
                         : defaultOf(text, column);
         edit.input.disabled = true;
+
         try {
             await api("/api/action", {
                 action     : "db-column-save",
@@ -505,15 +538,19 @@ async function saveColumnCell(edit, then = null) {
             edit.input.focus();
             return;
         }
+
         columnEdit = null;
+
         if (edit.field === "name") {
             marked["structure-grid"] = { key : text, context : gridContext("structure-grid") };
         }
+
         await loadStructure();
     } else {
         columnEdit = null;
         renderStructureColumns();
     }
+
     then?.();
 }
 
@@ -536,11 +573,13 @@ function dropColumnAt(tr, below) {
     const at      = columns.indexOf(target);
     const after   = below ? target : at > 0 ? columns[at - 1] : "first";
     const name    = columnDrag;
+
     // Dropped where it is already: before or after itself.
     if (!name || name === target || after === columns[columns.indexOf(name) - 1]
         || after === "first" && columns[0] === name) {
         return;
     }
+
     api("/api/action", {
         action : "db-column-move",
         db     : browse.db,
@@ -571,6 +610,7 @@ let columnMenu = "";
 function openColumnMenu(name, x, y) {
     const columns = browse.structure.columns;
     const at      = columns.findIndex((one) => one.name === name);
+
     columnMenu = name;
     const menu = document.getElementById("row-menu");
     menu.innerHTML = `
@@ -587,6 +627,7 @@ function openColumnMenu(name, x, y) {
         <button role="menuitem" data-column-act="drop" class="danger-item"
             ${columns.length === 1 ? "disabled" : ""}>Drop…</button>
     `;
+
     showMenuAt(menu, x, y);
 }
 
@@ -599,6 +640,7 @@ async function columnAction(act) {
     const name    = columnMenu;
     const columns = browse.structure.columns;
     const at      = columns.findIndex((one) => one.name === name);
+
     if (act === "edit") {
         return openColumnDialog(name);
     }
@@ -615,8 +657,10 @@ async function columnAction(act) {
     if (act === "drop") {
         return dropColumn(name);
     }
+
     // Up goes after the one two above, or first; down after the one below.
     const after = act === "up" ? (at > 1 ? columns[at - 2].name : "first") : columns[at + 1].name;
+
     try {
         toast((await api("/api/action", {
             action : "db-column-move",
@@ -629,6 +673,7 @@ async function columnAction(act) {
         toast(error.message, true);
         return;
     }
+
     loadStructure();
 }
 
@@ -649,6 +694,7 @@ async function dropColumn(name) {
     if (!sure) {
         return;
     }
+
     try {
         toast((await api("/api/action", {
             action : "db-column-drop",
@@ -660,6 +706,7 @@ async function dropColumn(name) {
         toast(error.message, true);
         return;
     }
+
     loadStructure();
     loadTables();
 }

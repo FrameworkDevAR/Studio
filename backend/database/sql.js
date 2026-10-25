@@ -37,6 +37,7 @@ async function runSql({ db, sql }) {
     if (!text) {
         throw new Error("No SQL to run");
     }
+
     const start = Date.now();
     // The limit goes on a line before the SQL, so a line MariaDB names is one less.
     const sets  = await query(`SET SESSION sql_select_limit = ${RESULTS + 1};\n${
@@ -50,6 +51,7 @@ async function runSql({ db, sql }) {
         });
     const last  = sets.pop();
     forgetDatabases();
+
     const results = [];
     for (const set of sets) {
         results.push({
@@ -60,6 +62,7 @@ async function runSql({ db, sql }) {
             edit      : await editableOf(db, set),
         });
     }
+
     return { time : Date.now() - start, changed : Number(last?.rows[0]?.[0] ?? -1), results };
 }
 
@@ -93,12 +96,15 @@ async function editableOf(db, set) {
     )) {
         return null;
     }
+
     const items = found[1].split(",").map((item) => item.trim());
     if (!items.every((item) => PLAIN_ITEM.test(item))) {
         return null;
     }
+
     const parts = found[2].split(/\s*\.\s*(?=`|[\w$])/).map(unquoted);
     const [ base, table ] = parts.length === 2 ? parts : [ db, parts[0] ];
+
     let structure;
     try {
         if ((await readTables(base))
@@ -109,6 +115,7 @@ async function editableOf(db, set) {
     } catch {
         return null;
     }
+
     const columns = set.columns
         .map((name) => structure.columns.find((column) => column.name === name) || null);
     const unique  = new Set(set.columns).size === set.columns.length;
@@ -116,6 +123,7 @@ async function editableOf(db, set) {
         || !structure.primary.every((name) => set.columns.includes(name))) {
         return null;
     }
+
     return {
         db      : structure.db,
         table   : structure.table,
@@ -143,13 +151,16 @@ async function editableOf(db, set) {
 async function importDatabase(request, { db, name = "" }) {
     db = await existingDatabase(db);
     const client = spawn("mariadb", [ "-D", db ], { env : runEnv() });
+
     let said = "";
     client.stderr.on("data", (chunk) => { said += chunk; });
     const done = new Promise((resolve) => client.on("close", resolve));
+
     const input = /\.gz$/i.test(name) ? request.pipe(zlib.createGunzip()) : request;
     input.on("error", () => client.stdin.destroy());
     client.stdin.on("error", () => {});
     input.pipe(client.stdin);
+
     const code = await done;
     forgetDatabases();
     if (code !== 0) {
@@ -157,6 +168,7 @@ async function importDatabase(request, { db, name = "" }) {
         throw new Error(error ? `Stopped at line ${error[1]} of the file: ${error[2]}`
             : said.trim() || "The import failed");
     }
+
     return { message : `Imported ${name || "the file"} into ${db}` };
 }
 

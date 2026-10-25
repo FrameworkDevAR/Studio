@@ -42,9 +42,11 @@ function runAction(action, argument) {
     case "start-all":
         fs.writeFileSync(STACK_FLAG, "Starting…");
         refreshMenu();
+
         // One formula per call -- brew services takes no list.
         sh(`${BREW} services run httpd`);
         sh(`${BREW} services run mariadb`);
+
         fs.rmSync(STACK_FLAG, { force : true });
         refreshMenu();
         break;
@@ -52,9 +54,11 @@ function runAction(action, argument) {
     case "stop-all":
         fs.writeFileSync(STACK_FLAG, "Stopping…");
         refreshMenu();
+
         sh(`${BREW} services stop redis`);
         sh(`${BREW} services stop httpd`);
         sh(`${BREW} services stop mariadb`);
+
         fs.rmSync(STACK_FLAG, { force : true });
         refreshMenu();
         break;
@@ -73,9 +77,11 @@ function runAction(action, argument) {
             }
             sleep(250);
         }
+
         fs.rmSync(`${STOPPING_FLAG}${argument}`, { force : true });
         refreshMenu();
         break;
+
     case "stop-vite":
         for (const pid of sh(`pgrep -f "node .*/\\.bin/vite"`).split("\n").filter(Boolean)) {
             sh(`kill -TERM ${pid}`);
@@ -97,9 +103,11 @@ function runAction(action, argument) {
     case "start-desktops": {
         const running = new Set(readViteServers().map((server) => server.dir));
         const missing = desktopApps().filter((dir) => !running.has(dir));
+
         for (const dir of missing) {
             startDetached("npm", [ "run", "start" ], dir);
         }
+
         fs.writeFileSync(
             DESKTOPS_FLAG,
             `${WORKTREES_NAME} Desktop - Starting ${missing.length}…`,
@@ -117,6 +125,7 @@ function runAction(action, argument) {
             }
             sleep(500);
         }
+
         fs.rmSync(DESKTOPS_FLAG, { force : true });
         refreshMenu();
         break;
@@ -128,6 +137,7 @@ function runAction(action, argument) {
         if (!server) {
             break;
         }
+
         startDetached(server.command, server.args, server.dir, server.pathPrefix);
         fs.writeFileSync(startingFlagOf(server), "starting");
         startDetached(SELF, [ "await-extra", server.id ], server.dir);
@@ -139,6 +149,7 @@ function runAction(action, argument) {
         const missing = readExtraServers(readListeningPorts())
             .filter((server) => !server.pid && !server.starting
                 && (!argument || server.group === argument));
+
         for (const server of missing) {
             startDetached(server.command, server.args, server.dir, server.pathPrefix);
             fs.writeFileSync(startingFlagOf(server), "starting");
@@ -153,6 +164,7 @@ function runAction(action, argument) {
         if (!server) {
             break;
         }
+
         waitForServer(server.id);
         fs.rmSync(startingFlagOf(server), { force : true });
         refreshMenu();
@@ -164,10 +176,12 @@ function runAction(action, argument) {
     // Starts Studio if it is not running, then focuses its tab.
     case "open-studio": {
         const url = `http://localhost:${STUDIO.port}/`;
+
         if (!Object.values(readListeningPorts()).includes(String(STUDIO.port))) {
             startDetached("node", [ "backend/server.js" ], STUDIO.dir);
             waitForUrl(url);
         }
+
         openInBrowser(url);
         break;
     }
@@ -183,6 +197,7 @@ function runAction(action, argument) {
                 .filter((dir) => readFile(path.join(dir, "package.json")).includes(`"start"`)),
             ...running.map((server) => server.dir),
         ]);
+
         const apps = [ ...dirs ].map(appInfo).sort(byProjectThenApp).map((app) => {
             const server = byDir.get(app.dir);
             const port   = server ? portByPid[server.pid] : null;
@@ -202,6 +217,7 @@ function runAction(action, argument) {
                 root     : path.dirname(appHomeOf(app.dir)),
             };
         });
+
         // And the projects' own servers, as their sections find them.
         const servers = readExtraServers(portByPid).map((server) => ({
             id       : server.id,
@@ -215,6 +231,7 @@ function runAction(action, argument) {
             port     : server.port,
             url      : urlOf(server),
         }));
+
         console.log(JSON.stringify({ apps, servers }));
         break;
     }
@@ -233,6 +250,7 @@ function openInBrowser(url) {
         execFileSync("/usr/bin/open", [ url ]);
         return;
     }
+
     try {
         focusTab(BROWSER, url);
     } catch {

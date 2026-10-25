@@ -70,6 +70,7 @@ function renderSettingGroups(scope, fixed, settings, overrides, extra = "") {
     if (key === settingsKeys[scope] || busy) {
         return;
     }
+
     settingsKeys[scope] = key;
     const byKey  = Object.fromEntries(settings.map((setting) => [ setting.key, setting ]));
     const groups = fixed.map((group) => ({
@@ -77,6 +78,7 @@ function renderSettingGroups(scope, fixed, settings, overrides, extra = "") {
         rows  : group.keys.filter((one) => byKey[one]).map((one) => byKey[one]),
     }))
         .filter((group) => group.rows.length);
+
     for (const group of byOwner(overrides, scope)) {
         const same = groups.find((one) => one.title === group.title);
         if (same) {
@@ -85,6 +87,7 @@ function renderSettingGroups(scope, fixed, settings, overrides, extra = "") {
             groups.push(group);
         }
     }
+
     box.innerHTML = groups.map((group) => `
         <div class="panel">
             <div class="panel-head"><h2>${esc(group.title)}</h2></div>
@@ -124,6 +127,7 @@ const SIZE_SETTINGS = [ "memory_limit", "upload_max_filesize", "post_max_size" ]
  */
 function settingField(setting) {
     const value = String(setting.value);
+
     if (setting.options) {
         const options = setting.options.includes(value)
             ? setting.options
@@ -133,10 +137,12 @@ function settingField(setting) {
                 `<option ${option === value ? "selected" : ""}>${esc(option)}</option>`)
             .join("")}</select></span>`;
     }
+
     if (setting.timezone) {
         return `<span class="field"><input list="timezones" value="${esc(value)}"
             spellcheck="false"></span>`;
     }
+
     if (setting.size || SIZE_SETTINGS.includes(setting.key) || /^\d+[KMG]$/i.test(value)) {
         const [ , number, unit ] = value.match(/^(-?\d+)([KMG]?)$/i) || [ "", value, "" ];
         return `
@@ -151,10 +157,12 @@ function settingField(setting) {
             </span>
         `;
     }
+
     if (/^-?\d+$/.test(value)) {
         return `<span class="field"><input type="number" step="1"
             value="${esc(value)}"></span>`;
     }
+
     // A long value, as sql_mode's list of modes, wraps in a box the row's width.
     if (value.length > 24) {
         return `<span class="field"><textarea rows="${Math.min(4, Math.ceil(value.length / 34))}"
@@ -193,6 +201,7 @@ function settingRow(setting, scope) {
         </button>
     ` : "";
     const from   = setting.known === false ? "" : preset ? `${who}'s default` : setting.baseFrom;
+
     return `
         <div class="setting ${inFile ? "set" : ""}
             ${!setting.options && value.length > 24 ? "wide" : ""}"
@@ -237,11 +246,13 @@ function setFieldValue(row, value) {
         /** @type {HTMLSelectElement} */ (size.querySelector("select")).value = unit.toUpperCase();
         return;
     }
+
     const field = /** @type {HTMLSelectElement} */ (row.querySelector("input, select, textarea"));
     if (field.tagName === "SELECT"
         && ![ ...field.options ].some((option) => option.value === value)) {
         field.add(new Option(value, value));
     }
+
     field.value = value;
 }
 
@@ -283,11 +294,13 @@ function toggleUnset(row) {
         row.querySelectorAll("input, select, textarea").forEach((field) => {
             /** @type {HTMLInputElement} */ (field).disabled = true;
         });
+
         const button = /** @type {HTMLElement} */ (row.querySelector("[data-unset]"));
         button.title     = "Keep the override";
         button.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path
             d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>`;
     }
+
     showSettingChanges(scopeOf(row));
 }
 
@@ -302,6 +315,7 @@ function resetSetting(row) {
     row.querySelectorAll("input, select, textarea").forEach((field) => {
         /** @type {HTMLInputElement} */ (field).disabled = false;
     });
+
     const button = row.querySelector("[data-unset]");
     if (button) {
         /** @type {HTMLElement} */ (button).title = "Remove the override";
@@ -329,10 +343,12 @@ function dirtyRows(scope) {
 function showSettingChanges(scope) {
     const rows = dirtyRows(scope);
     const id   = SETTING_SCOPES[scope].changes;
+
     document.getElementById(id).hidden = !rows.length;
     document.getElementById(`${id}-count`).textContent = rows.length === 1
         ? "1 unsaved change"
         : `${rows.length} unsaved changes`;
+
     document.getElementById(`${id}-list`).innerHTML = rows.map((row) => {
         const { key, value, base, from } = row.dataset;
         const to = row.classList.contains("removing")
@@ -359,10 +375,12 @@ async function saveSettings(scope) {
     if (!rows.length || button.disabled) {
         return;
     }
+
     const changes = rows.map((row) => (row.classList.contains("removing")
         ? { key : row.dataset.key, remove : true }
         : { key : row.dataset.key, value : fieldValue(row) }));
     button.disabled = true;
+
     try {
         const result = await api("/api/action", SETTING_SCOPES[scope].save(changes));
         toast(result.message);
@@ -407,14 +425,17 @@ async function pickSetting({ inEditor = false, text = "", scope = "php" }) {
     const dialog = /** @type {HTMLDialogElement} */ (document.getElementById("pick"));
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("pick-filter"));
     const { list : url, noun, who, file, filter : placeholder, line } = SETTING_SCOPES[scope];
+
     finishPick(null);
     let list;
+
     try {
         list = await api(url);
     } catch (error) {
         toast(error.message, true);
         return null;
     }
+
     // In the editor, the text being edited says what is overridden.
     if (inEditor) {
         const name = (key) => (scope === "mariadb" ? key.toLowerCase().replace(/-/g, "_") : key);
@@ -424,6 +445,7 @@ async function pickSetting({ inEditor = false, text = "", scope = "php" }) {
             .map(name));
         list = list.map((one) => ({ ...one, inFile : keys.has(one.key) }));
     }
+
     pick = { list, key : "", inEditor, scope, resolve : null };
     document.getElementById("pick-title").textContent
         = `${inEditor ? "Insert" : "Add"} ${noun === "option" ? "an option" : "a setting"}`;
@@ -431,12 +453,14 @@ async function pickSetting({ inEditor = false, text = "", scope = "php" }) {
         ? `Pick one of the ${noun}s ${who} knows, then its value, to write it into the file.`
         : `Pick one of the ${list.length} ${noun}s ${who} knows, then its value. `
             + `It is saved to ${file}.`;
+
     filter.placeholder = placeholder;
     filter.value       = "";
     choosePick("");
     renderPickList();
     dialog.showModal();
     filter.focus();
+
     return new Promise((resolve) => {
         pick.resolve = resolve;
     });
@@ -463,6 +487,7 @@ function renderPickList() {
         .toLowerCase();
     const shown  = pick.list.filter((one) => one.key.toLowerCase().includes(text));
     const groups = byOwner(shown, pick.scope);
+
     document.getElementById("pick-list").innerHTML = !shown.length
         ? `<div class="pkg-none">No ${SETTING_SCOPES[pick.scope].noun} has “${esc(text)}”
             in its name.</div>`
@@ -495,10 +520,12 @@ function renderPickList() {
 function byOwner(settings, scope) {
     const { first, stranger } = SETTING_SCOPES[scope];
     const groups = new Map();
+
     for (const one of settings) {
         const title = one.known === false || !one.owner ? stranger : one.owner;
         groups.set(title, [ ...groups.get(title) || [], one ]);
     }
+
     const rank = (title) => (title === first ? 0 : title === stranger ? 2 : 1);
     return [ ...groups ]
         .map(([ title, rows ]) => ({ title, rows }))
@@ -518,6 +545,7 @@ function choosePick(key) {
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("pick-ok"));
     const { noun, site, lookup } = SETTING_SCOPES[pick.scope];
     pick.key     = one ? key : "";
+
     document.getElementById("pick-key").innerHTML = one
         ? `<a href="${esc(lookup(key))}" target="_blank" rel="noopener"
             title="Look it up on ${site}">${esc(key)}</a>`
@@ -525,14 +553,17 @@ function choosePick(key) {
     value.innerHTML = one
         ? settingField(one)
         : `<span class="field"><input disabled></span>`;
+
     button.disabled    = !one;
     button.textContent = pick.inEditor ? "Insert" : one?.inFile ? "Change" : "Add";
     setPickStatus("");
+
     for (const row of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#pick-list .pick-row")
     )) {
         row.classList.toggle("active", row.dataset.pickKey === pick.key);
     }
+
     const field = /** @type {HTMLInputElement} */ (value.querySelector("input, select, textarea"));
     if (one) {
         field.focus();
@@ -566,13 +597,16 @@ async function submitPick() {
     if (!pick.key || button.disabled) {
         return;
     }
+
     if (pick.inEditor) {
         finishPick({ key : pick.key, value });
         dialog.close();
         return;
     }
+
     button.disabled = true;
     setPickStatus(`Checking with ${who}…`, false);
+
     try {
         const result = await api("/api/action", save([ { key : pick.key, value } ]));
         dialog.close();

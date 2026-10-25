@@ -39,6 +39,7 @@ async function loadLog(jumpToEnd = false) {
     if (key === logKey && !jumpToEnd) {
         return;
     }
+
     logKey = key;
 
     const atEnd   = jumpToEnd || box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
@@ -57,12 +58,15 @@ async function loadLog(jumpToEnd = false) {
         : `<div class="log-empty">${query ? `Nothing matches “${esc(query)}”.`
             : errors ? "No errors or warnings."
                 : "Nothing here."}</div>`;
+
     for (const details of box.querySelectorAll("details")) {
         details.open = opened.has(details.dataset.key);
     }
+
     if (query) {
         highlightMatches(box, query);
     }
+
     if (atEnd) {
         box.scrollTop = box.scrollHeight;
     }
@@ -99,11 +103,13 @@ function scrollLogToBottom() {
 function highlightMatches(box, query) {
     const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
     const nodes  = [];
+
     while (walker.nextNode()) {
         if (walker.currentNode.nodeValue.toLowerCase().includes(query)) {
             nodes.push(/** @type {Text} */ (walker.currentNode));
         }
     }
+
     for (const node of nodes) {
         const text  = node.nodeValue;
         const lower = text.toLowerCase();
@@ -116,9 +122,11 @@ function highlightMatches(box, query) {
             parts.append(mark);
             from = at + query.length;
         }
+
         parts.append(text.slice(from));
         node.replaceWith(parts);
     }
+
     for (const mark of box.querySelectorAll("details mark")) {
         mark.closest("details").open = true;
     }
@@ -172,6 +180,7 @@ function renderLogMeta() {
         box.textContent = "";
         return;
     }
+
     box.innerHTML = `
         ${shown.file ? `<code>${esc(shown.file)}</code>` : "<span>No log file yet.</span>"}
         <i class="sep">·</i>
@@ -208,6 +217,7 @@ async function clearLog(name, button) {
     if (!sure) {
         return;
     }
+
     await act({ action : "clear-log", name }, button);
     logKey = "";
     loadLog(true);
@@ -300,6 +310,7 @@ function parseLogLine(name, line) {
             source,
             client : client ? client.replace(/:\d+$/, "") : "",
         }, levelOf(level));
+
         const referer = rest.match(/^(.*), referer: (\S+)$/);
         entry.message = referer ? referer[1] : rest;
         entry.referer = referer ? referer[2] : "";
@@ -331,10 +342,12 @@ function parseLogLine(name, line) {
             time,
             message,
         }, levelOf(level));
+
         if (/fail|error|abort|can't/i.test(message)) {
             Object.assign(entry, levelOf("error"));
         }
     }
+
     return entry;
 }
 
@@ -382,6 +395,7 @@ function readPhpError(entry) {
  */
 function collapseRepeats(entries) {
     const result = [];
+
     for (const entry of entries) {
         const previous = result.at(-1);
         if (previous
@@ -393,8 +407,10 @@ function collapseRepeats(entries) {
             previous.time  = entry.time;
             continue;
         }
+
         result.push(entry);
     }
+
     return result;
 }
 
@@ -413,10 +429,12 @@ function renderLogEntries(entries) {
             day     : "numeric",
             year    : "numeric",
         }) : "";
+
         if (today && today !== day) {
             divider = `<div class="log-day"><span>${esc(today)}</span></div>`;
             day = today;
         }
+
         return divider + renderLogEntry(entry, index);
     }).join("");
 }
@@ -436,6 +454,7 @@ function renderRequest(entry) {
         ms !== null ? `<span class="${ms >= 1000 ? "slow" : ms >= 300 ? "slowish" : ""}">${ms
             >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`}</span>` : "",
     ].filter(Boolean).join(`<i class="sep">·</i>`);
+
     return `
         <div class="entry request tone-${entry.tone}">
             ${copyButton(entry)}
@@ -483,6 +502,7 @@ async function copyLogEntry(button) {
         toast("Could not copy", true);
         return;
     }
+
     button.classList.add("done");
     button.querySelector("svg").innerHTML = COPY_ICONS.done;
     clearTimeout(Number(button.dataset.timer));
@@ -508,6 +528,7 @@ function renderLogEntry(entry, index) {
         return `<div class="entry plain">${copyButton(entry)}<div class="entry-body"><div
             class="msg">${formatLogText(entry.message)}</div></div></div>`;
     }
+
     const meta = [
         entry.location ? `<span class="where">${formatLogText(entry.location)}</span>` : "",
         entry.client   ? `<span>from ${esc(entry.client)}</span>` : "",

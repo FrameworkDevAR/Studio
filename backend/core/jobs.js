@@ -52,27 +52,33 @@ function runJob(queue, steps, { runStep, after = async () => {}, done }) {
         message : "",
     };
     jobs.set(job.id, job);
+
     // The last few are kept, for a page that asks after they finished.
     for (const id of [ ...jobs.keys() ].slice(0, -20)) {
         jobs.delete(id);
     }
+
     const last = queues.get(queue) || Promise.resolve();
     queues.set(queue, last.then(async () => {
         job.state = "running";
+
         for (const [ index, step ] of steps.entries()) {
             const item = job.items[index];
             item.state = "running";
             item.error = await runStep(step).catch((error) => error.message || "failed");
             item.state = item.error ? "failed" : "done";
         }
+
         const worked = job.items.filter((item) => item.state === "done").map((item) => item.name);
         const failed = job.items.filter((item) => item.state === "failed");
         let   note   = "";
+
         try {
             note = (await after(worked)) || "";
         } catch (error) {
             note = error.message;
         }
+
         job.state   = failed.length ? "failed" : "done";
         job.message = [
             worked.length ? done(worked) : "",
@@ -82,6 +88,7 @@ function runJob(queue, steps, { runStep, after = async () => {}, done }) {
             note,
         ].filter(Boolean).join(". ");
     }));
+
     return { job : job.id };
 }
 
@@ -124,10 +131,12 @@ function spawnLines(command, args, {
             rest = lines.pop();
             lines.filter((line) => line.trim()).forEach(onLine);
         };
+
         child.stdout.on("data", take);
         child.stderr.on("data", take);
         child.stdin.on("error", () => {});
         child.stdin.end(input);
+
         child.on("error", (error) => onLine(error.message));
         child.on("close", (code) => {
             clearTimeout(timer);

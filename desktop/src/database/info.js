@@ -29,6 +29,7 @@ async function loadInfo() {
         box.innerHTML = `<div class="pkg-none">This database has no tables yet.</div>`;
         return;
     }
+
     let structure, engines, charsets;
     try {
         [ structure, engines, charsets ] = await Promise.all([
@@ -41,11 +42,13 @@ async function loadInfo() {
         box.innerHTML = `<div class="pkg-none">${esc(error.message)}</div>`;
         return;
     }
+
     // Only the last table asked for shows, when several were gone through quickly.
     const table = browse.tables.find((one) => one.name === structure.table);
     if (structure.table !== browse.table || !table) {
         return;
     }
+
     browse.structure = structure;
     const charset = table.collation.split("_")[0];
     const when    = (text) => text
@@ -60,6 +63,7 @@ async function loadInfo() {
         ? engines
         : [ { name : table.engine, comment : "" }, ...engines ];
     const view    = table.view;
+
     box.innerHTML = `
         <div class="panel-head">
             <h2>${esc(table.name)} <span class="muted">· ${view ? "view" : "table"}</span></h2>
@@ -133,9 +137,11 @@ async function loadInfo() {
             </dl>
         </form>
     `;
+
     if (!view) {
         setUpInfoForm(table, charset);
     }
+
     watchFades(/** @type {HTMLElement} */ (box.querySelector(".info-create pre")));
 }
 
@@ -160,12 +166,15 @@ function setUpInfoForm(table, charset) {
         const pick = one.collations.includes(wanted)
             ? wanted
             : one.collations.find((name) => name === `${one.name}_${kind}`) || one.collation;
+
         sort.innerHTML = one.collations
             .map((name) => `<option ${name === pick ? "selected" : ""}>${esc(name)}</option>`)
             .join("");
     };
+
     fill(table.collation);
     infoStart = infoValues();
+
     set.addEventListener("change", () => fill(sort.value));
     form.addEventListener("input", infoChanged);
     form.addEventListener("change", infoChanged);
@@ -195,6 +204,7 @@ function infoValues() {
 function infoChanges() {
     const now     = infoValues();
     const changes = {};
+
     if (now.engine !== infoStart.engine) {
         changes.engine = now.engine;
     }
@@ -208,6 +218,7 @@ function infoChanges() {
     if (now.next !== infoStart.next && now.next !== "") {
         changes.next = now.next;
     }
+
     return changes;
 }
 
@@ -235,9 +246,11 @@ async function saveInfo() {
         && /** @type {HTMLInputElement} */ (
             document.querySelector("#info-form [name=convert]")
         ).checked;
+
     button.disabled    = true;
     status.className   = "editor-status";
     status.textContent = changes.engine || convert ? "Rewriting the table…" : "Saving…";
+
     try {
         const result = await api("/api/action", {
             action : "db-table-change",
@@ -264,12 +277,14 @@ async function saveInfo() {
  */
 async function resetNext(button) {
     button.disabled = true;
+
     try {
         const { next } = await api("/api/action", {
             action : "db-next-id",
             db     : browse.db,
             table  : browse.table,
         });
+
         const field    = /** @type {HTMLInputElement} */ (
             document.querySelector("#info-form [name=next]")
         );
@@ -278,6 +293,7 @@ async function resetNext(button) {
     } catch (error) {
         toast(error.message, true);
     }
+
     button.disabled = false;
 }
 

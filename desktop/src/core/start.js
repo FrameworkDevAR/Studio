@@ -52,10 +52,12 @@ document.addEventListener("pointerdown", (event) => {
     if (!target.closest(".browse")) {
         return;
     }
+
     const row  = /** @type {HTMLElement} */ (
         target.closest(".browse-main .data-grid[id] tbody tr[data-key]")
     );
     const grid = target.closest(".browse-main .grid-scroll")?.querySelector(".data-grid[id]");
+
     // A right click, or a Control click on a Mac, is the menu's: a row of the ones marked keeps
     // them, for it to act on all.
     const menuClick = event.button !== 0 || IS_MAC && event.ctrlKey;
@@ -67,6 +69,7 @@ document.addEventListener("pointerdown", (event) => {
                 : event.shiftKey ? "range"
                     : "");
     }
+
     focusKeys(target.closest(".browse-aside") ? "list" : grid ? grid.id : "");
 });
 // Tabbing into the list's filter gives the list the keys, and into another field, takes them.
@@ -132,6 +135,7 @@ document.getElementById("rows-grid").addEventListener("dblclick", (event) => {
     if (target.closest("input, button")) {
         return;
     }
+
     if (cell && rowsKeyed()) {
         // A cell changes where it is, as in Sequel Ace; its text isn't left picked by the double
         // click.
@@ -150,11 +154,14 @@ document.getElementById("rows-grid").addEventListener("contextmenu", (event) => 
     if (!row || target.closest("input")) {
         return;
     }
+
     event.preventDefault();
+
     // A row of the ones marked keeps them, for the menu to act on all.
     if (!row.classList.contains("selected")) {
         pickRow(row);
     }
+
     focusKeys("rows-grid");
     const picked = pickedRows();
     openRowMenu(
@@ -188,6 +195,7 @@ document.addEventListener("keydown", (event) => {
         || target.matches("input, textarea, select, [contenteditable]")) {
         return;
     }
+
     if (command && event.key === "a") {
         event.preventDefault();
         pickAllRows();
@@ -209,11 +217,14 @@ document.getElementById("overview-grid").addEventListener("contextmenu", (event)
     if (!row) {
         return;
     }
+
     event.preventDefault();
+
     // A table of the ones marked keeps them, for the menu to act on all.
     if (!row.classList.contains("selected")) {
         pickRow(row);
     }
+
     focusKeys("overview-grid");
     const picked = pickedTables();
     openTableMenu(
@@ -230,6 +241,7 @@ document.getElementById("browse-tables").addEventListener("contextmenu", (event)
     if (!link) {
         return;
     }
+
     event.preventDefault();
     openTableMenu(link.dataset.table, event.clientX, event.clientY);
 });
@@ -244,6 +256,7 @@ document.getElementById("browse-structure").addEventListener("dblclick", (event)
     if (!row || structureIsView() || target.closest("input, select")) {
         return;
     }
+
     getSelection().removeAllRanges();
     editColumnCell(/** @type {HTMLElement} */ (target.closest("td")));
 });
@@ -255,6 +268,7 @@ document.getElementById("browse-structure").addEventListener("contextmenu", (eve
     if (!row || structureIsView() || target.closest("input, select")) {
         return;
     }
+
     event.preventDefault();
     pickRow(row);
     focusKeys("structure-grid");
@@ -276,6 +290,7 @@ structureBox.addEventListener("dragstart", (event) => {
     if (!row) {
         return;
     }
+
     columnDrag = row.dataset.key;
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", columnDrag);
@@ -288,8 +303,10 @@ structureBox.addEventListener("dragover", (event) => {
     if (!row || !columnDrag) {
         return;
     }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
+
     const box   = row.getBoundingClientRect();
     const below = event.clientY > box.top + box.height / 2;
     if (!row.classList.contains(below ? "drop-below" : "drop-above")) {
@@ -304,6 +321,7 @@ structureBox.addEventListener("drop", (event) => {
     if (!row || !columnDrag) {
         return;
     }
+
     event.preventDefault();
     dropColumnAt(row, row.classList.contains("drop-below"));
     clearDrop();
@@ -321,10 +339,12 @@ document.addEventListener("scroll", () => {
 // leaving the box.
 document.getElementById("sql-text").addEventListener("keydown", (event) => {
     const text = /** @type {HTMLTextAreaElement} */ (event.target);
+
     // The autocomplete's keys first, while its list shows.
     if (completionKeys(event)) {
         return;
     }
+
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
         // With ⇧, only the statement the cursor is in.
         event.preventDefault();

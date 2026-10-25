@@ -11,6 +11,7 @@ function renderModules() {
     if (!state) {
         return;
     }
+
     const search  = /** @type {HTMLInputElement} */ (document.getElementById("module-search"))
         .value.trim().toLowerCase();
     const modules = state.modules.filter((module) =>
@@ -21,6 +22,7 @@ function renderModules() {
     document.getElementById("apache-version").textContent = state.apache.version || "";
     document.getElementById("module-count").textContent   = `${on} of ${state.modules.length} on`;
     document.getElementById("tab-modules-count").textContent = String(on);
+
     renderConfigs();
     document.getElementById("modules").innerHTML = modules.map((module) => `
         <div class="module ${module.enabled ? "" : "off"}">
@@ -46,8 +48,10 @@ function renderModules() {
 function renderConfigs() {
     const { includes } = state;
     const on = includes.filter((one) => one.enabled).length;
+
     document.getElementById("config-count").textContent     = `${on} of ${includes.length} on`;
     document.getElementById("tab-configs-count").textContent = String(on);
+
     document.getElementById("apache-configs").innerHTML = includes.map((one) => `
         <div class="config-row ${one.enabled ? "" : "off"}">
             <label class="switch" title="${one.enabled ? "Turn off" : "Turn on"}">
@@ -79,6 +83,7 @@ async function toggleInclude(event, input) {
     const enabled = input.checked;
     if (!enabled && input.dataset.include === state.files.vhosts) {
         event.preventDefault();
+
         if (!await ask({
             title  : "Turn off the vhosts?",
             text   : "Every site in them stops answering by its name.",
@@ -87,8 +92,10 @@ async function toggleInclude(event, input) {
         })) {
             return;
         }
+
         input.checked = false;
     }
+
     act({ action : "apache-include", file : input.dataset.include, enabled }, input);
 }
 
@@ -103,6 +110,7 @@ async function toggleModule(event, input) {
     const enabled = input.checked;
     if (!enabled && input.dataset.used === "true") {
         event.preventDefault();
+
         const sure = await ask({
             title  : `Turn off ${input.dataset.module}?`,
             text   : "Apache's config or your sites use it. " +
@@ -113,7 +121,9 @@ async function toggleModule(event, input) {
         if (!sure) {
             return;
         }
+
         input.checked = false;
     }
+
     act({ action : "module", name : input.dataset.module, enabled }, input);
 }

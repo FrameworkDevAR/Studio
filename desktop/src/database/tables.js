@@ -23,8 +23,10 @@ let tableMenuNames = [];
 function openTableMenu(name, x, y, names = [ name ]) {
     const table = browse.tables.find((one) => one.name === name);
     const here  = name === browse.table ? browse.tab : "";
+
     tableMenu      = name;
     tableMenuNames = names.length ? names : [ name ];
+
     const menu  = document.getElementById("row-menu");
     const views = tableMenuNames.every(
         (one) => browse.tables.find((item) => item.name === one)?.view,
@@ -38,6 +40,7 @@ function openTableMenu(name, x, y, names = [ name ]) {
         <button role="menuitem" data-table-act="check">Check</button>
         <button role="menuitem" data-table-act="repair" ${views ? "disabled" : ""}>Repair</button>
     `;
+
     if (tableMenuNames.length > 1) {
         const count = tableMenuNames.length;
         menu.innerHTML = `
@@ -48,6 +51,7 @@ function openTableMenu(name, x, y, names = [ name ]) {
         showMenuAt(menu, x, y);
         return;
     }
+
     menu.innerHTML = `
         ${here === "rows" ? "" : `<button role="menuitem" data-table-act="rows">Open Rows</button>`}
         ${here === "structure" ? ""
@@ -93,8 +97,10 @@ function toggleTableMenu(button) {
         closeMenus();
         return;
     }
+
     const box = button.getBoundingClientRect();
     openTableMenu(browse.table, box.left, box.bottom + 6);
+
     // Kept inside the window: under the button, to its right edge when it would run out.
     menu.style.left = `${Math.max(
         8,
@@ -111,6 +117,7 @@ function toggleTableMenu(button) {
 async function tableAction(act) {
     const name  = tableMenu;
     const names = tableMenuNames;
+
     if ([ "optimize", "analyze", "check", "repair" ].includes(act)) {
         return maintainTables(act, names);
     }
@@ -138,6 +145,7 @@ async function tableAction(act) {
     if (act === "drop") {
         return dropTable(name);
     }
+
     let text = names.join("\n");
     if (act === "create") {
         try {
@@ -149,6 +157,7 @@ async function tableAction(act) {
             return;
         }
     }
+
     await navigator.clipboard.writeText(text);
     toast("Copied");
 }
@@ -176,8 +185,10 @@ async function maintainTables(op, names) {
         ok     : "Done",
         closeX : true,
     });
+
     const okBtn = /** @type {HTMLButtonElement} */ (document.getElementById("ask-ok"));
     okBtn.disabled = true;
+
     let answer;
     try {
         answer = await api("/api/action", {
@@ -193,12 +204,14 @@ async function maintainTables(op, names) {
         okBtn.disabled = false;
         return;
     }
+
     const time  = answer.time < 1000 ? `${answer.time} ms`
         : `${(answer.time / 1000).toFixed(1)} s`;
     const worst = (said) => (said.some((one) => one.type === "error") ? "bad"
         : said.some((one) => one.type === "warning") ? "warn"
             : "ok");
     const fine  = answer.results.filter((one) => worst(one.said) === "ok").length;
+
     document.getElementById("ask-title").textContent = `${doing.replace(/ing$/, "ed")} ${what}`;
     document.getElementById("ask-text").textContent  = `${fine} of ${
         countOf(answer.results.length, "table")
@@ -213,6 +226,7 @@ async function maintainTables(op, names) {
             </div>
         `).join("")}</div>
     `;
+
     okBtn.disabled = false;
     loadTables();
     await shown;
@@ -226,13 +240,16 @@ async function maintainTables(op, names) {
  */
 async function openTableDialog() {
     let charsets, engines;
+
     try {
         [ charsets, engines ] = await Promise.all([ loadCharsets(), loadEngines() ]);
     } catch (error) {
         toast(error.message, true);
         return;
     }
+
     const collation = state?.databases.list.find((one) => one.name === browse.db)?.collation || "";
+
     formDialog({
         title  : `New table in ${browse.db}`,
         body   : `
@@ -281,18 +298,22 @@ async function openTableDialog() {
             const type = /** @type {HTMLSelectElement} */ (form.elements.namedItem("type"));
             const keyed = /** @type {HTMLInputElement} */ (form.elements.namedItem("primary"));
             const count = /** @type {HTMLInputElement} */ (form.elements.namedItem("increment"));
+
             // Auto increment needs the key; unsigned and auto increment, a number.
             const update = () => {
                 const hint = TYPE_LENGTHS[type.value];
                 size.disabled    = !hint;
                 size.placeholder = hint ? hint[0] : "None for this type";
+
                 for (const box of /** @type {NodeListOf<HTMLElement>} */ (
                     fields.querySelectorAll("[data-table-number]")
                 )) {
                     box.hidden = !NUMBER_TYPE.test(type.value);
                 }
+
                 count.disabled = !keyed.checked;
             };
+
             form.addEventListener("input", update);
             type.addEventListener("change", () => {
                 size.value = TYPE_LENGTHS[type.value]?.[1] || "";
@@ -325,6 +346,7 @@ async function openTableDialog() {
                     increment : number && primary && data.get("increment") === "on",
                 },
             });
+
             await loadTables();
             navigate(browsePath("structure", result.table));
             return result;
@@ -340,6 +362,7 @@ async function openTableDialog() {
  */
 function openTableNameDialog(name, copy) {
     const view = browse.tables.find((one) => one.name === name)?.view;
+
     formDialog({
         title  : copy ? `Duplicate ${name}` : `Rename ${name}`,
         text   : copy && !view
@@ -365,10 +388,12 @@ function openTableNameDialog(name, copy) {
                 name   : String(data.get("name")),
                 data   : data.get("data") === "on",
             });
+
             marked["overview-grid"] = {
                 key     : result.table,
                 context : gridContext("overview-grid"),
             };
+
             await tableGone(copy ? null : name, result.table);
             return result;
         },
@@ -393,6 +418,7 @@ async function emptyTable(name) {
     if (!sure) {
         return;
     }
+
     try {
         toast((await api("/api/action", {
             action : "db-table-empty",
@@ -403,7 +429,9 @@ async function emptyTable(name) {
         toast(error.message, true);
         return;
     }
+
     await loadTables();
+
     if (browse.table === name && browse.tab === "rows") {
         loadRows();
     }
@@ -426,6 +454,7 @@ async function dropTable(name) {
     if (!sure) {
         return;
     }
+
     try {
         toast((await api("/api/action", {
             action : "db-table-drop",
@@ -436,6 +465,7 @@ async function dropTable(name) {
         toast(error.message, true);
         return;
     }
+
     await tableGone(name, null);
 }
 
@@ -454,7 +484,9 @@ async function tableGone(old, name) {
         browse.structure = null;
         browse.rows      = null;
     }
+
     await loadTables();
+
     if (open && [ "structure", "rows", "info" ].includes(browse.tab)) {
         if (name) {
             history.replaceState(null, "", browsePath(browse.tab, name));
@@ -482,8 +514,10 @@ function toggleDbSwitch() {
         closeMenus();
         return;
     }
+
     closeMenus(menu);
     menu.hidden = false;
+
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("db-switch-filter"));
     filter.value = "";
     renderDbSwitch();
@@ -511,6 +545,7 @@ function renderDbSwitch(at = null) {
     switchAt   = at ?? Math.max(0, list.findIndex((one) => one.name === browse.db));
     switchAt   = Math.min(switchAt, list.length - 1);
     const box  = document.getElementById("db-switch-list");
+
     box.innerHTML = list.map((one, place) => `
         <button type="button" role="option" data-db-go="${esc(one.name)}"
             class="${place === switchAt ? "active" : ""} ${one.name === browse.db ? "current"

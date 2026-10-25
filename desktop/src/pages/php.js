@@ -9,10 +9,12 @@
  */
 function renderPhp() {
     const { php } = state;
+
     document.getElementById("php-version").textContent = php.version || "";
     document.getElementById("tab-overrides-count").textContent = String(
         php.settings.filter((setting) => setting.inFile).length + php.overrides.length,
     );
+
     renderPhpText();
     renderPhpProblems();
     renderSettings();
@@ -59,12 +61,14 @@ function renderPhpProblems() {
                 }</button>` : ""}
         </div>
     `);
+
     // Each failed extension also has a warning, said already by its line.
     const names    = php.missing.map((ext) => ext.name);
     const problems = php.problems
         .filter((line) => !names.some((name) => line.includes(`'${name}`)
             || line.includes(`${name}.so`)))
         .map((line) => `<div class="problem-line"><span>${esc(line)}</span></div>`);
+
     box.hidden    = !missing.length && !problems.length;
     box.innerHTML = box.hidden ? ""
         : `<b>PHP has something to say as it starts</b>${[ ...missing, ...problems ].join("")}`;
@@ -94,6 +98,7 @@ function renderExtensions() {
     const added   = php.extensions.filter((ext) => ext.added);
     const builtIn = php.extensions.filter((ext) => !ext.added);
     const behind  = added.filter((ext) => ext.latest).length;
+
     document.getElementById("ext-count").textContent       = String(php.extensions.length);
     document.getElementById("ext-panel-count").textContent = String(php.extensions.length);
     document.getElementById("pecl-outdated").innerHTML = !added.some((ext) => ext.pecl)
@@ -104,6 +109,7 @@ function renderExtensions() {
                 ? `<b>${behind} outdated</b> <button data-pecl-update-all>${isUpdating("pecl")
                     ? "Updating…" : "Update extensions"}</button>`
                 : "All up to date";
+
     // The ones being installed, from the dialog, open or closed, until PHP
     // loads them, in their places among the others.
     const names    = new Set(php.extensions.map((ext) => ext.name.toLowerCase()));
@@ -118,6 +124,7 @@ function renderExtensions() {
         .filter(matches)
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity : "base" }));
     const others   = builtIn.filter(matches);
+
     document.getElementById("php-extensions").innerHTML = !rows.length && !others.length
         ? `<div class="pkg-none">No extensions match “${esc(filter)}”.</div>`
         : [
@@ -155,9 +162,11 @@ function extensionButtons(ext) {
     if (!ext.pecl) {
         return "";
     }
+
     const id       = ext.name.toLowerCase();
     const busy     = updating.has(`pecl:${id}`);
     const removing = updating.has(`pecl-remove:${id}`);
+
     return `
         ${ext.latest ? `
             <button class="icon-btn update ${busy ? "busy" : ""}" title="Update to the newest"
@@ -189,8 +198,10 @@ async function uninstallExtension(name) {
     })) {
         return;
     }
+
     updating.add(`pecl-remove:${name}`);
     renderPhp();
+
     try {
         await followJob({ action : "pecl-remove", name });
     } finally {
@@ -207,6 +218,7 @@ async function uninstallExtension(name) {
 async function rebuildExtension(name) {
     updating.add(`pecl:${name}`);
     renderPhp();
+
     try {
         await followJob({ action : "pecl-rebuild", name });
     } finally {
@@ -242,15 +254,18 @@ function searchPecl(now = false) {
     const text = /** @type {HTMLInputElement} */ (document.querySelector("#pecl-search input"))
         .value.trim();
     clearTimeout(peclSearchTimer);
+
     if (text.length < 2) {
         peclAsked = text;
         peclFound = [];
         renderPeclList();
         return;
     }
+
     peclSearchTimer = setTimeout(async () => {
         peclAsked = text;
         renderPeclList(true);
+
         try {
             const list = await api(`/api/pecl-search?q=${encodeURIComponent(text)}`);
             if (peclAsked === text) {
@@ -276,6 +291,7 @@ function searchPecl(now = false) {
  */
 function renderPeclList(loading = false, failed = "") {
     const box = document.getElementById("pecl-list");
+
     if (failed || loading || !peclFound.length) {
         const text = failed || (loading ? "Searching…"
             : peclAsked.length >= 2 ? `No extensions match “${esc(peclAsked)}”.`
@@ -284,6 +300,7 @@ function renderPeclList(loading = false, failed = "") {
         box.innerHTML = `<div class="npm-empty">${text}</div>`;
         return;
     }
+
     const minor = (state.php.version || "").split(".").slice(0, 2).join(".");
     box.innerHTML = peclFound.map((ext) => {
         const years = ext.date ? (Date.now() - Date.parse(ext.date)) / (365 * 86_400_000) : 0;
@@ -335,9 +352,11 @@ function peclActions(ext) {
         return `<div class="npm-actions"><span class="npm-here">${mine.added
             ? "Added by hand, not with pecl" : "Part of PHP already"}</span></div>`;
     }
+
     const newer    = ext.version && isNewer(ext.version, mine.version);
     const busy     = updating.has(`pecl:${id}`);
     const removing = updating.has(`pecl-remove:${id}`);
+
     return `
         <div class="npm-actions">
             <span class="npm-here">Installed <b>${esc(mine.version)}</b>${newer
@@ -366,9 +385,11 @@ async function installPecl(name) {
     if (updating.has(`pecl-install:${id}`)) {
         return;
     }
+
     updating.add(`pecl-install:${id}`);
     renderPeclList();
     renderExtensions();
+
     try {
         await followJob({
             action : "pecl-install",

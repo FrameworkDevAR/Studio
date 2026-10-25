@@ -31,16 +31,19 @@ async function readPecl() {
     if (Date.now() - peclCache.at < 60_000) {
         return peclCache.packages;
     }
+
     const result   = fs.existsSync(PECL) ? await run(PECL, [ "list", "-c", "pecl" ], 20_000)
         : { stdout : "" };
     /** @type {Object<string, string>} */
     const packages = {};
+
     for (const line of result.stdout.split("\n")) {
         const found = line.match(/^(\S+)\s+(\d\S*)\s+(stable|beta|alpha|devel|snapshot)\s*$/);
         if (found) {
             packages[found[1].toLowerCase()] = found[2];
         }
     }
+
     peclCache = { at : Date.now(), packages };
     return packages;
 }
@@ -59,8 +62,10 @@ function checkUpgrades() {
     if (!fs.existsSync(PECL) || upgrades.busy || Date.now() - upgrades.at < 60 * 60_000) {
         return;
     }
+
     upgrades.busy = true;
     const round   = upgrades.round;
+
     run(PECL, [ "list-upgrades", "-c", "pecl" ], 60_000).then((result) => {
         if (round === upgrades.round && !/Could not|failed/i.test(result.stdout)) {
             // A line for each: the name, the version here, the newest.
@@ -71,8 +76,10 @@ function checkUpgrades() {
                     upgrades.packages[found[1].toLowerCase()] = found[3];
                 }
             }
+
             upgrades.at = Date.now();
         }
+
         upgrades.busy = false;
     });
 }
@@ -93,6 +100,7 @@ function installExtension(spec) {
     if (!EXTENSION_SPEC.test(wanted)) {
         throw new Error("Not an extension name");
     }
+
     return runPecl(
         [ { name : wanted.replace(/-\d.*/, ""), args : [ "install", wanted ] } ],
         (worked) => `${worked[0]} installed`,
@@ -110,6 +118,7 @@ async function updateExtensions(names) {
     if (!chosen.length || chosen.some((name) => !(name in pecl))) {
         throw new Error("Nothing to update");
     }
+
     return runPecl(chosen.map((name) => ({ name, args : [ "upgrade", name ] })), (worked) => {
         worked.forEach((name) => delete upgrades.packages[name]);
         return worked.length === 1 ? `${worked[0]} updated` : `${worked.length} extensions updated`;
@@ -127,6 +136,7 @@ function reinstallExtension(name) {
     if (!EXTENSION_SPEC.test(wanted)) {
         throw new Error("Not an extension name");
     }
+
     return runPecl(
         [ { name : wanted, args : [ "install", "-f", wanted ] } ],
         (worked) => `${worked[0]} built again`,
@@ -144,6 +154,7 @@ async function uninstallExtension(name) {
     if (!(wanted in pecl)) {
         throw new Error("Only an extension pecl installed can be removed");
     }
+
     return runPecl([ { name : wanted, args : [ "uninstall", wanted ] } ], (worked) => {
         delete upgrades.packages[wanted];
         return `${worked[0]} removed`;
@@ -174,6 +185,7 @@ function runPecl(steps, done) {
                 timeout : 15 * 60_000,
                 onLine  : (line) => lines.push(line),
             });
+
             const ok = lines.some((line) => /^(install|upgrade|uninstall) ok:/.test(line))
                 || (step.args[0] === "upgrade" && lines.some(
                     (line) => /is already installed and is (the same as|newer than)/.test(line),
@@ -187,6 +199,7 @@ function runPecl(steps, done) {
             peclCache.at = 0;
             upgrades.at  = 0;
             upgrades.round++;
+
             if (worked.length) {
                 await syncExtensionLines();
                 await reloadApache();
@@ -220,6 +233,7 @@ async function syncExtensionLines() {
     if (!mainIni || !fs.existsSync(mainIni)) {
         return;
     }
+
     const pecl    = await readPecl();
     const lines   = extensionLines(mainIni);
     let   content = readFile(mainIni);
@@ -231,6 +245,7 @@ async function syncExtensionLines() {
         && !fs.existsSync(path.join(extDir, `${one.name}.so`)))) {
         content = content.split("\n").filter((text) => text !== line.text).join("\n");
     }
+
     // Lines for extensions that have none.
     const named   = new Set(lines.map((line) => line.name));
     const missing = Object.keys(pecl)
@@ -241,6 +256,7 @@ async function syncExtensionLines() {
             .map((name) => `${zend.has(name) ? "zend_extension" : "extension"}="${name}.so"`)
             .join("\n") + `\n${content}`;
     }
+
     if (content !== before) {
         fs.copyFileSync(mainIni, `${mainIni}.bak`);
         fs.writeFileSync(mainIni, content);
@@ -260,6 +276,7 @@ function extensionLines(mainIni) {
         ...filesIn(path.dirname(phpIniFile()), "").filter((file) => file.endsWith(".ini")),
     ];
     const found   = [];
+
     for (const file of files) {
         for (const text of readFile(file).split("\n")) {
             const match = text.match(/^\s*(zend_)?extension\s*=\s*"?([^";\s]+)"?/);
@@ -273,6 +290,7 @@ function extensionLines(mainIni) {
             }
         }
     }
+
     return found;
 }
 
@@ -295,6 +313,7 @@ async function searchExtensions(text) {
     if (query.length < 2) {
         return [];
     }
+
     if (Date.now() - peclNames.at > 24 * 60 * 60_000) {
         const xml = await peclRest("p/packages.xml");
         peclNames = {
@@ -302,11 +321,13 @@ async function searchExtensions(text) {
             list : [ ...xml.matchAll(/<p>([^<]+)<\/p>/g) ].map((match) => match[1]),
         };
     }
+
     const rank  = (name) => (name === query ? 0 : name.startsWith(query) ? 1 : 2);
     const names = peclNames.list
         .filter((name) => name.toLowerCase().includes(query))
         .sort((a, b) => rank(a.toLowerCase()) - rank(b.toLowerCase()) || a.localeCompare(b))
         .slice(0, 10);
+
     return Promise.all(names.map(releaseOf));
 }
 
@@ -330,6 +351,7 @@ async function releaseOf(name) {
     if (kept && Date.now() - kept.at < 10 * 60_000) {
         return kept.info;
     }
+
     const stable  = await peclRest(`r/${id}/stable.txt`).catch(() => "");
     const version = stable.trim() || (await peclRest(`r/${id}/latest.txt`).catch(() => "")).trim();
     const xml     = version ? await peclRest(`r/${id}/${version}.xml`).catch(() => "") : "";
@@ -343,6 +365,7 @@ async function releaseOf(name) {
         license : tag("l"),
         date    : tag("da").replace(" ", "T"),
     };
+
     releases.set(id, { at : Date.now(), info });
     return info;
 }

@@ -52,6 +52,7 @@ function paintJson(text) {
             result += `<span class="code-mark">${part}</span>`;
         }
     }
+
     return result + escapeCode(text.slice(last));
 }
 
@@ -71,16 +72,19 @@ function paintIni(text) {
         if (/^\s*\[.*\]\s*$/.test(line) || /^\s*!include/.test(line)) {
             return `<span class="code-word">${escapeCode(line)}</span>`;
         }
+
         const found = line.match(/^(\s*)([^=;\s][^=;]*?)(\s*=\s*)([^;]*?)(\s*;.*)?$/);
         if (!found) {
             return escapeCode(line);
         }
+
         const [ , lead, key, equals, value, comment = "" ] = found;
         const kind = /^".*"?$/.test(value) ? "code-string"
             : /^-?\d+[KMGkmg]?$/.test(value) ? "code-number"
             : /^(On|Off|True|False|Yes|No|None|Null)$/i.test(value)
                 || /^[~(!]*E_[A-Z_]+/.test(value) ? "code-word"
             : "";
+
         return `${lead}<span class="code-key">${escapeCode(key)}</span><span
             class="code-mark">${escapeCode(equals)}</span>`
             + `${kind ? `<span class="${kind}">${escapeCode(value)}</span>` : escapeCode(value)}`
@@ -109,10 +113,12 @@ function paintApache(text) {
             }
             return escapeCode(part);
         });
+
     return text.split("\n").map((line) => {
         if (/^\s*#/.test(line)) {
             return `<span class="code-mark">${escapeCode(line)}</span>`;
         }
+
         const section = line.match(/^(\s*)(<\/?)([\w.:-]+)([^>]*)(>?)(.*)$/);
         if (section) {
             const [ , lead, open, name, args, close, rest ] = section;
@@ -121,10 +127,12 @@ function paintApache(text) {
                 + `${paintArgs(args)}<span
                     class="code-mark">${escapeCode(close)}</span>${escapeCode(rest)}`;
         }
+
         const directive = line.match(/^(\s*)([A-Za-z]\w*)(\s*)(.*)$/);
         if (!directive) {
             return escapeCode(line);
         }
+
         const [ , lead, name, gap, args ] = directive;
         return `${lead}<span class="code-key">${escapeCode(name)}</span>${gap}${paintArgs(args)}`;
     }).join("\n");
@@ -139,6 +147,7 @@ function paintApache(text) {
 function paintMarkup(text) {
     let result = "";
     let last   = 0;
+
     for (const match of text.matchAll(/<!--[\s\S]*?(?:-->|$)|<[/?!]?[A-Za-z][\w:.-]*[^<>]*>?/g)) {
         result += escapeCode(text.slice(last, match.index));
         last    = match.index + match[0].length;
@@ -148,16 +157,19 @@ function paintMarkup(text) {
             result += `<span class="code-mark">${escapeCode(part)}</span>`;
             continue;
         }
+
         const [ , open, name, rest ] = part.match(/^(<[/?!]?)([^\s<>/?]+)([\s\S]*)$/);
         const close = rest.match(/[/?]?>$/)?.[0] || "";
         const attrs = rest.slice(0, rest.length - close.length)
             .replace(/("[^"]*"?|'[^']*'?)|([^\s="']+)|[\s\S]/g, (all, quoted, word) => (quoted
                 ? `<span class="code-string">${escapeCode(all)}</span>`
                 : word ? `<span class="code-key">${escapeCode(all)}</span>` : escapeCode(all)));
+
         result += `<span class="code-mark">${escapeCode(open)}</span><span
             class="code-word">${escapeCode(name)}</span>${attrs}<span
             class="code-mark">${escapeCode(close)}</span>`;
     }
+
     return result + escapeCode(text.slice(last));
 }
 
@@ -183,6 +195,7 @@ function codeArea(box, paint, indent = "    ") {
             (_, index) => index + 1,
         ).join("\n");
     };
+
     // As typing would, so ⌘Z undoes it.
     const put = (value) => {
         if (!document.execCommand("insertText", false, value)) {
@@ -190,6 +203,7 @@ function codeArea(box, paint, indent = "    ") {
         }
         update();
     };
+
     text.addEventListener("input", update);
     text.addEventListener("scroll", () => {
         lines.scrollTop       = text.scrollTop;
@@ -206,5 +220,6 @@ function codeArea(box, paint, indent = "    ") {
             put(`\n${text.value.slice(start, text.selectionStart).match(/^[ \t]*/)[0]}`);
         }
     });
+
     update();
 }

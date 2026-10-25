@@ -24,6 +24,7 @@ function watchFades(box) {
         box.addEventListener("scroll", () => fadeEdges(box), { passive : true });
         fadeSizes.observe(box);
     }
+
     fadeEdges(box);
 }
 
@@ -35,15 +36,18 @@ function watchFades(box) {
 function fadeEdges(box) {
     const edge = (more) => (more ? "28px" : "0px");
     const head = box.querySelector("thead");
+
     box.style.setProperty("--fade-top", edge(!head && box.scrollTop > 1));
     const below = box.scrollTop + box.clientHeight < box.scrollHeight - 1;
     box.style.setProperty("--fade-bottom", edge(below));
+
     // The bottom fade ends above the totals, which stay whole at that edge.
     box.style.setProperty(
         "--fade-foot",
         `${below ? box.querySelector("tfoot")?.offsetHeight || 0 : 0}px`,
     );
     box.style.setProperty("--fade-floor", below ? "transparent" : "#000");
+
     box.style.setProperty("--fade-left", edge(box.scrollLeft > 1));
     const right = box.scrollLeft + box.clientWidth < box.scrollWidth - 1;
     box.style.setProperty("--fade-right", edge(right));
@@ -77,6 +81,7 @@ async function openRowDialog(index = null, copy = null) {
     const { structure } = browse.rows;
     const key = index === null ? null : rowKey(index);
     let values;
+
     try {
         values = key
             ? (await api("/api/action", {
@@ -86,6 +91,7 @@ async function openRowDialog(index = null, copy = null) {
                 key,
             })).row
             : structure.columns.map(() => "");
+
         if (copy !== null) {
             const row = (await api("/api/action", {
                 action : "db-row",
@@ -101,8 +107,10 @@ async function openRowDialog(index = null, copy = null) {
         toast(error.message, true);
         return;
     }
+
     const from = copy === null ? ""
         : Object.entries(rowKey(copy)).map(([ name, value ]) => `${name} ${value}`).join(" · ");
+
     formDialog({
         title  : key ? `Change the row of ${structure.table}`
             : copy !== null ? `Duplicate the row of ${structure.table}`
@@ -125,6 +133,7 @@ async function openRowDialog(index = null, copy = null) {
         }),
         submit : async (form) => {
             const changed = {};
+
             structure.columns.forEach((column, at) => {
                 const field = /** @type {HTMLInputElement} */ (form.querySelector(
                     `[data-column="${CSS.escape(column.name)}"]`,
@@ -135,14 +144,17 @@ async function openRowDialog(index = null, copy = null) {
                 if (!field || column.binary) {
                     return;
                 }
+
                 const value = none?.checked ? null : field.value;
                 if (key ? value !== values[at] : value !== "") {
                     changed[column.name] = value;
                 }
             });
+
             if (key && !Object.keys(changed).length) {
                 return { message : "Nothing changed" };
             }
+
             const result = await api("/api/action", {
                 action : "db-row-save",
                 db     : browse.db,
@@ -150,11 +162,14 @@ async function openRowDialog(index = null, copy = null) {
                 key,
                 values : changed,
             });
+
             loadRows();
+
             // The table's count, in the title and the list, with the row added.
             if (!key) {
                 loadTables();
             }
+
             return result;
         },
     });
@@ -180,6 +195,7 @@ function rowField(column, value, adding) {
     const choices = column.type.match(/^enum\((.*)\)$/)?.[1]
         .match(/'((?:[^']|'')*)'/g)
         ?.map((one) => one.slice(1, -1).replace(/''/g, "'"));
+
     if (column.binary) {
         field = `<input ${attrs} value="${esc(value ? `${value}, kept as it is` : "")}">`;
     } else if (choices) {
@@ -193,6 +209,7 @@ function rowField(column, value, adding) {
     } else {
         field = `<input ${attrs} value="${esc(text)}">`;
     }
+
     return `
         <div class="form-row row-field">
             <span>${name} <small class="col-type">${esc(column.type)}${
@@ -228,6 +245,7 @@ async function deleteRows(indexes) {
     if (!sure) {
         return false;
     }
+
     try {
         const body = keys.length === 1 ? { key : keys[0] } : { keys };
         toast((await api("/api/action", {
@@ -240,9 +258,11 @@ async function deleteRows(indexes) {
         toast(error.message, true);
         return false;
     }
+
     delete marked["rows-grid"];
     loadRows();
     loadTables();
+
     return true;
 }
 
@@ -271,6 +291,7 @@ function openRowMenu(indexes, at, x, y) {
     const column = structure.columns[at];
     const many   = indexes.length > 1 ? "s" : "";
     const menu   = document.getElementById("row-menu");
+
     rowMenu = { indexes, at };
     menu.innerHTML = `
         <button role="menuitem"
@@ -326,6 +347,7 @@ function showMenuAt(menu, x, y) {
  */
 async function rowAction(act) {
     const { indexes, at } = rowMenu;
+
     if (act === "edit") {
         return openRowDialog(indexes[0]);
     }
@@ -340,6 +362,7 @@ async function rowAction(act) {
     }
     if (act === "null") {
         const column = browse.rows.structure.columns[at];
+
         try {
             toast((await api("/api/action", {
                 action : "db-rows-set",
@@ -353,11 +376,14 @@ async function rowAction(act) {
             toast(error.message, true);
             return;
         }
+
         loadRows();
         return;
     }
+
     const { structure } = browse.rows;
     let rows = indexes.map((index) => browse.rows.rows[index]);
+
     // The rows whole, as the grid cuts long text and shows binary values by their size.
     if (rowsKeyed()) {
         try {
@@ -373,6 +399,7 @@ async function rowAction(act) {
             return;
         }
     }
+
     const columns = structure.columns.map((column, place) => ({ column, place }));
     const plain   = (column, value) => (value === null ? "NULL"
         : column.binary && rowsKeyed() ? `0x${value}`
@@ -394,6 +421,7 @@ async function rowAction(act) {
             list.map(({ column, place }) => sql(column, row[place])).join(", ")
         })`).join(",\n\t")
     };`;
+
     const text = {
         "copy"       : () => rows.map(line).join("\n"),
         "names"      : () => [
@@ -407,6 +435,7 @@ async function rowAction(act) {
         "value"      : () => rows.map((row) => plain(structure.columns[at], row[at])).join("\n"),
         "value-sql"  : () => rows.map((row) => sql(structure.columns[at], row[at])).join(", "),
     }[act]();
+
     await navigator.clipboard.writeText(text);
     toast(rows.length > 1 ? `Copied ${rows.length} rows` : "Copied");
 }
@@ -440,10 +469,12 @@ function editCell(td) {
     if (!rowsKeyed() || editing) {
         return;
     }
+
     const index  = Number(td.closest("tr").dataset.row);
     const at     = Number(td.dataset.at);
     const column = browse.rows.structure.columns[at];
     const value  = browse.rows.rows[index][at];
+
     if (column.binary) {
         openRowDialog(index);
         return;
@@ -452,19 +483,23 @@ function editCell(td) {
         editValue(index, at);
         return;
     }
+
     const input = document.createElement("input");
     input.className   = "cell-input";
     input.value       = value ?? "";
     input.placeholder = value === null ? "NULL" : "";
     input.spellcheck  = false;
+
     const edit = { index, at, old : value, input, done : false };
     editing = edit;
+
     // The cell's width less its padding while changed, so the column keeps its.
     input.style.width = `${td.clientWidth - 4}px`;
     td.classList.add("editing");
     td.replaceChildren(input);
     input.focus();
     input.select();
+
     input.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
@@ -484,6 +519,7 @@ function editCell(td) {
             saveCell(edit, () => cellBelow(index, at, event.key === "ArrowUp" ? -1 : 1));
         }
     });
+
     input.addEventListener("blur", () => saveCell(edit));
 }
 
@@ -498,10 +534,12 @@ async function saveCell(edit, then = null) {
     if (edit.done) {
         return;
     }
+
     edit.done = true;
     const text = edit.input.value;
     if (edit.old === null ? text !== "" : text !== edit.old) {
         edit.input.disabled = true;
+
         try {
             await saveValue(edit.index, edit.at, text);
         } catch (error) {
@@ -513,6 +551,7 @@ async function saveCell(edit, then = null) {
             return;
         }
     }
+
     editing = null;
     renderRows();
     then?.();
@@ -581,6 +620,7 @@ function changeAt(td) {
  */
 async function saveValue(index, at, value) {
     const { structure, rows } = browse.rows;
+
     await api("/api/action", {
         action : "db-row-save",
         db     : browse.db,
@@ -588,7 +628,9 @@ async function saveValue(index, at, value) {
         key    : rowKey(index),
         values : { [structure.columns[at].name] : value },
     });
+
     rows[index][at] = value;
+
     const asked = JSON.stringify(rowsQuestion());
     api("/api/action", {
         action : "db-row",
@@ -634,8 +676,10 @@ async function editValue(index, at) {
             return;
         }
     }
+
     let json  = false;
     let shown = value ?? "";
+
     if (/^\s*[[{]/.test(shown)) {
         try {
             shown = JSON.stringify(JSON.parse(shown), null, 2);
@@ -644,8 +688,10 @@ async function editValue(index, at) {
             // Not JSON after all: changed as text.
         }
     }
+
     const compact = json && !/\n/.test(value);
     const markup  = !json && /^\s*<[!?A-Za-z]/.test(shown);
+
     formDialog({
         title  : column.name,
         text   : `${column.type}${json ? " · JSON" : ""} · ${
@@ -672,12 +718,14 @@ async function editValue(index, at) {
                 () => dialog.classList.remove("wide"),
                 { once : true },
             );
+
             const box = /** @type {HTMLElement} */ (fields.querySelector(".value-code"));
             codeArea(
                 box,
                 json ? paintJson : markup ? paintMarkup : escapeCode,
                 json ? "  " : "    ",
             );
+
             // ⌘S or ⌘↩ saves, as in the editor.
             box.querySelector("textarea").addEventListener("keydown", (event) => {
                 if ((event.metaKey || event.ctrlKey)
@@ -690,6 +738,7 @@ async function editValue(index, at) {
         submit : async (form) => {
             const data = new FormData(form);
             let text   = String(data.get("value"));
+
             if (json && data.get("null") !== "on") {
                 try {
                     const parsed = JSON.parse(text);
@@ -698,15 +747,18 @@ async function editValue(index, at) {
                     throw new Error(`It is not JSON any more: ${error.message}`);
                 }
             }
+
             const next = data.get("null") === "on" ? null : text;
             if (next === value) {
                 return { message : "Nothing changed" };
             }
+
             await saveValue(index, at, next);
             renderRows();
             return { message : `Saved ${column.name}` };
         },
     });
+
     const area = /** @type {HTMLTextAreaElement} */ (document.querySelector(
         "#form .value-code textarea",
     ));

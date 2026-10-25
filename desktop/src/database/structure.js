@@ -24,6 +24,7 @@ async function loadStructure() {
             yet.</div></div>`;
         return;
     }
+
     let structure;
     try {
         structure = await api(`/api/db-structure?db=${encodeURIComponent(browse.db)}&table=${
@@ -34,15 +35,18 @@ async function loadStructure() {
             `<div class="panel"><div class="pkg-none">${esc(error.message)}</div></div>`;
         return;
     }
+
     // Only the last table asked for shows, when several were gone through quickly.
     if (structure.table !== browse.table) {
         return;
     }
+
     // The filter stays as typed when the same table is drawn again, as after a change.
     const typed = browse.structure?.table === structure.table
         ? /** @type {HTMLInputElement} */ (document.getElementById("structure-filter"))?.value
             || ""
         : "";
+
     browse.structure = structure;
     const view = browse.tables.find((one) => one.name === structure.table)?.view;
     box.innerHTML = `
@@ -123,6 +127,7 @@ async function loadStructure() {
         </div>` : ""}
         </div>
     `;
+
     /** @type {HTMLInputElement} */ (document.getElementById("structure-filter")).value = typed;
     document.getElementById("structure-filter").addEventListener("input", renderStructureColumns);
     renderStructureColumns();
@@ -144,6 +149,7 @@ function openIndexDialog() {
         [ "fulltext", "Full text" ],
         ...(structure.primary.length ? [] : [ [ "primary", "Primary key" ] ]),
     ];
+
     formDialog({
         title : `New index on ${structure.table}`,
         text  : "MariaDB builds it at once, which takes a while in a large table.",
@@ -174,6 +180,7 @@ function openIndexDialog() {
         ready : (fields) => {
             const order = [];
             const name  = /** @type {HTMLInputElement} */ (fields.querySelector("[name=name]"));
+
             fields.querySelector(".index-columns").addEventListener("change", (event) => {
                 const box = /** @type {HTMLInputElement} */ (event.target);
                 if (box.checked) {
@@ -181,17 +188,21 @@ function openIndexDialog() {
                 } else {
                     order.splice(order.indexOf(box.value), 1);
                 }
+
                 // Each ticked column shows its place in the index.
                 fields.querySelectorAll(".index-columns input").forEach((one) => {
                     const at = order.indexOf(/** @type {HTMLInputElement} */ (one).value);
                     /** @type {HTMLElement} */ (one.closest(".check").querySelector(".order"))
                         .textContent = at === -1 ? "" : String(at + 1);
                 });
+
                 if (name.dataset.auto !== undefined) {
                     name.value = order.join("_").slice(0, 64);
                 }
+
                 fields.dataset.order = JSON.stringify(order);
             });
+
             name.addEventListener("input", () => delete name.dataset.auto);
         },
         submit : async (form) => {
@@ -209,6 +220,7 @@ function openIndexDialog() {
                         || "[]",
                 ),
             });
+
             loadStructure();
             loadTables();
             return result;
@@ -295,10 +307,12 @@ async function openForeignKeyDialog(name = null) {
         onDelete   : "RESTRICT",
         onUpdate   : "RESTRICT",
     };
+
     const ruleSelect = (field, value) => `<span class="field select"><select name="${field}">${
         rules.map(([ rule, label, hint ]) => `<option value="${rule}" title="${hint}"
             ${rule === value ? "selected" : ""}>${label}</option>`).join("")
     }</select></span>`;
+
     let refColumns = [];
     const loadRef  = async (table) => {
         try {
@@ -314,10 +328,12 @@ async function openForeignKeyDialog(name = null) {
             refColumns = [];
         }
     };
+
     if (!targets.length) {
         toast("Foreign keys need InnoDB tables, and this database has none", true);
         return;
     }
+
     await loadRef(start.table);
     formDialog({
         title  : old ? `Change the foreign key ${old.name}`
@@ -393,10 +409,12 @@ async function openForeignKeyDialog(name = null) {
                     .forEach((one) => (/** @type {HTMLElement} */ (one).hidden = list.length < 2));
                 rename();
             };
+
             const current = () => [ ...pairs.querySelectorAll(".fk-pair") ].map((one) => [
                 /** @type {HTMLSelectElement} */ (one.querySelector("[data-fk-here]")).value,
                 /** @type {HTMLSelectElement} */ (one.querySelector("[data-fk-there]")).value,
             ]);
+
             const rename = () => {
                 if (label.dataset.auto !== undefined) {
                     label.value = `fk_${structure.table}_${
@@ -404,16 +422,20 @@ async function openForeignKeyDialog(name = null) {
                     }`.replace(/[^\w$]/g, "_").slice(0, 64);
                 }
             };
+
             draw(old ? old.columns.map((column, at) => [ column, old.references[at] ])
                 : [ [ named() || structure.columns[0]?.name, "" ] ]);
+
             /** @type {HTMLSelectElement} */ (
                 form.elements.namedItem("refTable")
             ).addEventListener("change", async () => {
                 await loadRef(table());
                 draw(current().map(([ here ], at) => [ at === 0 && named() ? named() : here, "" ]));
             });
+
             pairs.addEventListener("change", rename);
             label.addEventListener("input", () => delete label.dataset.auto);
+
             fields.addEventListener("click", (event) => {
                 const target = /** @type {HTMLElement} */ (event.target);
                 if (target.closest("[data-fk-more]")) {
@@ -427,6 +449,7 @@ async function openForeignKeyDialog(name = null) {
         submit : async (form) => {
             const data  = new FormData(form);
             const pairs = [ ...form.querySelectorAll(".fk-pair") ];
+
             const result = await api("/api/action", {
                 action     : "db-fk-save",
                 db         : browse.db,
@@ -443,6 +466,7 @@ async function openForeignKeyDialog(name = null) {
                 onUpdate   : String(data.get("onUpdate")),
                 replace    : old?.name || "",
             });
+
             loadStructure();
             return result;
         },
@@ -468,6 +492,7 @@ async function dropForeignKey(name) {
     if (!sure) {
         return false;
     }
+
     try {
         toast((await api("/api/action", {
             action : "db-fk-drop",
@@ -479,6 +504,7 @@ async function dropForeignKey(name) {
         toast(error.message, true);
         return false;
     }
+
     loadStructure();
     return true;
 }
@@ -504,6 +530,7 @@ function followForeignKey(at, index) {
     if (!key || value === null) {
         return;
     }
+
     pendingFilters = {
         table   : key.table,
         filters : [ {
@@ -540,6 +567,7 @@ function renderStructureColumns() {
             .some((text) => text.toLowerCase().includes(search)));
     const key       = `<span class="key" title="Primary key"><svg viewBox="0 0 24 24"><circle
         cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/></svg></span>`;
+
     // A row drags to another place, while every column shows, so where it lands is plain.
     const drag = !search && !structureIsView();
     document.getElementById("structure-columns").innerHTML = shown.map((column) => `

@@ -69,6 +69,7 @@ function run(command, args = [], timeout = 15_000, input = null) {
                 stderr : stderr || (error ? error.message : ""),
             });
         });
+
         if (input !== null) {
             child.stdin.end(input);
         }
@@ -100,8 +101,10 @@ function tailOf(file, count) {
     const length = Math.min(size, count * 400);
     const buffer = Buffer.alloc(length);
     const fd     = fs.openSync(file, "r");
+
     fs.readSync(fd, buffer, 0, length, size - length);
     fs.closeSync(fd);
+
     return buffer.toString("utf8").split("\n").filter(Boolean).slice(-count);
 }
 
@@ -157,10 +160,12 @@ function formatBytes(value) {
     const units = [ "B", "KB", "MB", "GB" ];
     let size = value;
     let unit = 0;
+
     while (size >= 1024 && unit < units.length - 1) {
         size /= 1024;
         unit++;
     }
+
     return `${size.toFixed(size < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`;
 }
 

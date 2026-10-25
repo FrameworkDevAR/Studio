@@ -62,6 +62,7 @@ async function prepareExport(spec) {
     if (!format) {
         throw new Error("Export as SQL, CSV or JSON");
     }
+
     const db   = await existingDatabase(spec.db);
     const job  = {
         db,
@@ -72,14 +73,17 @@ async function prepareExport(spec) {
         separator : [ ",", ";", "\t" ].includes(spec.separator) ? spec.separator : ",",
         header    : spec.header !== false,
     };
+
     if (format === "sql" && !job.structure && !job.data) {
         throw new Error("Export the structure, the data, or both");
     }
+
     if (spec.sql) {
         // A query's results, run again whole, read only, as CSV or JSON; its column names as the
         // result had them.
         const sql = String(spec.sql).trim().replace(/;\s*$/, "");
         const bare = sql.replace(/^(\s*(--[^\n]*\n|#[^\n]*\n|\/\*[\s\S]*?\*\/))*\s*/, "");
+
         if (format === "sql") {
             throw new Error("A query's results export as CSV or JSON");
         }
@@ -89,12 +93,14 @@ async function prepareExport(spec) {
         if (statementCount(sql) > 1) {
             throw new Error("Export one query's results at a time");
         }
+
         job.sql     = sql;
         job.columns = [].concat(spec.columns || []).map(String);
         job.part    = "query";
     } else if (spec.table) {
         // A table's rows: the ones its filters show, in its order, or the ones picked.
         const structure = await readStructure(db, spec.table);
+
         job.table = structure.table;
         job.where = spec.keys ? `WHERE ${keysWhere(structure, spec.keys)}`
             : whereOf(structure.columns, spec.filters || "[]", spec.match);
@@ -108,12 +114,15 @@ async function prepareExport(spec) {
         if (!list.length) {
             throw new Error("Pick at least one table");
         }
+
         const missing = list.find((name) => !all.some((one) => one.name === name));
         if (missing) {
             throw new Error(`There is no table ${missing} in ${db}`);
         }
+
         job.tables = all.filter((one) => list.includes(one.name)).map((one) => one.name);
         job.whole  = job.tables.length === all.length;
+
         // Views have no rows of their own to write as CSV or JSON.
         if (format !== "sql") {
             job.tables = all.filter((one) => job.tables.includes(one.name) && !one.view)
@@ -123,6 +132,7 @@ async function prepareExport(spec) {
             }
         }
     }
+
     const id = crypto.randomUUID();
     prepared.set(id, job);
     setTimeout(() => prepared.delete(id), KEEP).unref();
@@ -136,6 +146,7 @@ async function prepareExport(spec) {
  */
 function statementCount(sql) {
     let count = 0, some = false;
+
     for (let at = 0; at < sql.length; at++) {
         const char = sql[at];
         if (char === "'" || char === "\"" || char === "`") {
@@ -158,6 +169,7 @@ function statementCount(sql) {
             some = true;
         }
     }
+
     return count + (some ? 1 : 0);
 }
 
@@ -173,6 +185,7 @@ async function runExport(response, id) {
     if (!job) {
         throw new Error("This export is gone: start it again");
     }
+
     const day   = new Date().toISOString().slice(0, 10);
     const base  = [
         job.db,
@@ -189,16 +202,19 @@ async function runExport(response, id) {
         json : "application/json",
         zip  : "application/zip",
     }[ext];
+
     response.writeHead(200, {
         "Content-Type"        : gzip ? "application/gzip" : `${type}; charset=utf-8`,
         "Content-Disposition" : `attachment; filename="${base}.${ext}${gzip ? ".gz" : ""}"`,
         "Cache-Control"       : "no-store",
     });
+
     const gzipper = gzip ? zlib.createGzip() : null;
     gzipper?.pipe(response);
     const out    = gzipper || response;
     const closed = { now : false };
     response.on("close", () => { closed.now = true; });
+
     try {
         if (job.format === "sql") {
             await dumpSql(job, out, closed);
@@ -218,6 +234,7 @@ async function runExport(response, id) {
             out.write(note);
         }
     }
+
     out.end();
 }
 
@@ -234,6 +251,7 @@ async function runExport(response, id) {
  */
 function dumpSql(job, out, closed) {
     const args = [ "--single-transaction", "--hex-blob" ];
+
     if (!job.data) {
         args.push("--no-data");
     }
@@ -246,17 +264,21 @@ function dumpSql(job, out, closed) {
     if (job.table && job.where) {
         args.push(`--where=${job.where.replace(/^WHERE /, "")}`);
     }
+
     // Every table of the database is the database itself, which keeps the views in order after the
     // tables.
     args.push(job.db, ...(job.table ? [ job.table ] : job.whole ? [] : job.tables));
+
     return new Promise((resolve, reject) => {
         const dump = spawn("mariadb-dump", args, { env : runEnv() });
         let said   = "";
+
         dump.stderr.on("data", (chunk) => { said += chunk; });
         dump.stdout.pipe(out, { end : false });
         dump.on("error", reject);
         dump.on("close", (code) => (code === 0 || closed.now ? resolve()
             : reject(new Error(said.trim().replace(/\n/g, " ") || "mariadb-dump stopped"))));
+
         out.on("close", () => dump.kill());
         if (closed.now) {
             dump.kill();
@@ -278,6 +300,7 @@ function dumpSql(job, out, closed) {
  */
 async function eachRow(job, table, onColumns, onRow, closed) {
     let sql, columns;
+
     if (job.sql) {
         // A query, in a transaction that can't write, so running it again changes nothing.
         columns = job.columns.map((name) => ({ name, binary : false, dataType : "" }));
@@ -289,31 +312,39 @@ async function eachRow(job, table, onColumns, onRow, closed) {
             : ident(column.name)));
         const order     = job.table && job.sort ? `ORDER BY ${ident(job.sort.name)} ${job.sort.dir}`
             : structure.primary.length ? `ORDER BY ${structure.primary.map(ident).join(", ")}` : "";
+
         columns = structure.columns;
         sql     = `SELECT ${select.join(", ")} FROM ${ident(structure.table)} ${
             job.table ? job.where : ""
         } ${order};`;
     }
+
     await onColumns(columns);
     const client = spawn("mariadb", [ "--xml", "--quick", "-D", job.db ], { env : runEnv() });
     client.stdin.end(sql);
     client.stdout.setEncoding("utf8");
+
     let said = "";
     client.stderr.on("data", (chunk) => { said += chunk; });
+
     const done = new Promise((resolve) => client.on("close", resolve));
     let rest = "";
+
     try {
         for await (const chunk of client.stdout) {
             if (closed.now) {
                 break;
             }
+
             rest += chunk;
             const end = rest.lastIndexOf("</row>");
             if (end < 0) {
                 continue;
             }
+
             const whole = rest.slice(0, end + 6);
             rest = rest.slice(end + 6);
+
             for (const row of whole.matchAll(/<row>([\s\S]*?)<\/row>/g)) {
                 const values = [ ...row[1].matchAll(
                     /<field name="[^"]*"(?:\s+xsi:nil="true"\s*\/>|>([\s\S]*?)<\/field>)/g,
@@ -325,6 +356,7 @@ async function eachRow(job, table, onColumns, onRow, closed) {
     } finally {
         client.kill();
     }
+
     const code = await done;
     if (code !== 0 && !closed.now && said) {
         const line = said.match(/^ERROR \d+ \([\w]+\)(?: at line \d+)?: (.*)$/m);
@@ -354,6 +386,7 @@ function csvField(value, column, separator) {
     if (value === null) {
         return "";
     }
+
     const text = column.binary ? `0x${value}` : value;
     return text === "" || text.includes(separator) || /["\r\n]/.test(text) || /^\s|\s$/.test(text)
         ? `"${text.replace(/"/g, "\"\"")}"`
@@ -370,6 +403,7 @@ function csvField(value, column, separator) {
  */
 async function writeCsv(job, table, out, closed) {
     const line = (fields) => `${fields.join(job.separator)}\r\n`;
+
     await eachRow(job, table,
         (columns) => (job.header
             ? put(out, line(columns.map((column) => csvField(column.name, {}, job.separator))))
@@ -412,20 +446,25 @@ async function writeJson(job, out, closed) {
     const list = job.sql ? [ null ] : job.table ? [ job.table ] : job.tables;
     const many = list.length > 1;
     await put(out, many ? "{" : "");
+
     for (const [ at, table ] of list.entries()) {
         let first = true;
         await put(out, `${many ? `${at ? "," : ""}\n  ${JSON.stringify(table)}: ` : ""}[`);
+
         await eachRow(job, table, () => null, (values, columns) => {
             const text = JSON.stringify(Object.fromEntries(columns.map((column, place) => [
                 column.name,
                 jsonValue(values[place], column),
             ])));
+
             const lead = first ? "\n" : ",\n";
             first = false;
             return put(out, `${lead}${many ? "    " : "  "}${text}`);
         }, closed);
+
         await put(out, `${first ? "" : `\n${many ? "  " : ""}`}]`);
     }
+
     await put(out, many ? "\n}\n" : "\n");
 }
 
@@ -447,16 +486,20 @@ async function writeZip(job, out, closed) {
         offset += buffer.length;
         await put(out, buffer);
     };
+
     const now  = new Date();
     const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
     const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
     for (const table of job.tables) {
         if (closed.now) {
             return;
         }
+
         const name  = Buffer.from(`${table}.csv`);
         const start = offset;
         const head  = Buffer.alloc(30);
+
         head.writeUInt32LE(0x04034b50, 0);
         head.writeUInt16LE(20, 4);
         head.writeUInt16LE(0x0808, 6);
@@ -465,6 +508,7 @@ async function writeZip(job, out, closed) {
         head.writeUInt16LE(date, 12);
         head.writeUInt16LE(name.length, 26);
         await write(Buffer.concat([ head, name ]));
+
         // The CSV, deflated as it is written, counted and checked on the way.
         const deflate = zlib.createDeflateRaw();
         let crc = 0, size = 0, packed = 0;
@@ -473,6 +517,7 @@ async function writeZip(job, out, closed) {
             packed += chunk.length;
             pending.push(write(chunk));
         });
+
         const sink = {
             write : (text) => {
                 const bytes = Buffer.from(text);
@@ -482,13 +527,16 @@ async function writeZip(job, out, closed) {
             },
             once  : (event, listener) => deflate.once(event, listener),
         };
+
         await writeCsv(job, table, sink, closed);
+
         // Its last bytes come out once it has ended, after its input has.
         await new Promise((resolve) => {
             deflate.on("end", resolve);
             deflate.end();
         });
         await Promise.all(pending);
+
         const tail = Buffer.alloc(16);
         tail.writeUInt32LE(0x08074b50, 0);
         tail.writeUInt32LE(crc >>> 0, 4);
@@ -497,6 +545,7 @@ async function writeZip(job, out, closed) {
         await write(tail);
         entries.push({ name, crc, size, packed, start });
     }
+
     const listStart = offset;
     for (const entry of entries) {
         const head = Buffer.alloc(46);
@@ -514,6 +563,7 @@ async function writeZip(job, out, closed) {
         head.writeUInt32LE(entry.start, 42);
         await write(Buffer.concat([ head, entry.name ]));
     }
+
     const end = Buffer.alloc(22);
     end.writeUInt32LE(0x06054b50, 0);
     end.writeUInt16LE(entries.length, 8);

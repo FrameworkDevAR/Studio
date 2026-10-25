@@ -52,7 +52,11 @@ the apps and servers of each project. See the README.
   a block comment above any rule or step that would otherwise be "tidied away".
 - Each function's `/** */` is JSDoc, as in the user's other projects: the description, then one
   `@param {type} name` per parameter (`{type=}` when optional) and always a
-  `@returns {type}`, `{void}` included. Real types, never `{object}`: write the shape.
+  `@returns {type}`, `{void}` included. Real types, never `{object}`: write the shape,
+  with no space before its colons: `{{ db: string, table: string }}`.
+- Function bodies read as steps, with a blank line between them: after the opening
+  declarations, around a multi-line `if` or loop, before a final `return`. Never split
+  an aligned run, or a comment from its code.
 - A module's `module.exports` comes after three blank lines and `// The public API`.
 - Keep names plain and one word where possible, like the user's other projects
   (Framework, Runner, Diff, JSON).

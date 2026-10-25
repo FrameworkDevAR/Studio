@@ -35,6 +35,7 @@ async function readNode() {
         checkOutdated();
         checkSizes(data.root, data.globals);
     }
+
     return {
         ...data,
         globals : data.globals.map((pkg) => ({
@@ -91,8 +92,10 @@ function checkOutdated() {
     if (!cli || outdated.busy || Date.now() - outdated.at < 60 * 60_000) {
         return;
     }
+
     outdated.busy = true;
     const round   = outdated.round;
+
     // npm outdated exits with 1 when something is outdated, so its output is
     // read whatever the exit.
     run(NODE, [ cli, "outdated", "-g", "--json" ], 60_000).then((result) => {
@@ -102,6 +105,7 @@ function checkOutdated() {
             outdated.busy = false;
             return;
         }
+
         try {
             const found = JSON.parse(result.stdout || "{}");
             outdated.packages = Object.fromEntries(Object.entries(found)
@@ -111,6 +115,7 @@ function checkOutdated() {
         } catch {
             // Offline or npm failed: tried again on a later read.
         }
+
         outdated.busy = false;
     });
 }
@@ -132,10 +137,12 @@ function checkSizes(root, globals) {
     if (!root || sizes.busy || sizes.at) {
         return;
     }
+
     const names = globals.filter((pkg) => !pkg.linked).map((pkg) => pkg.name);
     if (!names.length) {
         return;
     }
+
     sizes.busy = true;
     run("du", [ "-sk", ...names.map((name) => path.join(root, name)) ], 60_000).then((result) => {
         sizes.packages = Object.fromEntries(result.stdout.trim().split("\n").filter(Boolean)
@@ -143,6 +150,7 @@ function checkSizes(root, globals) {
                 const [ kb, file ] = line.split("\t");
                 return [ path.relative(root, file), Number(kb) * 1024 ];
             }));
+
         sizes.at   = Date.now();
         sizes.busy = false;
     });
@@ -168,10 +176,12 @@ async function searchPackages(text) {
     if (query.length < 2) {
         return [];
     }
+
     const kept = searches.get(query);
     if (kept && Date.now() - kept.at < 10 * 60_000) {
         return kept.list;
     }
+
     const response = await fetch(
         `https://registry.npmjs.org/-/v1/search?size=25&text=${encodeURIComponent(query)}`,
         { signal : AbortSignal.timeout(8_000) },
@@ -179,6 +189,7 @@ async function searchPackages(text) {
     if (!response.ok) {
         throw new Error("npm's search did not answer");
     }
+
     const rank = (name) => (name === query ? 0 : name.startsWith(query) ? 1 : 2);
     const list = (await response.json()).objects
         .map(({ package : pkg, downloads }) => ({
@@ -193,9 +204,11 @@ async function searchPackages(text) {
         }))
         .sort((a, b) => rank(a.name) - rank(b.name) || b.weekly - a.weekly)
         .slice(0, 12);
+
     if (searches.size > 200) {
         searches.clear();
     }
+
     searches.set(query, { at : Date.now(), list });
     return list;
 }
@@ -214,6 +227,7 @@ async function updatePackages(names) {
     if (!chosen.length || chosen.some((name) => !installed.includes(name))) {
         throw new Error("Nothing to update");
     }
+
     // One npm run each, so each package shows its own progress and one that
     // fails leaves the others updated.
     const steps = chosen.map((name) => ({ name, args : [ "install", `${name}@latest` ] }));
@@ -242,6 +256,7 @@ function installPackage(spec) {
     if (!PACKAGE_SPEC.test(wanted)) {
         throw new Error("Not a package name");
     }
+
     return runNpm([ { name : wanted, args : [ "install", wanted ] } ], () => `${wanted} installed`);
 }
 
@@ -256,6 +271,7 @@ async function uninstallPackage(name) {
     if (name === "npm" || !globals.some((pkg) => pkg.name === name)) {
         throw new Error("Not a package that can be removed");
     }
+
     return runNpm([ { name, args : [ "uninstall", name ] } ], () => {
         delete outdated.packages[name];
         return `${name} removed`;
@@ -315,6 +331,7 @@ function spawnNpm(args, onLine) {
 function toolVersion(name) {
     const cli = realPathOf(path.join(PATHS.homebrew, "bin", name));
     let dir   = path.dirname(cli);
+
     while (cli && dir !== path.dirname(dir)) {
         const file = path.join(dir, "package.json");
         if (fs.existsSync(file)) {
@@ -322,6 +339,7 @@ function toolVersion(name) {
         }
         dir = path.dirname(dir);
     }
+
     return "";
 }
 
@@ -334,10 +352,12 @@ async function readGlobals() {
     if (!cli) {
         return { root : "", packages : [] };
     }
+
     const [ list, root ] = await Promise.all([
         run(NODE, [ cli, "ls", "-g", "--depth=0", "--json" ], 20_000),
         run(NODE, [ cli, "root", "-g" ], 10_000),
     ]);
+
     let packages = [];
     try {
         packages = Object.entries(JSON.parse(list.stdout).dependencies || {})
@@ -351,6 +371,7 @@ async function readGlobals() {
     } catch {
         // npm could not say; the list stays empty.
     }
+
     return { root : root.stdout.trim(), packages };
 }
 

@@ -30,10 +30,12 @@ function readIcons(apps, servers) {
     if (Date.now() - iconCache.at < 300_000) {
         return iconCache.data;
     }
+
     const roots = projectRoots(apps);
     for (const server of servers) {
         roots[server.project] ??= server.dir;
     }
+
     /** @type {Object<string, string>} */
     const icons = {};
     for (const [ project, root ] of Object.entries(roots)) {
@@ -42,6 +44,7 @@ function readIcons(apps, servers) {
             icons[project] = icon;
         }
     }
+
     iconCache = { at : Date.now(), data : icons };
     return icons;
 }
@@ -62,6 +65,7 @@ function findIcon(root, depth = 4) {
         } catch {
             return;
         }
+
         for (const entry of entries) {
             const type = path.extname(entry.name).toLowerCase();
             if (entry.isFile() && /^favicon\./i.test(entry.name) && ICON_TYPES.includes(type)) {
@@ -75,6 +79,7 @@ function findIcon(root, depth = 4) {
             }
         }
     };
+
     walk(root, 1);
     found.sort((a, b) => a.rank - b.rank || a.level - b.level);
     return found[0]?.file || "";

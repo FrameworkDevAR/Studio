@@ -93,12 +93,14 @@ function readSwitches(mainIni) {
         ...filesIn(path.dirname(phpIniFile()), "").filter((file) => file.endsWith(".ini")),
     ];
     const found = new Set(SWITCHES);
+
     for (const file of files) {
         for (const match of readFile(file)
             .matchAll(/^[ \t;]*([\w.]+)[ \t]*=[ \t]*(On|Off)[ \t]*$/gim)) {
             found.add(match[1]);
         }
     }
+
     return found;
 }
 
@@ -150,9 +152,11 @@ async function askPhp(overrides = undefined) {
     let dir = "";
     /** @type {Object<string, string>} */
     const env = {};
+
     if (overrides !== undefined) {
         dir = fs.mkdtempSync(path.join(os.tmpdir(), "studio-php-"));
         const scanDir = path.dirname(phpIniFile());
+
         for (const file of filesIn(scanDir, "")
             .filter((one) => one.endsWith(".ini") && one !== phpIniFile())) {
             fs.copyFileSync(file, path.join(dir, path.basename(file)));
@@ -162,18 +166,22 @@ async function askPhp(overrides = undefined) {
         }
         env.PHP_INI_SCAN_DIR = dir;
     }
+
     const result = await runPhp([ "-r", PHP_SCRIPT, "--", ERROR_LEVELS ], env);
     if (dir) {
         fs.rmSync(dir, { recursive : true, force : true });
     }
+
     const lines = `${result.stderr}\n${result.stdout}`.split("\n");
     const json  = [ ...lines ].reverse().find((line) => line.startsWith("{")) || "{}";
     let data    = {};
+
     try {
         data = JSON.parse(json);
     } catch {
         // PHP did not start at all; the problems say why.
     }
+
     return { data, problems : startupProblems(lines.filter((line) => line !== json), dir) };
 }
 
@@ -316,12 +324,14 @@ function displayValue(key, value, switches = new Set()) {
 function iniKeys(text) {
     /** @type {Object<string, string>} */
     const values = {};
+
     for (const line of text.split("\n")) {
         const found = line.match(/^\s*([\w.]+)\s*=\s*(.*?)\s*$/);
         if (found && !/^(zend_)?extension$/.test(found[1])) {
             values[found[1]] = found[2].replace(/^"(.*)"$/, "$1");
         }
     }
+
     return values;
 }
 

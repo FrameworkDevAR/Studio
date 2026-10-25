@@ -97,6 +97,7 @@ function readFlag(flagFile, withinMs) {
  */
 function readExtraServers(portByPid) {
     const pidsByDir = listeningDirs(portByPid);
+
     return EXTRA_SERVERS.map((server) => {
         const pid = (pidsByDir.get(realPathOf(server.dir)) || [])
             .sort((a, b) => portByPid[a] - portByPid[b])[0];
@@ -120,6 +121,7 @@ function listeningDirs(portByPid) {
     if (!pids.length) {
         return pidsByDir;
     }
+
     // -F prints a "p<pid>" line and then an "n<path>" line for each process
     let pid = "";
     for (const line of sh(`lsof -a -d cwd -Fpn -p ${pids.join(",")}`).split("\n")) {
@@ -129,6 +131,7 @@ function listeningDirs(portByPid) {
             pidsByDir.set(line.slice(1), [ ...(pidsByDir.get(line.slice(1)) || []), pid ]);
         }
     }
+
     return pidsByDir;
 }
 
@@ -167,6 +170,7 @@ function waitForServer(id) {
         }
         sleep(200);
     }
+
     return null;
 }
 
@@ -186,6 +190,7 @@ function startingFlagOf(server) {
 function readStoppingPids() {
     const pids   = new Set();
     const prefix = path.basename(STOPPING_FLAG);
+
     for (const file of filesIn(path.dirname(STOPPING_FLAG), prefix)) {
         if (readFlag(file, 30_000) !== null) {
             pids.add(path.basename(file).slice(prefix.length));
@@ -193,6 +198,7 @@ function readStoppingPids() {
             fs.rmSync(file, { force : true });
         }
     }
+
     return pids;
 }
 
@@ -203,6 +209,7 @@ function readStoppingPids() {
 function readListeningPorts() {
     /** @type {Object<string, string>} */
     const portByPid = {};
+
     for (const line of sh("lsof -nP -iTCP -sTCP:LISTEN").split("\n").slice(1)) {
         const columns = line.split(/\s+/);
         const port    = (columns[8] || "").split(":").pop();
@@ -210,6 +217,7 @@ function readListeningPorts() {
             portByPid[columns[1]] = port;
         }
     }
+
     return portByPid;
 }
 
@@ -255,6 +263,7 @@ function readAppServers(portByPid) {
             others.set(line.slice(1), { pid, ...appInfo(line.slice(1)), isVite : false });
         }
     }
+
     return [ ...vite, ...others.values() ].sort(byProjectThenApp);
 }
 

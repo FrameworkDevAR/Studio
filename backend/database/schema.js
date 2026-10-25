@@ -71,6 +71,7 @@ async function readTables(db) {
             ROW_FORMAT, AUTO_INCREMENT, CREATE_TIME, UPDATE_TIME, AVG_ROW_LENGTH, MAX_DATA_LENGTH
         FROM information_schema.TABLES WHERE TABLE_SCHEMA = ${quote(db)} ORDER BY TABLE_NAME
     `);
+
     return set.rows.map(([
         name, type, engine, rows, data, index, free, collation, comment, format, next, created,
         updated, average, most
@@ -123,12 +124,14 @@ async function readStructure(db, table) {
             AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION;
         SHOW CREATE TABLE ${ident(db)}.${ident(table)};
     `);
+
     const byIndex = new Map();
     for (const [ name, nonUnique, column, type ] of indexes.rows) {
         const index = byIndex.get(name) || { name, unique : nonUnique === "0", type, columns : [] };
         index.columns.push(column);
         byIndex.set(name, index);
     }
+
     const byKey = new Map();
     for (const [ name, column, refTable, refColumn, refDb, onDelete, onUpdate ] of foreign.rows) {
         const key = byKey.get(name) || {
@@ -140,10 +143,12 @@ async function readStructure(db, table) {
             onDelete   : onDelete || "RESTRICT",
             onUpdate   : onUpdate || "RESTRICT",
         };
+
         key.columns.push(column);
         key.references.push(refColumn);
         byKey.set(name, key);
     }
+
     return {
         db,
         table,
@@ -192,6 +197,7 @@ function valueOf(preset, generated, extra) {
     if (preset === "NULL") {
         return { kind : "null", value : "" };
     }
+
     const quoted = preset.match(/^'([\s\S]*)'$/);
     if (quoted) {
         const escapes = { n : "\n", t : "\t", r : "\r", 0 : "\0", Z : "\x1a", b : "\b" };
@@ -203,6 +209,7 @@ function valueOf(preset, generated, extra) {
             ),
         };
     }
+
     if (/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(preset)) {
         return { kind : "value", value : preset };
     }
@@ -219,6 +226,7 @@ async function readEngines() {
         "SELECT ENGINE, SUPPORT, COMMENT FROM information_schema.ENGINES " +
         "WHERE SUPPORT IN ('YES', 'DEFAULT') ORDER BY SUPPORT = 'DEFAULT' DESC, ENGINE",
     );
+
     return set.rows.filter(([ name ]) => !/^(PERFORMANCE_SCHEMA|MRG_MyISAM|SEQUENCE)$/i.test(name))
         .map(([ name, support, comment ]) => ({ name, comment, preset : support === "DEFAULT" }));
 }

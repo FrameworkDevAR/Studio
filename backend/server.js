@@ -72,6 +72,7 @@ async function handle(request, response) {
     }
 
     const url = new URL(request.url, `http://localhost:${PORT}`);
+
     try {
         if (url.pathname === "/api/state" && request.method === "GET") {
             return send(response, 200, await readState());
@@ -106,6 +107,7 @@ async function handle(request, response) {
                 url.searchParams.get("file"),
             ));
         }
+
         if (url.pathname === "/api/charsets" && request.method === "GET") {
             return send(response, 200, await db.readCharsets());
         }
@@ -142,6 +144,7 @@ async function handle(request, response) {
                 Object.fromEntries(url.searchParams),
             ));
         }
+
         // The export asked for in an action, by its id, as a download.
         if (url.pathname === "/api/db-export" && request.method === "GET") {
             return await exporter.runExport(response, url.searchParams.get("id"));
@@ -157,6 +160,7 @@ async function handle(request, response) {
                 Object.fromEntries(url.searchParams),
             ));
         }
+
         // A CSV into a table, streamed as the import of a dump is, its options in the address.
         if (url.pathname === "/api/db-import-csv" && request.method === "POST") {
             if (request.headers["x-studio"] !== "1") {
@@ -167,6 +171,7 @@ async function handle(request, response) {
                 Object.fromEntries(url.searchParams),
             ));
         }
+
         if (url.pathname === "/api/job" && request.method === "GET") {
             return send(response, 200, readJob(url.searchParams.get("id")));
         }
@@ -221,6 +226,7 @@ function sendFile(response, pathname) {
     if (!file.startsWith(DESKTOP + path.sep) || !fs.existsSync(file)) {
         return send(response, 404, { error : "Not found" });
     }
+
     response.writeHead(200, {
         "Content-Type"  : MIME[path.extname(file)] || "application/octet-stream",
         "Cache-Control" : "no-store",
@@ -241,6 +247,7 @@ function sendIcon(response, project) {
     if (!file || !fs.existsSync(file)) {
         return send(response, 404, { error : "Not found" });
     }
+
     response.writeHead(200, {
         "Content-Type"            : MIME[path.extname(file).toLowerCase()]
             || "application/octet-stream",
@@ -259,6 +266,7 @@ function sendIcon(response, project) {
 function readBody(request) {
     return new Promise((resolve, reject) => {
         let body = "";
+
         request.on("data", (chunk) => {
             body += chunk;
         });

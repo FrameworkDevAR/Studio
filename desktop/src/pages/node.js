@@ -17,6 +17,7 @@
 function renderNode() {
     const { node } = state;
     document.getElementById("node-version").textContent = node.version;
+
     const tools = [
         node.npm && `npm ${esc(node.npm)}`,
         node.corepack && `corepack ${esc(node.corepack)}`,
@@ -43,12 +44,14 @@ function renderNode() {
                <button data-npm-update-all>${isUpdating("npm")
                    ? "Updating…" : "Update packages"}</button>`
             : "All up to date";
+
     // The filter keeps the packages whose name holds what is typed.
     const filter = /** @type {HTMLInputElement} */ (document.getElementById("node-filter"))
         .value.trim().toLowerCase();
     const shown  = node.globals.filter((pkg) => pkg.name.toLowerCase().includes(filter));
     // The linked packages first, apart, since they are the user's own.
     const lists  = [ shown.filter((pkg) => pkg.linked), shown.filter((pkg) => !pkg.linked) ];
+
     document.getElementById("node-globals").innerHTML = !shown.length
         ? `<div class="pkg-none">No packages match “${esc(filter)}”.</div>`
         : lists.filter((list) => list.length).map((list) => `
@@ -136,17 +139,21 @@ function searchNpm(now = false) {
     const text = /** @type {HTMLInputElement} */ (document.querySelector("#npm-search input"))
         .value.trim();
     clearTimeout(npmSearchTimer);
+
     if (text.length < 2 || /.@/.test(text)) {
         npmAsked = text;
         npmFound = [];
         renderNpmList();
         return;
     }
+
     npmSearchTimer = setTimeout(async () => {
         npmAsked = text;
         renderNpmList(true);
+
         try {
             const list = await api(`/api/npm-search?q=${encodeURIComponent(text)}`);
+
             // An older answer that comes in late is dropped.
             if (npmAsked === text) {
                 npmFound = list;
@@ -170,6 +177,7 @@ function searchNpm(now = false) {
 function renderNpmList(loading = false, failed = "") {
     const box       = document.getElementById("npm-list");
     const installed = new Map(state.node.globals.map((pkg) => [ pkg.name, pkg ]));
+
     if (/.@/.test(npmAsked)) {
         box.innerHTML = `
             <div class="npm-item">
@@ -182,6 +190,7 @@ function renderNpmList(loading = false, failed = "") {
         `;
         return;
     }
+
     if (failed || loading || !npmFound.length) {
         const text = failed || (loading ? "Searching…"
             : npmAsked.length >= 2 ? `No packages match “${esc(npmAsked)}”.`
@@ -189,6 +198,7 @@ function renderNpmList(loading = false, failed = "") {
         box.innerHTML = `<div class="npm-empty">${text}</div>`;
         return;
     }
+
     box.innerHTML = npmFound.map((pkg) => `
         <div class="npm-item">
             <div class="npm-item-body">
@@ -228,18 +238,22 @@ function npmActions(spec, latest = "", mine = null) {
         return `<div class="npm-actions"><button class="npm-install"
             disabled>Installing…</button></div>`;
     }
+
     if (!mine) {
         return `<div class="npm-actions"><button class="npm-install"
             data-npm-install="${esc(spec)}">Install</button></div>`;
     }
+
     if (mine.linked) {
         return `<div class="npm-actions"><span class="npm-here">A linked folder of yours
             has this name</span></div>`;
     }
+
     const version  = mine.version.replace(/\+.*/, "");
     const newer    = latest && isNewer(latest, version);
     const busy     = updating.has(spec);
     const removing = updating.has(`remove:${spec}`);
+
     return `
         <div class="npm-actions">
             <span class="npm-here">Installed <b>${esc(version)}</b>${newer
@@ -265,11 +279,13 @@ function npmActions(spec, latest = "", mine = null) {
 function isNewer(version, than) {
     const [ a, b ] = [ version, than ].map((one) => one.split(/[.-]/).slice(0, 3)
         .map((part) => parseInt(part, 10) || 0));
+
     for (let i = 0; i < 3; i++) {
         if (a[i] !== b[i]) {
             return a[i] > b[i];
         }
     }
+
     return false;
 }
 
@@ -307,8 +323,10 @@ async function installNpm(spec) {
     if (updating.has(`install:${spec}`)) {
         return;
     }
+
     updating.add(`install:${spec}`);
     renderNpmList();
+
     try {
         await followJob({ action : "npm-install", name : spec });
     } finally {
@@ -340,8 +358,10 @@ async function uninstallPackage(name) {
     if (!sure) {
         return;
     }
+
     updating.add(`remove:${name}`);
     renderNode();
+
     try {
         await followJob({ action : "npm-uninstall", name });
     } finally {
@@ -432,6 +452,7 @@ async function confirmUpdateAll(kind = "npm") {
         button.disabled   = !count;
         button.textContent = count ? `Update ${countOf(count, noun)}` : "Update";
     };
+
     box.onchange = (event) => {
         if (event.target === all) {
             picks.forEach((pick) => { pick.checked = all.checked; });
@@ -443,6 +464,7 @@ async function confirmUpdateAll(kind = "npm") {
     const names = (await waiting)
         ? picks.filter((pick) => pick.checked).map((pick) => pick.value) : [];
     box.onchange = null;
+
     // The same dialog, still open, turns into the update's progress.
     if (names.length) {
         updatePackages(names, kind);
@@ -473,6 +495,7 @@ function isMajor(from, to) {
 async function updatePackages(names, kind = "npm") {
     const { noun, action, key, list, render } = UPDATE_KINDS[kind];
     const byName = Object.fromEntries(list().map((pkg) => [ pkg.name, pkg ]));
+
     updateJob = {
         kind,
         noun,
@@ -485,9 +508,11 @@ async function updatePackages(names, kind = "npm") {
             error : "",
         })),
     };
+
     names.forEach((name) => updating.add(key(name)));
     showUpdateProgress();
     render();
+
     try {
         await followJob({ action, name : names }, (job) => {
             job.items.forEach((item, index) => Object.assign(updateJob.items[index], {
@@ -545,14 +570,17 @@ async function followJob(body, onChange = null) {
         }
         return;
     }
+
     for (;;) {
         await new Promise((resolve) => setTimeout(resolve, 600));
+
         let job;
         try {
             job = await api(`/api/job?id=${started.job}`);
         } catch {
             continue;
         }
+
         onChange?.(job);
         if (job.state === "done" || job.state === "failed") {
             toast(job.message, job.state === "failed");
@@ -584,23 +612,28 @@ function renderUpdateProgress() {
     if (!updateJob || dialog.dataset.mode !== "progress") {
         return;
     }
+
     const items   = updateJob.items;
     const done    = items.filter((item) => item.state === "done").length;
     const failed  = items.filter((item) => item.state === "failed").length;
     const running = updateJob.state === "waiting" || updateJob.state === "running";
+
     document.getElementById("ask-title").textContent = running
         ? `Updating ${items.length === 1 ? items[0].name : countOf(items.length, updateJob.noun)}`
         : failed ? "Update finished with errors" : "Update finished";
+
     // The description says what the update does; how far it got is below.
     document.getElementById("ask-text").textContent =
         `Updates ${items.length === 1 ? `this ${updateJob.noun}` : `these ${countOf(
             items.length, updateJob.noun)}`} to the newest version, one at a time${
             updateJob.kind === "pecl" ? ", building each from its source" : ""}.`;
+
     // The rows and the bar change in place once drawn: drawing them again
     // every moment would restart the loader's turn and the bar's slide.
     const body = document.getElementById("ask-body");
     body.hidden = false;
     const rows  = /** @type {HTMLElement[]} */ ([ ...body.querySelectorAll(".step") ]);
+
     if (rows.length !== items.length
         || rows.some((row, index) => row.dataset.name !== items[index].name)) {
         body.innerHTML = items.map((item) => `
@@ -612,6 +645,7 @@ function renderUpdateProgress() {
             </div>
         `).join("");
     }
+
     /** @type {NodeListOf<HTMLElement>} */ (body.querySelectorAll(".step"))
         .forEach((row, index) => {
         const item = items[index];
@@ -633,6 +667,7 @@ function renderUpdateProgress() {
         note.innerHTML = `<span class="progress-bar"><i></i></span><span
             class="progress-text"></span>`;
     }
+
     note.className = `editor-status progress ${running ? "" : failed ? "bad" : "ok"}`;
     /** @type {HTMLElement} */ (note.querySelector(".progress-bar i")).style.width =
         `${(finished / items.length) * 100}%`;
@@ -642,6 +677,7 @@ function renderUpdateProgress() {
             ? `, ${failed} failed · hover one for ${updateJob.kind === "pecl"
                 ? "pecl" : "npm"}'s error`
             : ""}`;
+
     /** @type {HTMLElement} */ (dialog.querySelector(".editor-foot")).hidden = false;
     document.getElementById("ask-x").hidden      = false;
     document.getElementById("ask-cancel").hidden = true;

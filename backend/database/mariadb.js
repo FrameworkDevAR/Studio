@@ -86,6 +86,7 @@ async function readMariadb() {
             overrides : [],
         };
     }
+
     const own    = cnfKeys(readFile(MYSQL_CNF));
     const others = otherFiles();
     const option = (key) => {
@@ -94,6 +95,7 @@ async function readMariadb() {
         const base  = from ? displayValue(key, from.value, known)
             : known ? displayValue(key, known.defaultValue, known)
                 : "";
+
         return {
             key,
             value    : key in own ? displayValue(key, own[key], known)
@@ -109,6 +111,7 @@ async function readMariadb() {
             owner    : ownerOf(key),
         };
     };
+
     return {
         available : true,
         version   : versionOf("mariadb"),
@@ -129,6 +132,7 @@ async function readOptionList() {
     if (!variables) {
         throw new Error("MariaDB is not running");
     }
+
     const own = cnfKeys(readFile(MYSQL_CNF));
     return Object.entries(variables)
         .filter(([ key ]) => !FIXED.test(key))
@@ -157,6 +161,7 @@ async function readVariables() {
     if (Date.now() - variableCache.at < 30_000 && variableCache.data) {
         return variableCache.data;
     }
+
     const [ found, charsets, collations ] = await Promise.all([
         rows(`SELECT LOWER(VARIABLE_NAME), GLOBAL_VALUE, DEFAULT_VALUE, VARIABLE_TYPE,
               ENUM_VALUE_LIST, READ_ONLY, VARIABLE_COMMENT
@@ -174,9 +179,11 @@ async function readVariables() {
     if (!found) {
         return null;
     }
+
     const nothing = (value) => (value === "NULL" ? "" : value ?? "");
     /** @type {MariadbVariables} */
     const data    = {};
+
     for (const [ key, value, preset, type, list, readOnly, comment ] of found) {
         data[key] = {
             value        : nothing(value),
@@ -187,10 +194,12 @@ async function readVariables() {
             comment      : nothing(comment),
         };
     }
+
     // The server's character sets and the collations of each, for its two selects.
     if (data.character_set_server) {
         data.character_set_server.list = (charsets || []).map(([ name ]) => name);
     }
+
     Object.defineProperty(data, "collations", { value : collations || [], enumerable : false });
     variableCache = { at : Date.now(), data };
     return data;
@@ -231,12 +240,14 @@ function optionsOf(key, known, variables) {
  */
 function displayValue(key, value, known) {
     const text = String(value ?? "");
+
     if (known?.type === "BOOLEAN") {
         return /^(1|on|yes|true|)$/i.test(text) ? "ON" : "OFF";
     }
     if (known?.type === "DOUBLE" && /^-?\d+\.\d+$/.test(text)) {
         return String(Number(text));
     }
+
     if (SIZES.test(key) && /^\d+$/.test(text) && Number(text) > 0) {
         const number = Number(text);
         for (const [ unit, size ] of [ [ "G", 1024 ** 3 ], [ "M", 1024 ** 2 ], [ "K", 1024 ] ]) {
@@ -245,6 +256,7 @@ function displayValue(key, value, known) {
             }
         }
     }
+
     return text;
 }
 
@@ -264,6 +276,7 @@ function ownerOf(key) {
         [ /^(slave_|replicate_|rpl_|relay_|master_|gtid_|wsrep_)/, "Replication" ],
         [ /^(log_|slow_|general_log|long_query)/, "Logging" ],
     ];
+
     return (groups.find(([ pattern ]) => pattern.test(key)) || [ null, "Server" ])[1];
 }
 
@@ -288,14 +301,17 @@ async function setOptions(changes) {
     if (!list.length) {
         throw new Error("Nothing to save");
     }
+
     const variables = await readVariables() || {};
     let   text      = readFile(MYSQL_CNF);
+
     for (const { key, value, remove } of list) {
         if (!/^[a-z][\w.]*$/.test(key)) {
             throw new Error(`${key} is not an option`);
         }
         text = remove ? withoutOption(text, key) : withOption(text, key, value);
     }
+
     const live = list.every(({ key, remove }) => !remove && variables[key]?.dynamic);
     const said = list.length > 1 ? `${list.length} changes saved`
         : list[0].remove ? `${list[0].key} taken out` : `${list[0].key} set to ${list[0].value}`;
@@ -312,6 +328,7 @@ async function saveOptionsFile(text) {
     if (typeof text !== "string") {
         throw new Error("No text to save");
     }
+
     return {
         message : `Saved ${path.basename(MYSQL_CNF)}. ${
             await writeOptions(text.replace(/\r\n/g, "\n"), null)
@@ -345,6 +362,7 @@ async function checkOptions(text) {
         20_000,
     );
     fs.rmSync(temp, { force : true });
+
     const problems = result.stderr.split("\n")
         .filter((line) => /\[ERROR\]|\[Warning\] option '|^error:/i.test(line))
         .map((line) => line
@@ -353,6 +371,7 @@ async function checkOptions(text) {
             .replace(/^error:\s*/i, "")
             .split(temp).join(path.basename(MYSQL_CNF))
             .replace(/^./, (first) => first.toUpperCase()));
+
     // The line of the option a problem names, which MariaDB leaves out, so the editor can mark it.
     const lines = String(text ?? "").split("\n");
     problems.forEach((problem, index) => {
@@ -361,13 +380,16 @@ async function checkOptions(text) {
         const line = name && !/\bline \d+/.test(problem)
             ? lines.findIndex((one) => key(one) && optionName(key(one)) === optionName(name))
             : -1;
+
         if (line !== -1) {
             problems[index] = `${problem.replace(/\.$/, "")}, on line ${line + 1}`;
         }
     });
+
     if (!result.ok && !problems.length) {
         problems.push(result.stderr.trim().split("\n").pop() || "MariaDB does not take it");
     }
+
     return { problems };
 }
 
@@ -385,11 +407,13 @@ async function writeOptions(text, live) {
     if (problems.length) {
         throw new Error(`MariaDB does not take it: ${problems[0]}`);
     }
+
     const before = fs.existsSync(MYSQL_CNF) ? readFile(MYSQL_CNF) : null;
 
     if (live) {
         const variables = await readVariables();
         const done      = [];
+
         for (const { key, value } of live) {
             const result = await run(
                 "mariadb",
@@ -406,12 +430,15 @@ async function writeOptions(text, live) {
                         `SET GLOBAL ${one.key} = ${sqlValue(one.value)};`,
                     );
                 }
+
                 throw new Error(`MariaDB does not take it: ${
                     result.stderr.replace(/^ERROR \d+ \(\w+\) at line \d+: /, "").trim()
                 }`);
             }
+
             done.push({ key, value : variables[key].value });
         }
+
         writeFile(text, before);
         variableCache.at = 0;
         return "MariaDB uses it already";
@@ -421,16 +448,20 @@ async function writeOptions(text, live) {
     variableCache.at = 0;
     forgetDatabases();
     await serviceAction("mariadb", "restart");
+
     if (await answers()) {
         return "MariaDB restarted";
     }
+
     // It did not come back: the file before goes back, and MariaDB with it.
     const why = startError();
+
     if (before === null) {
         fs.rmSync(MYSQL_CNF, { force : true });
     } else {
         fs.writeFileSync(MYSQL_CNF, before);
     }
+
     await serviceAction("mariadb", "restart");
     throw new Error(`MariaDB did not start with it, so the file was put back${
         why ? `: ${why}` : ""
@@ -449,6 +480,7 @@ function writeFile(text, before) {
     } else {
         fs.mkdirSync(path.dirname(MYSQL_CNF), { recursive : true });
     }
+
     fs.writeFileSync(MYSQL_CNF, text);
 }
 
@@ -463,6 +495,7 @@ async function answers() {
         }
         await new Promise((resolve) => setTimeout(resolve, 500));
     }
+
     return false;
 }
 
@@ -475,6 +508,7 @@ function startError() {
     if (!log) {
         return "";
     }
+
     const line = tailOf(log, 40).reverse()
         .find((one) => /\[ERROR\]/.test(one) && !/Aborting/.test(one)) || "";
     return line.replace(/^.*?\[ERROR\]\s+(mariadbd:\s+)?/, "");
@@ -508,17 +542,20 @@ function cnfKeys(text) {
     /** @type {Object<string, string>} */
     const values = {};
     let   group  = "";
+
     for (const line of text.split("\n")) {
         const head = line.match(/^\s*\[([^\]]+)\]/);
         if (head) {
             group = head[1].trim();
             continue;
         }
+
         const found = line.match(/^\s*([A-Za-z][\w.-]*)\s*(?:=\s*(.*?))?\s*$/);
         if (found && SERVER_GROUP.test(group)) {
             values[optionName(found[1])] = unquote(stripComment(found[2] ?? ""));
         }
     }
+
     return values;
 }
 
@@ -558,14 +595,17 @@ function unquote(value) {
 function otherFiles() {
     /** @type {Object<string, { value: string, file: string }>} */
     const found = {};
+
     for (const file of cnfFiles(MY_CNF, new Set())) {
         if (path.resolve(file) === path.resolve(MYSQL_CNF)) {
             continue;
         }
+
         for (const [ key, value ] of Object.entries(cnfKeys(readFile(file)))) {
             found[key] = { value, file };
         }
     }
+
     return found;
 }
 
@@ -579,8 +619,10 @@ function cnfFiles(file, seen) {
     if (seen.has(file) || !fs.existsSync(file)) {
         return [];
     }
+
     seen.add(file);
     const files = [ file ];
+
     for (const line of readFile(file).split("\n")) {
         const include = line.match(/^\s*!include\s+(.+?)\s*$/);
         const folder  = line.match(/^\s*!includedir\s+(.+?)\s*$/);
@@ -591,6 +633,7 @@ function cnfFiles(file, seen) {
             files.push(...inside.flatMap((one) => cnfFiles(one, seen)));
         }
     }
+
     return files;
 }
 
@@ -608,21 +651,25 @@ function withOption(text, key, value) {
     let   group = "";
     let   last  = -1;
     let   found = false;
+
     lines.forEach((one, index) => {
         const head = one.match(/^\s*\[([^\]]+)\]/);
         if (head) {
             group = head[1].trim();
             return;
         }
+
         const option = one.match(/^\s*([A-Za-z][\w.-]*)\s*(=|$)/);
         if (option && SERVER_GROUP.test(group) && optionName(option[1]) === key) {
             lines[index] = line;
             found        = true;
         }
+
         if (/^mysqld$/i.test(group) && one.trim()) {
             last = index;
         }
     });
+
     if (!found) {
         const mysqld = lines.findIndex((one) => /^\s*\[mysqld\]\s*$/i.test(one));
         if (mysqld === -1) {
@@ -631,6 +678,7 @@ function withOption(text, key, value) {
             lines.splice(Math.max(last, mysqld) + 1, 0, line);
         }
     }
+
     return `${lines.join("\n")}\n`;
 }
 
@@ -643,20 +691,24 @@ function withOption(text, key, value) {
 function withoutOption(text, key) {
     let group = "";
     let found = false;
+
     const kept = text.split("\n").filter((one) => {
         const head = one.match(/^\s*\[([^\]]+)\]/);
         if (head) {
             group = head[1].trim();
             return true;
         }
+
         const option = one.match(/^\s*([A-Za-z][\w.-]*)\s*(=|$)/);
         const drop   = Boolean(option && SERVER_GROUP.test(group) && optionName(option[1]) === key);
         found = found || drop;
         return !drop;
     });
+
     if (!found) {
         throw new Error(`${key} is not in the options file`);
     }
+
     return kept.join("\n");
 }
 

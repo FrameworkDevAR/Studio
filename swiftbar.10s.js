@@ -51,6 +51,7 @@ function main() {
         runAction(action, argument);
         return;
     }
+
     renderMenu();
 }
 

@@ -10,12 +10,14 @@
  */
 function hostOf(project) {
     const counts = new Map();
+
     for (const app of state.apps) {
         if (app.project === project && app.host
             && app.host !== "localhost" && app.host !== "127.0.0.1") {
             counts.set(app.host, (counts.get(app.host) || 0) + 1);
         }
     }
+
     return [ ...counts ].sort((a, b) => b[1] - a[1])[0]?.[0] || "";
 }
 
@@ -30,6 +32,7 @@ function hostOf(project) {
 function blockSpans(needs) {
     const spans = [ ...needs ];
     let row = [];
+
     const fill = () => {
         let left = 4 - row.reduce((sum, index) => sum + spans[index], 0);
         for (let turn = 0; left > 0 && row.length; turn++, left--) {
@@ -37,12 +40,14 @@ function blockSpans(needs) {
         }
         row = [];
     };
+
     needs.forEach((need, index) => {
         if (row.reduce((sum, at) => sum + spans[at], 0) + need > 4) {
             fill();
         }
         row.push(index);
     });
+
     fill();
     return spans;
 }
@@ -96,6 +101,7 @@ function iconTone(project) {
         iconColors.set(project, null);
         readIconColor(project);
     }
+
     return color ? ` --tone:hsl(${color.hue} ${color.saturation}% var(--icon-light));` : "";
 }
 
@@ -109,6 +115,7 @@ function iconTone(project) {
  */
 function readIconColor(project) {
     const image = new Image();
+
     image.onload = () => {
         const size    = 32;
         const canvas  = document.createElement("canvas");
@@ -120,10 +127,12 @@ function readIconColor(project) {
             { length : 36 },
             () => ({ weight : 0, hue : 0, saturation : 0 }),
         );
+
         for (let at = 0; at < pixels.length; at += 4) {
             if (pixels[at + 3] < 128) {
                 continue;
             }
+
             const { hue, saturation, lightness } = toHsl(
                 pixels[at],
                 pixels[at + 1],
@@ -132,11 +141,13 @@ function readIconColor(project) {
             if (saturation < 25 || lightness < 12 || lightness > 92) {
                 continue;
             }
+
             const bin = bins[Math.floor(hue / 10) % 36];
             bin.weight     += saturation;
             bin.hue        += hue * saturation;
             bin.saturation += saturation * saturation;
         }
+
         const best = bins.reduce((top, bin) => (bin.weight > top.weight ? bin : top));
         if (best.weight > 0) {
             iconColors.set(project, {
@@ -146,6 +157,7 @@ function readIconColor(project) {
             renderSites();
         }
     };
+
     image.src = `/api/icon?project=${encodeURIComponent(project)}`;
 }
 
@@ -161,14 +173,17 @@ function toHsl(red, green, blue) {
     const max   = Math.max(r, g, b);
     const min   = Math.min(r, g, b);
     const light = (max + min) / 2;
+
     if (max === min) {
         return { hue : 0, saturation : 0, lightness : light * 100 };
     }
+
     const delta = max - min;
     const sat   = light > .5 ? delta / (2 - max - min) : delta / (max + min);
     const hue   = max === r ? (g - b) / delta + (g < b ? 6 : 0)
         : max === g ? (b - r) / delta + 2
             : (r - g) / delta + 4;
+
     return { hue : hue * 60, saturation : sat * 100, lightness : light * 100 };
 }
 
@@ -198,11 +213,13 @@ function allApps() {
  */
 function renderSites() {
     const groups = [];
+
     for (const server of state.servers) {
         const title = server.project;
         if (groups.at(-1)?.project !== title) {
             groups.push({ title, kind : "servers", project : title, cards : [] });
         }
+
         groups.at(-1).cards.push({
             key      : `id:${server.id}`,
             target   : `data-app-id="${esc(server.id)}"`,
@@ -217,11 +234,13 @@ function renderSites() {
             port     : server.port,
         });
     }
+
     for (const app of state.apps) {
         const title = app.name.split(" - ")[0];
         if (groups.at(-1)?.project !== app.project) {
             groups.push({ title, kind : "apps", project : app.project, cards : [] });
         }
+
         groups.at(-1).cards.push({
             key      : `dir:${app.dir}`,
             target   : `data-app-dir="${esc(app.dir)}"`,
@@ -269,6 +288,7 @@ function renderSites() {
             .map((card) => `<i class="${card.running ? "on"
                 : card.starting || card.stopping ? "mid" : ""}" title="${esc(card.label)}"></i>`)
             .join("");
+
         return `
             <div class="panel app-block tone-${BLOCK_TONES[index % BLOCK_TONES.length]}"
                 style="--span:${span}; --cols:${cols};${iconTone(group.project)}">
@@ -320,6 +340,7 @@ function renderSites() {
     document.getElementById("tab-apache-count").textContent = String(
         new Set(state.vhosts.map((vhost) => vhost.name + vhost.root)).size,
     );
+
     renderVhosts();
 }
 
@@ -333,6 +354,7 @@ function renderSites() {
  */
 function markCards(cards) {
     const taken = new Set();
+
     for (const card of cards) {
         const letters = card.label.replace(/[^\p{L}\p{N}]/gu, "");
         const first   = letters[0] || "?";
@@ -381,6 +403,7 @@ function appCard(card) {
         : card.running ? "Running"
             : "Stopped";
     let actions = iconButton("start", `Start ${card.label}`, `data-app-start ${card.target}`);
+
     if (card.stopping || (card.starting && !card.running)) {
         state   = "mid";
         status  = card.stopping ? "Stopping…" : "Starting…";
@@ -393,6 +416,7 @@ function appCard(card) {
             ${iconButton("stop", `Stop ${card.label}`, `data-app-stop ${card.target}`)}
         `;
     }
+
     return `
         <div class="app-card ${state}">
             <span class="app-icon">${esc(card.mark)}<i class="dot ${state}"></i></span>
@@ -414,6 +438,7 @@ function appCard(card) {
  */
 function renderVhosts() {
     const rows = new Map();
+
     for (const vhost of state.vhosts) {
         const key = `${vhost.name}:${vhost.ssl ? 80 : vhost.port}:${vhost.root}`;
         const row = rows.get(key) || {
@@ -423,9 +448,11 @@ function renderVhosts() {
             http   : null,
             https  : null,
         };
+
         row[vhost.ssl ? "https" : "http"] = vhost;
         rows.set(key, row);
     }
+
     const link = (vhost, label) => vhost
         ? `<a href="${esc(vhost.url)}" target="_blank" rel="noopener">${label}</a>`
         : `<span class="muted">—</span>`;

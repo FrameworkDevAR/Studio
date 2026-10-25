@@ -138,6 +138,7 @@ function byProjectThenApp(a, b) {
         return projectRank(a.project) - projectRank(b.project)
             || a.project.localeCompare(b.project);
     }
+
     const main = settingsOf(a.dir).mainApp;
     if (a.app !== b.app && (a.app === main || b.app === main)) {
         return a.app === main ? -1 : 1;
@@ -197,12 +198,14 @@ function hostOf(dir) {
             return found[1].trim();
         }
     }
+
     for (const config of filesIn(dir, "vite.config.")) {
         const found = readFile(config).match(/^\s*host\s*:\s*"([^"]+)"/m);
         if (found) {
             return found[1];
         }
     }
+
     return "localhost";
 }
 

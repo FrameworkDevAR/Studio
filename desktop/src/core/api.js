@@ -15,6 +15,7 @@ async function api(path, body) {
         headers : { "Content-Type" : "application/json", "X-Studio" : "1" },
         body    : JSON.stringify(body),
     } : {};
+
     const response = await fetch(path, options);
     const data     = await response.json();
     if (!response.ok) {
@@ -33,6 +34,7 @@ async function act(body, button) {
     if (button) {
         button.disabled = true;
     }
+
     try {
         const result = await api("/api/action", body);
         toast(result.message);

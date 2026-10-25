@@ -27,6 +27,7 @@ function renderSidebar() {
     const apps = allApps();
     const health = stackHealth();
     const labels = { on : "All running", mid : "Partly running", off : "Stopped" };
+
     document.getElementById("brand-status").innerHTML =
         `<i class="dot ${health}"></i> ${labels[health]}`;
 
@@ -85,6 +86,7 @@ function renderStartButtons(health) {
     const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (
         document.querySelectorAll(`[data-action="start-all"], [data-action="restart-all"]`)
     );
+
     for (const button of buttons) {
         const restart = health === "on";
         button.dataset.action = restart ? "restart-all" : "start-all";
@@ -108,6 +110,7 @@ function renderOverview() {
 
     let title = "Everything is running";
     let text  = `Apache and MariaDB are up, with ${appsUp} app${appsUp === 1 ? "" : "s"} running.`;
+
     if (stopped.length === 2) {
         title = "The stack is stopped";
         text  = "Start all brings up Apache and MariaDB.";
@@ -115,6 +118,7 @@ function renderOverview() {
         title = `${stopped[0].name} is stopped`;
         text  = "Start it from Services, or with Start all.";
     }
+
     const health = stackHealth();
     const pill   = { on : "Healthy", mid : "Partly up", off : "Stopped" }[health];
     document.getElementById("hero-title").innerHTML = `${esc(title)}<span
@@ -223,14 +227,17 @@ function tile(view, label, value, sub, bad, tone, ownIcon = "") {
  */
 function renderRecentErrors() {
     const box = document.getElementById("recent-errors");
+
     if (!recentErrors.length) {
         box.innerHTML = `<div class="recent-ok"><i class="dot on"></i>
             No errors in the Apache log lately.</div>`;
         return;
     }
+
     box.innerHTML = recentErrors.map((line) => {
         const time    = line.match(/^\[([^\]]+)\]/)?.[1]?.replace(/\.\d+/, "") || "";
         const message = line.replace(/^(\[[^\]]*\]\s*)+/, "");
+
         // PHP writes a stack trace as one line with literal \n in it: the
         // first part is the error, the rest shows when the line is clicked.
         const [ first, ...rest ] = message.split("\\n");

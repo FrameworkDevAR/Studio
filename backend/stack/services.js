@@ -24,6 +24,7 @@ const SERVICES = {
 async function readServices() {
     /** @type {Object<string, { name: string, running: boolean, version: string }>} */
     const services = {};
+
     for (const [ formula, service ] of Object.entries(SERVICES)) {
         const found = await run("pgrep", service.process);
         services[formula] = {
@@ -32,6 +33,7 @@ async function readServices() {
             version : versionOf(formula),
         };
     }
+
     return services;
 }
 
@@ -59,15 +61,18 @@ async function serviceAction(formula, op) {
     if (!service || ![ "start", "stop", "restart" ].includes(op)) {
         throw new Error("Unknown service or operation");
     }
+
     if (op === "stop" || op === "restart") {
         await run(BREW, [ "services", "stop", formula ], 60_000);
     }
+
     if (op === "start" || op === "restart") {
         const result = await run(BREW, [ "services", service.start, formula ], 60_000);
         if (!result.ok) {
             throw new Error(result.stderr || `Could not start ${service.name}`);
         }
     }
+
     forgetDatabases();
     return {
         message : `${service.name} ${op === "stop" ? "stopped"

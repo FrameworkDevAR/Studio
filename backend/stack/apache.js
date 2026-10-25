@@ -46,6 +46,7 @@ const FILTER_DIRECTIVES = /^(Add|Set)(Input|Output)Filter(ByType)?$|^Filter(Prov
  */
 async function readModules() {
     const used = await readUsedModules();
+
     return readFile(HTTPD_CONF).split("\n")
         .map((line) => line.match(/^(#?)\s*LoadModule\s+(\w+)\s+(\S+)/))
         .filter(Boolean)
@@ -77,7 +78,9 @@ async function readUsedModules() {
     if (Date.now() - usedCache.at < 60_000) {
         return usedCache.data;
     }
+
     const moduleOf = await readDirectives();
+
     // A filter can name a module that is off, as a site's DEFLATE does when
     // deflate_module is, and fails without it. An <IfModule> block is skipped
     // without its module by design, so it only counts for the loaded ones.
@@ -91,6 +94,7 @@ async function readUsedModules() {
     ];
     const used     = new Set();
     const use      = (name, from = names) => from.has(name) && used.add(name);
+
     for (const file of files) {
         for (const line of readFile(file).split("\n")) {
             // The first word of a line is its directive; <Tags> are directives too.
@@ -98,7 +102,9 @@ async function readUsedModules() {
             if (!directive) {
                 continue;
             }
+
             use(moduleOf.get(directive.toLowerCase()), loaded);
+
             if (/^IfModule$/i.test(directive)) {
                 // <IfModule mod_deflate.c> or <IfModule deflate_module>, never <IfModule !…>
                 const named = rest.match(/^\s+(?:mod_)?(\w+?)(?:\.c|_module)?\s*>/)?.[1];
@@ -106,6 +112,7 @@ async function readUsedModules() {
                     use(`${named}_module`, loaded);
                 }
             }
+
             if (FILTER_DIRECTIVES.test(directive)) {
                 for (const [ filter ] of rest.matchAll(/\b[A-Z][A-Z_]+\b/g)) {
                     use(FILTER_MODULES[filter] || `${filter.toLowerCase()}_module`);
@@ -113,6 +120,7 @@ async function readUsedModules() {
             }
         }
     }
+
     usedCache = { at : Date.now(), data : used };
     return used;
 }
@@ -128,6 +136,7 @@ async function readDirectives() {
     const names    = new Set([ ...readFile(HTTPD_CONF).matchAll(/LoadModule\s+(\w+)/g) ]
         .map((found) => found[1]));
     const moduleOf = new Map();
+
     for (const [ , directive, source ] of (await run(HTTPD, [ "-L" ])).stdout
         .matchAll(/^<?(\w+) \((\w+)\.c\)$/gm)) {
         const base = source.replace(/^mod_/, "");
@@ -136,6 +145,7 @@ async function readDirectives() {
             moduleOf.set(directive.toLowerCase(), name);
         }
     }
+
     return moduleOf;
 }
 
@@ -154,6 +164,7 @@ function findHtaccess(roots, depth = 5) {
         } catch {
             return;
         }
+
         for (const entry of entries) {
             if (entry.isFile() && entry.name === ".htaccess") {
                 found.add(path.join(dir, entry.name));
@@ -162,6 +173,7 @@ function findHtaccess(roots, depth = 5) {
             }
         }
     };
+
     for (const root of new Set(roots.filter(Boolean))) {
         walk(root, 1);
     }
@@ -187,10 +199,12 @@ function readVhosts() {
     const vhosts = [];
     const blocks = readFile(VHOSTS)
         .matchAll(/<VirtualHost\s+[^:>]*:(\d+)>([\s\S]*?)<\/VirtualHost>/g);
+
     for (const [ , port, body ] of blocks) {
         const name = body.match(/^\s*ServerName\s+(\S+)/m)?.[1] || "localhost";
         const root = body.match(/^\s*DocumentRoot\s+"?([^"\n]+)"?/m)?.[1] || "";
         const ssl  = /^\s*SSLEngine\s+on/im.test(body);
+
         vhosts.push({
             name,
             port   : Number(port),
@@ -200,6 +214,7 @@ function readVhosts() {
             exists : fs.existsSync(root),
         });
     }
+
     return vhosts;
 }
 
@@ -272,12 +287,15 @@ function readIncludes() {
     const text  = readFile(HTTPD_CONF);
     const lines = text.split("\n");
     const found = [];
+
     lines.forEach((line, index) => {
         const match = line.match(INCLUDE_LINE);
         if (!match) {
             return;
         }
+
         const [ , , hash, , written ] = match;
+
         // The notes above it, past an <IfModule> line, and a lone #.
         let above = index - 1;
         let module = "";
@@ -286,6 +304,7 @@ function readIncludes() {
             module = guard[1].replace(/^mod_|\.c$|_module$/g, "");
             above -= 1;
         }
+
         const note = lines[above]?.match(/^\s*#\s*([^#].*?)\s*$/)?.[1] || "";
         const file = includedPath(text, written);
         found.push({
@@ -297,6 +316,7 @@ function readIncludes() {
             editable : !/[*?[]/.test(file) && fs.existsSync(file),
         });
     });
+
     return found;
 }
 
@@ -326,10 +346,13 @@ async function setInclude(file, enabled) {
     if (index === -1) {
         throw new Error(`${path.basename(String(file))} is not included in httpd.conf`);
     }
+
     lines[index] = lines[index].replace(INCLUDE_LINE, (line, lead, hash, directive, written) =>
         `${lead}${enabled ? "" : "#"}${directive} ${written}`);
+
     fs.writeFileSync(`${HTTPD_CONF}.bak-studio`, original);
     fs.writeFileSync(HTTPD_CONF, lines.join("\n"));
+
     const check = await run(APACHE_CTL, [ "configtest" ]);
     if (!check.ok) {
         fs.writeFileSync(HTTPD_CONF, original);
@@ -337,6 +360,7 @@ async function setInclude(file, enabled) {
             apacheProblems(check.stderr)[0] || "configtest failed"
         }`);
     }
+
     usedCache.at = 0;
     const reload = await reloadApache();
     return {
@@ -391,11 +415,14 @@ async function checkApacheFile(kind, text, target) {
     if (typeof text !== "string" || text.length > 1_000_000) {
         throw new Error("The text is missing or too long");
     }
+
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), "studio-apache-"));
+
     try {
         const copy = path.join(folder, path.basename(file));
         fs.writeFileSync(copy, text);
         let conf = copy;
+
         if (file !== HTTPD_CONF) {
             conf = path.join(folder, "httpd.conf");
             const main     = readFile(HTTPD_CONF);
@@ -407,10 +434,12 @@ async function checkApacheFile(kind, text, target) {
             }).join("\n");
             fs.writeFileSync(conf, included === main ? `${main}\nInclude ${copy}\n` : included);
         }
+
         const check = await run(HTTPD, [ "-t", "-f", conf ]);
         if (check.ok) {
             return { problems : [] };
         }
+
         const problems = apacheProblems(check.stderr, copy, path.basename(file));
         return { problems : problems.length ? problems : [ "Apache does not take it" ] };
     } finally {
@@ -458,15 +487,19 @@ async function saveApacheFile(kind, text, target) {
     if (problems.length) {
         throw new Error(`Apache does not take it, so it was not saved: ${problems[0]}`);
     }
+
     const original = readFile(file);
     const content  = text.endsWith("\n") ? text : `${text}\n`;
+
     fs.writeFileSync(`${file}.bak-studio`, original);
     fs.writeFileSync(file, content);
+
     const check = await run(APACHE_CTL, [ "configtest" ]);
     if (!check.ok) {
         fs.writeFileSync(file, original);
         throw new Error(`Apache rejected the change, so it was undone: ${check.stderr.trim()}`);
     }
+
     usedCache.at = 0;
     const reload = await reloadApache();
     return { message : `Saved ${path.basename(file)}. ${reload.message}` };
@@ -482,12 +515,14 @@ async function reloadApache() {
     if (!services.httpd.running) {
         return { message : "Apache is not running, so it will pick this up when it starts." };
     }
+
     const check = await run(APACHE_CTL, [ "configtest" ]);
     if (!check.ok) {
         throw new Error(`Apache config has an error, so it was not reloaded: ${
             check.stderr.trim()
         }`);
     }
+
     await run(APACHE_CTL, [ "-k", "graceful" ]);
     return { message : "Apache reloaded." };
 }

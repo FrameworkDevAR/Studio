@@ -17,11 +17,13 @@ function onClick(event) {
         navigate(link.getAttribute("href"));
         return;
     }
+
     const expandable = event.target.closest(".recent-line.expandable");
     if (expandable) {
         expandable.classList.toggle("open");
         return;
     }
+
     const target = event.target.closest("button, input[data-module], input[data-include]");
     if (!target) {
         return;
@@ -202,6 +204,7 @@ function onClick(event) {
             starting.set(which.id ? `id:${which.id}` : `dir:${which.dir}`, Date.now());
             renderSites();
         }
+
         act({ action, ...which }, target);
     } else if (target.dataset.clearLog) {
         clearLog(target.dataset.clearLog, target);
@@ -213,9 +216,11 @@ function onClick(event) {
             ...state.apps.filter((app) => app.project === group && !app.running)
                 .map((app) => `dir:${app.dir}`),
         ];
+
         for (const key of cards) {
             starting.set(key, Date.now());
         }
+
         renderSites();
         act({ action : "group-start", group }, target);
     } else if (target.dataset.phpTab) {

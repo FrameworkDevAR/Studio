@@ -25,6 +25,7 @@ function openExportDialog({ tables = null, rows = null } = {}) {
         [ "csv", "CSV" ],
         [ "json", "JSON" ],
     ];
+
     formDialog({
         title  : fromRows ? `Export rows of ${browse.table}` : `Export ${browse.db}`,
         body   : `
@@ -107,11 +108,13 @@ function openExportDialog({ tables = null, rows = null } = {}) {
                 const views = some.filter(
                     (box) => browse.tables.find((one) => one.name === box.value)?.view,
                 ).length;
+
                 for (const pane of /** @type {NodeListOf<HTMLElement>} */ (
                     fields.querySelectorAll("[data-export-for]")
                 )) {
                     pane.hidden = pane.dataset.exportFor !== kind;
                 }
+
                 const zip = kind === "csv" && some.length - views > 1;
                 /** @type {HTMLElement} */ (
                     fields.querySelector("[data-export-gzip]")
@@ -119,16 +122,19 @@ function openExportDialog({ tables = null, rows = null } = {}) {
                 fields.querySelector("[data-export-gzip-note]").textContent = kind === "sql"
                     ? "Much smaller; a .sql.gz imports here the same way"
                     : "Much smaller";
+
                 const count = fields.querySelector("[data-export-count]");
                 if (count) {
                     count.textContent = `${some.length} of ${boxes.length}`;
                 }
+
                 fields.querySelector("[data-export-note]").textContent = [
                     zip ? "Several tables as CSV come as a .zip, a file for each." : "",
                     kind !== "sql" && views
                         ? "Views are left out: they hold no rows of their own." : "",
                 ].filter(Boolean).join(" ");
             };
+
             fields.addEventListener("click", (event) => {
                 const button = /** @type {HTMLElement} */ (
                     /** @type {HTMLElement} */ (event.target).closest("button")
@@ -149,28 +155,34 @@ function openExportDialog({ tables = null, rows = null } = {}) {
                 update();
             });
             form.addEventListener("change", update);
+
             // The list fades at the edges it scrolls past, once the dialog shows and has its size.
             const list = /** @type {HTMLElement} */ (fields.querySelector(".export-tables"));
             if (list) {
                 requestAnimationFrame(() => watchFades(list));
             }
+
             fields.querySelector("[data-export-filter]")?.addEventListener("input", (event) => {
                 const search = /** @type {HTMLInputElement} */ (event.target).value
                     .trim()
                     .toLowerCase();
+
                 for (const box of /** @type {NodeListOf<HTMLInputElement>} */ (
                     fields.querySelectorAll("input[name=tables]")
                 )) {
                     box.closest("label").hidden = !box.value.toLowerCase().includes(search);
                 }
+
                 fadeEdges(fields.querySelector(".export-tables"));
             });
+
             // Enter in the filter filters, and doesn't export.
             fields.querySelector("[data-export-filter]")?.addEventListener("keydown", (event) => {
                 if (/** @type {KeyboardEvent} */ (event).key === "Enter") {
                     event.preventDefault();
                 }
             });
+
             update();
         },
         submit : async (form) => {
@@ -188,6 +200,7 @@ function openExportDialog({ tables = null, rows = null } = {}) {
                 header    : data.get("header") === "on",
                 gzip      : data.get("gzip") === "on",
             };
+
             if (fromRows) {
                 const part = String(data.get("rows"));
                 Object.assign(spec, { table : browse.table, sort : browse.sort, dir : browse.dir },
@@ -197,6 +210,7 @@ function openExportDialog({ tables = null, rows = null } = {}) {
             } else {
                 spec.tables = data.getAll("tables").map(String);
             }
+
             const { id } = await api("/api/action", spec);
             window.location.assign(`/api/db-export?id=${encodeURIComponent(id)}`);
             return { message : "Exporting: the file downloads as it is written" };
@@ -237,6 +251,7 @@ function importDatabase() {
             if (!file) {
                 throw new Error("Choose the file to import first");
             }
+
             const status = document.getElementById("form-status");
             const result = await upload(`/api/db-import?${new URLSearchParams({
                 db   : browse.db,
@@ -246,10 +261,12 @@ function importDatabase() {
                     ? `Sending ${Math.round(done * 100)}% of ${bytes(file.size)}…`
                     : "MariaDB is running it…";
             });
+
             await loadTables();
             if (browse.tab === "rows") {
                 loadRows();
             }
+
             return result;
         },
     });
@@ -271,6 +288,7 @@ function parseCsv(text, separator, most = Infinity) {
         field  = "";
         quoted = false;
     };
+
     for (let at = 0; at < text.length && rows.length < most; at++) {
         const char = text[at];
         if (inQuotes) {
@@ -299,10 +317,12 @@ function parseCsv(text, separator, most = Infinity) {
             field += char;
         }
     }
+
     if (rows.length < most && (field !== "" || row.length)) {
         endField();
         rows.push(row);
     }
+
     return rows;
 }
 
@@ -336,10 +356,12 @@ async function openCsvImport(table) {
         toast(error.message, true);
         return;
     }
+
     const targets = structure.columns.filter(
         (column) => ![ "virtual", "stored" ].includes(column.value.kind),
     );
     let   sample  = "";
+
     formDialog({
         title  : `Import a CSV into ${table}`,
         text   :
@@ -381,6 +403,7 @@ async function openCsvImport(table) {
                     map.innerHTML = "";
                     return;
                 }
+
                 const separator = /** @type {HTMLSelectElement} */ (
                     form.elements.namedItem("separator")
                 ).value;
@@ -397,6 +420,7 @@ async function openCsvImport(table) {
                     (column) => column.name.toLowerCase()
                         === String(name ?? "").trim().toLowerCase(),
                 ));
+
                 map.innerHTML = `
                     <div class="csv-map-head"><span>In the file</span><span>Into
                         ${esc(table)}</span></div>
@@ -412,6 +436,7 @@ async function openCsvImport(table) {
                             .map((value) => (value === null ? "NULL"
                                 : value.replace(/\s+/g, " ")))
                             .join(" · ");
+
                         return `
                             <div class="csv-map-row">
                                 <div class="csv-map-file"><strong>${esc(name
@@ -429,6 +454,7 @@ async function openCsvImport(table) {
                     }).join("")}
                 `;
             };
+
             setUpFileDrop(/** @type {HTMLElement} */ (
                 fields.querySelector("[data-file-drop]")
             ), async (file) => {
@@ -439,6 +465,7 @@ async function openCsvImport(table) {
                 ).value = guessSeparator(sample);
                 draw(true);
             });
+
             form.elements.namedItem("separator").addEventListener("change", () => draw(true));
             form.elements.namedItem("header").addEventListener("change", () => draw(true));
         },
@@ -449,6 +476,7 @@ async function openCsvImport(table) {
             if (!file) {
                 throw new Error("Choose the file to import first");
             }
+
             const data    = new FormData(form);
             const mapping = [ ...form.querySelectorAll("[data-csv-column]") ]
                 .map((one) => /** @type {HTMLSelectElement} */ (one).value || null);
@@ -468,10 +496,12 @@ async function openCsvImport(table) {
                     ? `Sending ${Math.round(done * 100)}% of ${bytes(file.size)}…`
                     : "MariaDB is adding the rows…";
             });
+
             await loadTables();
             if (browse.tab === "rows" && browse.table === table) {
                 loadRows();
             }
+
             return result;
         },
     });
@@ -497,6 +527,7 @@ function setUpFileDrop(box, picked = null) {
         box.querySelector("small").textContent  = file
             ? `${bytes(file.size)} · click to pick another` : "or drop it here";
     };
+
     input.addEventListener("change", show);
     box.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -525,6 +556,7 @@ function upload(url, file, progress) {
         const request = new XMLHttpRequest();
         request.open("POST", url);
         request.setRequestHeader("X-Studio", "1");
+
         request.upload.onprogress = (event) => progress(event.loaded / event.total);
         request.upload.onload     = () => progress(1);
         request.onload  = () => {
@@ -536,6 +568,7 @@ function upload(url, file, progress) {
             }
         };
         request.onerror = () => reject(new Error("The file could not be sent"));
+
         request.send(file);
     });
 }

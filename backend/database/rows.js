@@ -54,10 +54,12 @@ async function readRows({
         }
         return LONG.test(column.dataType) ? `LEFT(${name}, ${PREVIEW + 1}) AS ${name}` : name;
     });
+
     const where = whereOf(columns, filters, match);
     const order = columns.some((column) => column.name === sort)
         ? `ORDER BY ${ident(sort)} ${dir === "desc" ? "DESC" : "ASC"}`
         : structure.primary.length ? `ORDER BY ${structure.primary.map(ident).join(", ")}` : "";
+
     const at      = Math.max(0, (Math.floor(Number(page)) || 1) - 1) * PAGE;
     // A filter reads every row, which takes a while in a table of millions.
     const [ set ] = await query(
@@ -66,6 +68,7 @@ async function readRows({
         "",
         90_000,
     );
+
     return {
         structure,
         page : at / PAGE + 1,
@@ -89,6 +92,7 @@ async function countRows({ db, table, filters = "[]", match = "all" }) {
         "",
         90_000,
     );
+
     return { count : Number(set.rows[0][0]) };
 }
 
@@ -100,6 +104,7 @@ async function countRows({ db, table, filters = "[]", match = "all" }) {
  */
 async function countSmallTables(db) {
     db = await existingDatabase(db);
+
     const [ set ] = await query(`
         SELECT TABLE_NAME FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = ${quote(db)} AND TABLE_TYPE = 'BASE TABLE' AND ENGINE = 'InnoDB'
@@ -108,6 +113,7 @@ async function countSmallTables(db) {
     if (!set.rows.length) {
         return {};
     }
+
     const [ counts ] = await query(
         set.rows
             .map(([ name ]) => `SELECT ${quote(name)}, COUNT(*) FROM ${ident(db)}.${ident(name)}`)
@@ -115,6 +121,7 @@ async function countSmallTables(db) {
         "",
         30_000,
     );
+
     return Object.fromEntries(counts.rows.map(([ name, count ]) => [ name, Number(count) ]));
 }
 
@@ -163,27 +170,32 @@ const NEGATIVE = {
  */
 function whereOf(columns, filters, match) {
     let rules;
+
     try {
         rules = typeof filters === "string" ? JSON.parse(filters) : filters;
     } catch {
         throw new Error("The filters could not be read");
     }
+
     const conditions = [].concat(rules || [])
         .filter((rule) => rule && FILTERS[rule.op])
         .map((rule) => {
             const value  = String(rule.value ?? "");
             const second = String(rule.value2 ?? "");
+
             if (rule.column !== "*") {
                 if (!columns.some((column) => column.name === rule.column)) {
                     throw new Error(`There is no column ${rule.column}`);
                 }
                 return `(${FILTERS[rule.op](ident(rule.column), value, second)})`;
             }
+
             const positive = NEGATIVE[rule.op] || rule.op;
             const each     = columns.filter((column) => !column.binary)
                 .map((column) => FILTERS[positive](ident(column.name), value, second));
             return `${NEGATIVE[rule.op] ? "NOT " : ""}(${each.join(" OR ")})`;
         });
+
     return conditions.length ? `WHERE ${conditions.join(match === "any" ? " OR " : " AND ")}` : "";
 }
 
@@ -225,12 +237,14 @@ async function readRow({ db, table, key, keys = null, hex = false }) {
                 CONCAT(LENGTH(${ident(column.name)}), ' bytes')) AS ${ident(column.name)}`));
     const from      = `SELECT ${select.join(", ")}
         FROM ${ident(structure.db)}.${ident(structure.table)}`;
+
     if (keys) {
         const [ set ] = await query(
             `${from} WHERE ${keysWhere(structure, keys)} LIMIT ${keys.length};`,
             "",
             90_000,
         );
+
         const places  = structure.primary
             .map((name) => structure.columns.findIndex((column) => column.name === name));
         const byKey   = new Map(set.rows.map((row) => [
@@ -242,12 +256,15 @@ async function readRow({ db, table, key, keys = null, hex = false }) {
                 structure.primary.map((name) => one[name] ?? null),
             )))
             .filter(Boolean);
+
         return { structure, rows };
     }
+
     const [ set ] = await query(`${from} WHERE ${keyWhere(structure, key)} LIMIT 1;`);
     if (!set.rows.length) {
         throw new Error("The row is gone");
     }
+
     return { structure, row : set.rows[0] };
 }
 
@@ -268,22 +285,27 @@ async function saveRow({ db, table, key, values }) {
     const columns   = structure.columns
         .filter((column) => !column.binary && values && Object.hasOwn(values, column.name));
     const literal   = (value) => (value === null ? "NULL" : quote(String(value)));
+
     if (key) {
         if (!columns.length) {
             return { message : "Nothing to save" };
         }
+
         const set = columns
             .map((column) => `${ident(column.name)} = ${literal(values[column.name])}`)
             .join(", ");
+
         await change(`UPDATE ${target} SET ${set} WHERE ${keyWhere(structure, key)} LIMIT 1`);
         return { message : `Saved the row of ${structure.table}` };
     }
+
     const names = columns.map((column) => ident(column.name)).join(", ");
     const added = await change(
         `INSERT INTO ${target} (${names})
         VALUES (${columns.map((column) => literal(values[column.name])).join(", ")})`,
         false,
     );
+
     return { message : `Added a row to ${structure.table}${added.id && added.id !== "0"
         ? `, id ${added.id}` : ""}` };
 }
@@ -304,12 +326,14 @@ async function setColumn({ db, table, keys, column, value = null }) {
     if (value === null && !found.nullable) {
         throw new Error(`${column} doesn't take NULL`);
     }
+
     const { count } = await change(
         `UPDATE ${ident(structure.db)}.${ident(structure.table)}
         SET ${ident(column)} = ${value === null ? "NULL" : quote(String(value))}
         WHERE ${keysWhere(structure, keys)} LIMIT ${keys.length}`,
         false,
     );
+
     return { message : `Set ${column} to ${value === null ? "NULL" : "the value"} in ${count === 1
         ? "1 row" : `${count} rows`}`, count };
 }
@@ -322,16 +346,19 @@ async function setColumn({ db, table, keys, column, value = null }) {
 async function deleteRow({ db, table, key, keys = null }) {
     const structure = await readStructure(db, table);
     const target    = `${ident(structure.db)}.${ident(structure.table)}`;
+
     if (keys) {
         const { count } = await change(
             `DELETE FROM ${target} WHERE ${keysWhere(structure, keys)} LIMIT ${keys.length}`,
             false,
         );
         const gone      = keys.length - count;
+
         return { message : `Deleted ${count === 1
             ? "1 row" : `${count} rows`} of ${structure.table}${gone
             ? `; ${gone} ${gone === 1 ? "was" : "were"} gone already` : ""}`, count };
     }
+
     await change(`DELETE FROM ${target} WHERE ${keyWhere(structure, key)} LIMIT 1`);
     return { message : `Deleted the row of ${structure.table}` };
 }
@@ -350,6 +377,7 @@ async function change(statement, one = true) {
     if (one && count === "0") {
         throw new Error("No row changed: it is gone, or already had these values");
     }
+
     forgetDatabases();
     return { count : Number(count), id };
 }
@@ -369,6 +397,7 @@ function keyWhere(structure, key) {
     if (!key || typeof key !== "object") {
         throw new Error("Which row?");
     }
+
     return structure.primary.map((column) => {
         if (!Object.hasOwn(key, column)) {
             throw new Error(`The row's ${column} is missing`);

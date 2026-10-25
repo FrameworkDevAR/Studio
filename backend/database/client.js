@@ -32,6 +32,7 @@ async function query(sql, db = "", timeout = 30_000) {
             ? `${said[2]}${said[1] && sql.includes("\n") ? ` (${said[1].trim()})` : ""}`
             : result.stderr.trim() || "MariaDB did not answer");
     }
+
     return parseResults(result.stdout);
 }
 
@@ -42,25 +43,31 @@ async function query(sql, db = "", timeout = 30_000) {
  */
 function parseResults(xml) {
     const sets = [];
+
     for (const set of xml.matchAll(
         /<resultset statement="([^"]*)"[^>]*>([\s\S]*?)<\/resultset>/g,
     )) {
         let columns = [];
         const rows  = [];
+
         for (const row of set[2].matchAll(/<row>([\s\S]*?)<\/row>/g)) {
             const names  = [];
             const values = [];
+
             for (const field of row[1].matchAll(
                 /<field name="([^"]*)"(?:\s+xsi:nil="true"\s*\/>|>([\s\S]*?)<\/field>)/g,
             )) {
                 names.push(decode(field[1]));
                 values.push(field[2] === undefined ? null : decode(field[2]));
             }
+
             columns = columns.length ? columns : names;
             rows.push(values);
         }
+
         sets.push({ statement : decode(set[1]), columns, rows });
     }
+
     return sets;
 }
 
@@ -98,9 +105,11 @@ async function existingDatabase(name) {
         forgetDatabases();
         ({ list } = await readDatabases());
     }
+
     if (!list.some((db) => db.name === name)) {
         throw new Error(`There is no database ${name}`);
     }
+
     return name;
 }
 
@@ -112,11 +121,13 @@ async function existingDatabase(name) {
  */
 async function existingTable(db, table) {
     db = await existingDatabase(db);
+
     const [ set ] = await query(`SELECT TABLE_NAME FROM information_schema.TABLES
         WHERE TABLE_SCHEMA = ${quote(db)} AND TABLE_NAME = ${quote(String(table || ""))};`);
     if (!set.rows.length) {
         throw new Error(`There is no table ${table} in ${db}`);
     }
+
     return { db, table : set.rows[0][0] };
 }
 

@@ -39,6 +39,7 @@ function columnsOf(table) {
             encodeURIComponent(table)}`)
             .then((structure) => {
                 columnCache.set(key, structure.columns);
+
                 // The list shows them once they come, if the box is still being typed in.
                 if (document.activeElement?.id === "sql-text") {
                     showCompletion();
@@ -46,6 +47,7 @@ function columnsOf(table) {
             })
             .catch(() => columnCache.set(key, []));
     }
+
     return columnCache.get(key) || [];
 }
 
@@ -64,6 +66,7 @@ function inQuoteOrComment(text, caret) {
                     at++;
                 }
             }
+
             if (at >= caret) {
                 return true;
             }
@@ -81,6 +84,7 @@ function inQuoteOrComment(text, caret) {
             at = end + 1;
         }
     }
+
     return false;
 }
 
@@ -93,6 +97,7 @@ function inQuoteOrComment(text, caret) {
 function tablesIn(statement) {
     const names = new Map();
     const known = new Set(browse.tables.map((one) => one.name));
+
     for (const found of statement.matchAll(
         new RegExp(
             "\\b(?:FROM|JOIN|UPDATE|INTO)\\s+(?:`((?:[^`]|``)+)`|([\\w$]+))" +
@@ -105,12 +110,14 @@ function tablesIn(statement) {
         if (!known.has(table)) {
             continue;
         }
+
         names.set(table, table);
         if (alias && !SQL_WORDS.has(alias.toUpperCase())
             && !SQL_MORE.includes(alias.toUpperCase())) {
             names.set(alias, table);
         }
     }
+
     return names;
 }
 
@@ -130,11 +137,13 @@ function showCompletion(asked = false) {
     if (text.selectionStart !== text.selectionEnd || inQuoteOrComment(text.value, caret)) {
         return hideCompletion();
     }
+
     const before = text.value.slice(0, caret);
     const [ , owner = "", word ] = before.match(/(?:`?([\w$]+)`?\.)?`?([\w$]*)$/);
     if (!word && !owner && !asked) {
         return hideCompletion();
     }
+
     const statement = statementsOf(text.value)
         .find((one) => caret >= one.start && caret <= one.end + 1);
     const tables    = tablesIn(statement
@@ -142,6 +151,7 @@ function showCompletion(asked = false) {
         : text.value);
     const typed     = word.toLowerCase();
     const lower     = word && word === word.toLowerCase();
+
     let items = [];
     if (owner) {
         const table = tables.get(owner)
@@ -159,6 +169,7 @@ function showCompletion(asked = false) {
             kind : one.view ? "view" : "table",
             name : true,
         }));
+
         // A backtick opening the name doesn't hide the FROM before it.
         if (TABLE_AFTER.test(before.slice(0, before.length - word.length).replace(/`$/, ""))) {
             items = tableItems;
@@ -178,9 +189,11 @@ function showCompletion(asked = false) {
                 kind : "function",
                 call : true,
             }));
+
             items = [ ...columns, ...tableItems, ...words, ...calls ];
         }
     }
+
     // Starting with what is typed first, then holding it; what is typed whole already, left out.
     const starts = items.filter((one) => one.text.toLowerCase().startsWith(typed));
     const holds  = typed.length > 1
@@ -197,6 +210,7 @@ function showCompletion(asked = false) {
     if (!shown.length) {
         return hideCompletion();
     }
+
     const box = document.getElementById("sql-complete");
     completion = {
         items : shown,
@@ -204,6 +218,7 @@ function showCompletion(asked = false) {
         from  : caret - word.length - (/`$/.test(before.slice(0, caret - word.length)) ? 1 : 0),
         to    : caret,
     };
+
     box.innerHTML = shown.map((one, at) => `
         <button type="button" role="option" data-complete="${at}" class="${at ? "" : "active"}"
             tabindex="-1">
@@ -211,6 +226,7 @@ function showCompletion(asked = false) {
                 class="complete-kind">${esc(one.kind)}</span>
         </button>
     `).join("");
+
     box.hidden = false;
     placeCompletion(text, completion.from);
 }
@@ -225,6 +241,7 @@ function placeCompletion(text, at) {
     const box    = document.getElementById("sql-complete");
     const mirror = document.createElement("div");
     const style  = getComputedStyle(text);
+
     for (const name of [
         "font",
         "letterSpacing",
@@ -239,6 +256,7 @@ function placeCompletion(text, at) {
     ]) {
         mirror.style[name] = style[name];
     }
+
     Object.assign(mirror.style, {
         position   : "absolute",
         visibility : "hidden",
@@ -246,15 +264,18 @@ function placeCompletion(text, at) {
         left       : "-9999px",
         width      : `${text.clientWidth}px`,
     });
+
     mirror.textContent = text.value.slice(0, at);
     const mark = document.createElement("span");
     mark.textContent = "​";
     mirror.append(mark);
     document.body.append(mirror);
+
     const area = text.getBoundingClientRect();
     const x    = area.left + mark.offsetLeft - text.scrollLeft;
     const y    = area.top + mark.offsetTop - text.scrollTop + parseFloat(style.lineHeight);
     mirror.remove();
+
     box.style.left = `${Math.max(8, Math.min(x - 10, innerWidth - box.offsetWidth - 8))}px`;
     // Above the line when there is no room under it.
     box.style.top  = `${y + 4 + box.offsetHeight > innerHeight - 8
@@ -280,6 +301,7 @@ function stepCompletion(by) {
     const box = document.getElementById("sql-complete");
     completion.at = (completion.at + by + completion.items.length) % completion.items.length;
     box.querySelector(".active")?.classList.remove("active");
+
     const button = box.querySelector(`[data-complete="${completion.at}"]`);
     button.classList.add("active");
     button.scrollIntoView({ block : "nearest" });
@@ -296,11 +318,13 @@ function acceptCompletion(at = completion.at) {
     const item = completion.items[at];
     const bare = /^[A-Za-z_][\w$]*$/.test(item.text) && !SQL_WORDS.has(item.text.toUpperCase());
     const put  = item.name && !bare ? `\`${item.text.replace(/`/g, "``")}\`` : item.text;
+
     // A backtick typed before the word is the name's own, replaced with it.
     text.setRangeText(put, completion.from, completion.to, "end");
     if (item.call) {
         text.selectionStart = text.selectionEnd = text.selectionEnd - 1;
     }
+
     hideCompletion();
     text.focus();
     browse.sql[browse.db] = text.value;
@@ -322,6 +346,7 @@ function completionKeys(event) {
     if (!completion) {
         return false;
     }
+
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         stepCompletion(event.key === "ArrowDown" ? 1 : -1);
@@ -336,5 +361,6 @@ function completionKeys(event) {
     } else {
         return false;
     }
+
     return true;
 }

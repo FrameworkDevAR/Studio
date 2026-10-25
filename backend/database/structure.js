@@ -37,21 +37,25 @@ const INDEX_KINDS = {
 async function addIndex({ db, table, name, kind, columns }) {
     const structure = await readStructure(db, table);
     const list      = [].concat(columns || []).map(String);
+
     if (!INDEX_KINDS[kind]) {
         throw new Error("Pick a kind of index");
     }
     if (!list.length) {
         throw new Error("Pick the columns it is on");
     }
+
     for (const column of list) {
         if (!structure.columns.some((one) => one.name === column)) {
             throw new Error(`There is no column ${column}`);
         }
     }
+
     const label = kind === "primary" ? "" : String(name || "").trim();
     if (label && !/^[\w$]{1,64}$/.test(label)) {
         throw new Error("An index name is up to 64 letters, digits, _ or $");
     }
+
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)}
         ADD ${INDEX_KINDS[kind]}${label ? ` ${ident(label)}` : ""}
@@ -59,6 +63,7 @@ async function addIndex({ db, table, name, kind, columns }) {
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Added ${kind === "primary" ? "the primary key"
         : `the index ${label || list[0]}`} to ${structure.table}` };
@@ -74,12 +79,14 @@ async function dropIndex({ db, table, name }) {
     if (!structure.indexes.some((index) => index.name === name)) {
         throw new Error(`${structure.table} has no index ${name}`);
     }
+
     const drop = name === "PRIMARY" ? "DROP PRIMARY KEY" : `DROP INDEX ${ident(name)}`;
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)} ${drop};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Dropped ${name === "PRIMARY" ? "the primary key"
         : `the index ${name}`} of ${structure.table}` };
@@ -122,6 +129,7 @@ async function saveForeignKey({
     const list      = [].concat(columns).map(String);
     const refs      = [].concat(refColumns).map(String);
     const label     = String(name || "").trim();
+
     if (!list.length || list.length !== refs.length) {
         throw new Error("Pair each column with the column it refers to");
     }
@@ -134,20 +142,24 @@ async function saveForeignKey({
     if (replace && !structure.foreign.some((key) => key.name === replace)) {
         throw new Error(`${structure.table} has no foreign key ${replace}`);
     }
+
     const target = await readStructure(structure.db, refTable);
     const all    = await readTables(structure.db);
+
     for (const one of [ structure.table, target.table ]) {
         const engine = all.find((item) => item.name === one)?.engine;
         if (engine !== "InnoDB") {
             throw new Error(`${one} is ${engine || "a view"}: foreign keys need InnoDB tables`);
         }
     }
+
     const pairs = list.map((name, at) => {
         const here  = structure.columns.find((column) => column.name === name);
         const there = target.columns.find((column) => column.name === refs[at]);
         if (!here || !there) {
             throw new Error(`There is no column ${here ? `${refs[at]} in ${target.table}` : name}`);
         }
+
         if (keyType(here) !== keyType(there)) {
             throw new Error(
                 `${here.name} is ${here.type} and ${target.table}.${there.name} is ${there.type}: `
@@ -157,8 +169,10 @@ async function saveForeignKey({
         if ((onDelete === "SET NULL" || onUpdate === "SET NULL") && !here.nullable) {
             throw new Error(`SET NULL needs ${here.name} to take NULL`);
         }
+
         return [ here, there ];
     });
+
     // The columns referred to lead an index there, as MariaDB looks them up by it.
     if (!target.indexes.some((index) => refs.every((column, at) => index.columns[at] === column))) {
         throw new Error(
@@ -166,15 +180,18 @@ async function saveForeignKey({
             + "or refer to its primary key",
         );
     }
+
     const specs = [];
     if (replace) {
         specs.push(`DROP FOREIGN KEY ${ident(replace)}`);
     }
+
     specs.push(`ADD${label ? ` CONSTRAINT ${ident(label)}` : ""}
         FOREIGN KEY (${pairs.map(([ here ]) => ident(here.name)).join(", ")})
         REFERENCES ${ident(target.table)}
         (${pairs.map(([ , there ]) => ident(there.name)).join(", ")})
         ON DELETE ${onDelete} ON UPDATE ${onUpdate}`);
+
     try {
         await query(
             `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)} ${specs.join(", ")};`,
@@ -188,13 +205,16 @@ async function saveForeignKey({
                 + `${target.table}: fix or clear them first`,
             );
         }
+
         if (/errno: 121|Duplicate key on write|duplicate.*constraint/i.test(error.message)) {
             throw new Error(
                 `There is a foreign key named ${label} in this database already: pick another name`,
             );
         }
+
         throw error;
     }
+
     forgetDatabases();
     return { message : `${replace ? "Changed" : "Added"} the foreign key ${label
         || `on ${list.join(", ")}`}` };
@@ -210,12 +230,14 @@ async function dropForeignKey({ db, table, name }) {
     if (!structure.foreign.some((key) => key.name === name)) {
         throw new Error(`${structure.table} has no foreign key ${name}`);
     }
+
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)}
         DROP FOREIGN KEY ${ident(name)};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Dropped the foreign key ${name}` };
 }
@@ -248,6 +270,7 @@ async function columnSql({
 }) {
     name = String(name || "");
     type = String(type || "").trim();
+
     if (!name.trim() || name.length > 64 || /\s$/.test(name)) {
         throw new Error("A column's name is 1 to 64 characters, not ending in a space");
     }
@@ -256,6 +279,7 @@ async function columnSql({
             || "An empty type"} is not a type MariaDB knows, as int, varchar(255) or enum('a','b')`,
         );
     }
+
     const parts = [ ident(name), type ];
     if (collation) {
         if (!TEXT_TYPE.test(type)) {
@@ -264,8 +288,10 @@ async function columnSql({
         if (!(await readCharsets()).some((set) => set.collations.includes(collation))) {
             throw new Error(`MariaDB has no collation ${collation}`);
         }
+
         parts.push(`COLLATE ${collation}`);
     }
+
     const expression = (text) => {
         if (!String(text).trim() || /;/.test(text)) {
             throw new Error(
@@ -274,10 +300,12 @@ async function columnSql({
         }
         return String(text).trim();
     };
+
     if (value === "virtual" || value === "stored") {
         parts.push(`AS (${expression(preset)}) ${value === "stored" ? "STORED" : "VIRTUAL"}`);
     } else {
         parts.push(nullable ? "NULL" : "NOT NULL");
+
         if (value === "null") {
             if (!nullable) {
                 throw new Error("A column that doesn't take NULL can't start with it");
@@ -290,6 +318,7 @@ async function columnSql({
         } else if (value !== "none") {
             throw new Error("Pick what the column starts with");
         }
+
         if (update) {
             parts.push("ON UPDATE current_timestamp()");
         }
@@ -297,12 +326,15 @@ async function columnSql({
             parts.push("AUTO_INCREMENT");
         }
     }
+
     if (String(comment).length > 1024) {
         throw new Error("A column's comment is up to 1024 characters");
     }
+
     if (comment) {
         parts.push(`COMMENT ${quote(String(comment))}`);
     }
+
     return parts.join(" ");
 }
 
@@ -337,15 +369,18 @@ async function saveColumn({ db, table, column, definition, after }) {
     const structure = await readStructure(db, table);
     const target    = `${ident(structure.db)}.${ident(structure.table)}`;
     const sql       = await columnSql(definition || {});
+
     if (column && !structure.columns.some((one) => one.name === column)) {
         throw new Error(`${structure.table} has no column ${column}`);
     }
+
     await query(
         `ALTER TABLE ${target} ${column ? `CHANGE COLUMN ${ident(column)}` : "ADD COLUMN"}
         ${sql}${placeOf(structure, after)};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : column ? `Changed the column ${definition.name}`
         : `Added the column ${definition.name} to ${structure.table}` };
@@ -366,12 +401,14 @@ async function moveColumn({ db, table, column, after }) {
     if (!line || !structure.columns.some((one) => one.name === column)) {
         throw new Error(`${structure.table} has no column ${column}`);
     }
+
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)}
         MODIFY COLUMN ${line.replace(/,$/, "")}${placeOf(structure, after) || " FIRST"};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Moved the column ${column}` };
 }
@@ -389,12 +426,14 @@ async function dropColumn({ db, table, column }) {
     if (structure.columns.length === 1) {
         throw new Error("A table keeps at least one column: drop the table instead");
     }
+
     await query(
         `ALTER TABLE ${ident(structure.db)}.${ident(structure.table)}
         DROP COLUMN ${ident(column)};`,
         "",
         10 * 60_000,
     );
+
     forgetDatabases();
     return { message : `Dropped the column ${column}` };
 }
