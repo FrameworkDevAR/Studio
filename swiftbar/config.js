@@ -44,6 +44,7 @@ const PROJECTS = (CONFIG.projects || []).map((project) => ({
     mainApp   : project.mainApp || "desktop",
     nestedApp : project.nestedApp || "web",
     servers   : project.servers || [],
+    sites     : project.sites || [],
 }));
 
 // The settings of a folder that belongs to no project.

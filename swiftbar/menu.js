@@ -190,6 +190,10 @@ function renderProjects(state) {
         const running = worktrees.reduce((count, worktree) => count + worktree.running.length, 0);
         item(running ? `${title} — ${running} running` : title, { size : 13 });
 
+        for (const site of project.sites) {
+            item(`🌐 ${site.name}`, onClick("open-url", site.url, { refresh : false }));
+        }
+
         for (const worktree of worktrees.filter((one) => one.running.length)) {
             for (const server of worktree.running) {
                 const port = portByPid[server.pid];

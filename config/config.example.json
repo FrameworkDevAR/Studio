@@ -40,8 +40,11 @@
             "dir"  : "~/Projects/Blog/blog-app"
         },
         {
-            "name" : "Clinic",
-            "dir"  : "~/Projects/Clinic/clinic-admin"
+            "name"  : "Clinic",
+            "dir"   : "~/Projects/Clinic/clinic-admin",
+            "sites" : [
+                { "name" : "Site", "url" : "https://site.clinic.local/" }
+            ]
         },
         {
             "name"      : "Shop",

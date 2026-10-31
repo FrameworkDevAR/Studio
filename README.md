@@ -82,6 +82,8 @@ object with its own settings:
 - `servers`: instead of a `dir`, servers of the project's own: an id, a name, its
   folder and the command that starts it. The port is the server's own: it is found
   by what listens from that folder. The project's `name` titles their section.
+- `sites`: the sites Apache serves for the project, listed in the menu under its title:
+  a name and the url it opens. They are only listed, never checked.
 
 Folders may start with `~`.
 
