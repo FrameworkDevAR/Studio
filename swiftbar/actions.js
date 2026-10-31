@@ -250,10 +250,30 @@ function openInBrowser(url) {
         return;
     }
 
+    if (hasHeadlessCopy(BROWSER)) {
+        execFileSync("/usr/bin/open", [ "-a", BROWSER, url ]);
+        return;
+    }
+
     try {
         focusTab(BROWSER, url);
     } catch {
         execFileSync("/usr/bin/open", [ "-a", BROWSER, url ]);
+    }
+}
+
+/**
+ * Whether a headless copy of the browser is running. AppleScript can reach that copy instead
+ * of the one on screen, and the page opens where nobody sees it, while `open` never does.
+ * @param {string} browser
+ * @returns {boolean}
+ */
+function hasHeadlessCopy(browser) {
+    try {
+        execFileSync("/usr/bin/pgrep", [ "-f", `${browser}\\.app/.* --headless` ]);
+        return true;
+    } catch {
+        return false;
     }
 }
 
