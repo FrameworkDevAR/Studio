@@ -1,6 +1,6 @@
 // The Sites page: the apps and servers in a block per project, and the vhosts.
 
-import { esc, shortPath } from "../core/helpers.js";
+import { esc, icon, shortPath } from "../core/helpers.js";
 import { starting, state } from "../core/state.js";
 import { projectTitle } from "./projects.js";
 
@@ -516,7 +516,8 @@ function emptyText(project) {
     return `
         <div class="block-empty">
             <span class="muted">${where}</span>
-            <button class="ghost small" data-server-add="${project.index}">Add site</button>
+            <button class="ghost small"
+                data-server-add="${project.index}">${icon("plus")}Add site</button>
         </div>
     `;
 }

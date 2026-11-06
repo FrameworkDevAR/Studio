@@ -1,7 +1,7 @@
 // The Apache page: its modules and the config files it includes, and turning one on or off.
 
 import { act } from "../core/api.js";
-import { ask, esc, markColumnEnds } from "../core/helpers.js";
+import { ask, esc, icon, markColumnEnds } from "../core/helpers.js";
 import { moduleFilter, state } from "../core/state.js";
 
 
@@ -92,7 +92,8 @@ function renderConfigs() {
                 <small>${esc(one.note)}${needs}</small>
             </span>
             ${one.editable
-                ? `<button class="ghost small" data-edit-include="${esc(one.file)}">Edit</button>`
+                ? `<button class="ghost small"
+                    data-edit-include="${esc(one.file)}">${icon("pencil")}Edit</button>`
                 : ""}
         </div>
     `;

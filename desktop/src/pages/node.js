@@ -1,7 +1,7 @@
 // The Node.js page: Homebrew's node, with npm and corepack, and the global packages.
 
 import { api, refresh } from "../core/api.js";
-import { ask, esc, markColumnEnds, packageRow, toast } from "../core/helpers.js";
+import { ask, esc, icon, markColumnEnds, packageRow, setLabel, toast } from "../core/helpers.js";
 import { state, updating } from "../core/state.js";
 import { renderPhp } from "./php.js";
 
@@ -56,7 +56,7 @@ function renderNode() {
         outdated = "Checking for updates…";
     } else if (behind) {
         outdated = `<b>${behind} outdated</b>
-           <button data-npm-update-all>${isUpdating("npm")
+           <button data-npm-update-all>${icon("up")}${isUpdating("npm")
                ? "Updating…" : "Update packages"}</button>`;
     } else {
         outdated = "All up to date";
@@ -269,12 +269,12 @@ function renderNpmList(loading = false, failed = "") {
 function npmActions(spec, latest = "", mine = null) {
     if (updating.has(`install:${spec}`)) {
         return `<div class="npm-actions"><button class="npm-install"
-            disabled>Installing…</button></div>`;
+            disabled>${icon("download")}Installing…</button></div>`;
     }
 
     if (!mine) {
         return `<div class="npm-actions"><button class="npm-install"
-            data-npm-install="${esc(spec)}">Install</button></div>`;
+            data-npm-install="${esc(spec)}">${icon("download")}Install</button></div>`;
     }
 
     if (mine.linked) {
@@ -290,7 +290,7 @@ function npmActions(spec, latest = "", mine = null) {
     let update = "";
     if (newer) {
         update = `<button class="small" data-npm-update="${esc(spec)}"
-            ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>`;
+            ${busy ? "disabled" : ""}>${icon("up")}${busy ? "Updating…" : "Update"}</button>`;
     }
 
     let uninstall;
@@ -298,8 +298,8 @@ function npmActions(spec, latest = "", mine = null) {
         uninstall = "";
     } else {
         uninstall = `<button class="small danger"
-            data-npm-uninstall="${esc(spec)}" ${removing ? "disabled" : ""}>${removing
-                ? "Removing…" : "Uninstall"}</button>`;
+            data-npm-uninstall="${esc(spec)}" ${removing ? "disabled" : ""}>${
+                icon("trash")}${removing ? "Removing…" : "Uninstall"}</button>`;
     }
 
     return `
@@ -506,7 +506,7 @@ async function confirmUpdateAll(kind = "npm") {
         all.checked       = count === picks.length;
         all.indeterminate = count > 0 && count < picks.length;
         button.disabled   = !count;
-        button.textContent = count ? `Update ${countOf(count, noun)}` : "Update";
+        setLabel(button, count ? `Update ${countOf(count, noun)}` : "Update");
     };
 
     box.onchange = (event) => {

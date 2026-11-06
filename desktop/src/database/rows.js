@@ -2,7 +2,7 @@
 // widths and values.
 
 import { api } from "../core/api.js";
-import { ask, esc, toast } from "../core/helpers.js";
+import { ask, esc, icon, toast } from "../core/helpers.js";
 import { escapeCode, paintJson } from "../core/paint.js";
 import { editValue, rowKey, rowsKeyed, watchFades } from "./cells.js";
 import { browse, markRow } from "./page.js";
@@ -255,8 +255,9 @@ function renderPager() {
             <span class="muted">Rows ${(first + (rows.length ? 1 : 0)).toLocaleString()}–${
                 (first + rows.length).toLocaleString()}${total ? ` of ${total}` : ""}</span>
             <button class="ghost small" data-page="-1"
-                ${page > 1 ? "" : "disabled"}>Previous</button>
-            <button class="ghost small" data-page="1" ${more ? "" : "disabled"}>Next</button>
+                ${page > 1 ? "" : "disabled"}>${icon("left")}Previous</button>
+            <button class="ghost small" data-page="1"
+                ${more ? "" : "disabled"}>Next${icon("right")}</button>
         `;
     } else if (browse.filters.length) {
         pager.innerHTML = `<span class="muted">No rows of ${total || "the table"} match</span>`;
@@ -475,9 +476,9 @@ function renderFilterBar(force = false) {
         <div class="filter-foot">
             <div class="filter-query"><code id="filter-sql" class="filter-sql"></code></div>
             ${match}
-            <button class="small">Filter</button>
+            <button class="small">${icon("filter")}Filter</button>
             <button type="button" class="ghost small" data-filter-clear ${browse.filters.length
-                || rules.some((rule) => rule.value) ? "" : "disabled"}>Clear</button>
+                || rules.some((rule) => rule.value) ? "" : "disabled"}>${icon("x")}Clear</button>
         </div>
     `;
     showFilterSql();

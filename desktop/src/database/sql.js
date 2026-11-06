@@ -2,7 +2,7 @@
 // queries run before and kept.
 
 import { api } from "../core/api.js";
-import { ask, esc, formDialog, toast } from "../core/helpers.js";
+import { ask, esc, formDialog, icon, toast } from "../core/helpers.js";
 import { escapeCode } from "../core/paint.js";
 import { watchFades } from "./cells.js";
 import { browse, loadTables } from "./page.js";
@@ -248,7 +248,8 @@ function renderResults() {
                     : countOf(result.rows.length, "row")}</span>
                 ${result.columns.length && READS.test(result.statement)
                     ? `<button class="ghost small" data-result-export="${index}"
-                        title="All its rows, run again, as CSV or JSON">Export…</button>`
+                        title="All its rows, run again, as CSV or JSON">${
+                            icon("upload")}Export…</button>`
                     : ""}
             </div>
             ${result.rows.length ? sqlResultGrid(result, index) : ""}

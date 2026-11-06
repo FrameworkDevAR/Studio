@@ -46,7 +46,8 @@
     overflow: hidden;
 }
 .npm-search:focus-within { border-color: color-mix(in srgb, var(--accent) 60%, var(--border)); }
-.npm-search svg {
+/* The field's magnifier, not the icon of its Search button. */
+.npm-search > svg {
     flex: none;
     width: 16px;
     height: 16px;

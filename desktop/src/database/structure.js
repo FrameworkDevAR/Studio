@@ -1,7 +1,7 @@
 // A table's structure: its columns, indexes and foreign keys.
 
 import { act, api } from "../core/api.js";
-import { ask, bytes, esc, formDialog, setActive, toast } from "../core/helpers.js";
+import { ask, bytes, esc, formDialog, icon, setActive, toast } from "../core/helpers.js";
 import { navigate } from "../core/routes.js";
 import { watchFades } from "./cells.js";
 import { structureIsView } from "./columns.js";
@@ -65,12 +65,14 @@ async function loadStructure() {
     let foreignAdd = "";
     if (!view && !structure.foreign.length
         && browse.tables.find((one) => one.name === structure.table)?.engine === "InnoDB") {
-        foreignAdd = `<button class="ghost small" data-fk-add>Add foreign key</button>`;
+        foreignAdd = `<button class="ghost small"
+            data-fk-add>${icon("link")}Add foreign key</button>`;
     }
 
     let foreignButton = "";
     if (structure.foreign.length && !view) {
-        foreignButton = `<button class="ghost small" data-fk-add>Add foreign key</button>`;
+        foreignButton = `<button class="ghost small"
+            data-fk-add>${icon("link")}Add foreign key</button>`;
     }
 
     box.innerHTML = `
@@ -82,7 +84,8 @@ async function loadStructure() {
                 <div class="head-tools">
                     <input id="structure-filter" type="search" placeholder="Filter columns…"
                         spellcheck="false" autocomplete="off">
-                    ${view ? "" : `<button class="ghost" data-column-add>Add column</button>`}
+                    ${view ? "" : `<button class="ghost"
+                        data-column-add>${icon("plus")}Add column</button>`}
                     ${tableMenuButton()}
                 </div>
             </div>
@@ -100,7 +103,7 @@ async function loadStructure() {
                 <h2>Indexes <span class="muted">${structure.indexes.length}</span></h2>
                 ${view ? "" : `<div class="head-tools">
                     ${foreignAdd}
-                    <button class="ghost small" data-index-add>Add index</button>
+                    <button class="ghost small" data-index-add>${icon("plus")}Add index</button>
                 </div>`}
             </div>
             <div class="index-list">${structure.indexes.map((index) => `
@@ -383,7 +386,7 @@ async function openForeignKeyDialog(name = null) {
             <div class="form-row"><span>Columns</span><div class="fk-pairs"
                 data-fk-pairs></div></div>
             <button type="button" class="ghost small fk-more"
-                data-fk-more>Add a column pair</button>
+                data-fk-more>${icon("plus")}Add a column pair</button>
             <div class="form-pair">
                 <label class="form-row"><span>On delete there</span>${
                     ruleSelect("onDelete", start.onDelete)

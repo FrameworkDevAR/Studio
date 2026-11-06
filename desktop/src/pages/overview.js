@@ -1,6 +1,6 @@
 // The sidebar's badges and the Overview page.
 
-import { bytes, esc } from "../core/helpers.js";
+import { bytes, esc, setLabel } from "../core/helpers.js";
 import { recentErrors, state } from "../core/state.js";
 import { renderModules } from "./apache.js";
 import { renderDatabases } from "./databases.js";
@@ -106,7 +106,8 @@ function renderStartButtons(health) {
     for (const button of buttons) {
         const restart = health === "on";
         button.dataset.action = restart ? "restart-all" : "start-all";
-        button.textContent    = restart ? "Restart Apache + MariaDB" : "Start Apache + MariaDB";
+        setLabel(button, restart ? "Restart Apache + MariaDB" : "Start Apache + MariaDB",
+            restart ? "restart" : "play");
         button.title          = restart ? "Restarts Apache and MariaDB, not Redis or the apps"
             : "Starts Apache and MariaDB, not Redis or the apps";
     }

@@ -2,7 +2,7 @@
 // each value, the changes waiting to be saved, and the dialog that adds one.
 
 import { api, refresh } from "../core/api.js";
-import { esc, mosaic, toast } from "../core/helpers.js";
+import { esc, mosaic, setLabel, toast } from "../core/helpers.js";
 import { SETTING_HINTS, settingsKeys } from "../core/state.js";
 
 
@@ -596,9 +596,11 @@ function choosePick(key) {
 
     button.disabled = !one;
     if (pick.inEditor) {
-        button.textContent = "Insert";
+        setLabel(button, "Insert", "plus");
+    } else if (one?.inFile) {
+        setLabel(button, "Change", "check");
     } else {
-        button.textContent = one?.inFile ? "Change" : "Add";
+        setLabel(button, "Add", "plus");
     }
 
     setPickStatus("");

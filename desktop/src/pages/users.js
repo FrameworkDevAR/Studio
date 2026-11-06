@@ -2,7 +2,7 @@
 // passwords.
 
 import { act, api } from "../core/api.js";
-import { ask, esc, formDialog, setActive } from "../core/helpers.js";
+import { ask, esc, formDialog, icon, setActive, setLabel } from "../core/helpers.js";
 import { state } from "../core/state.js";
 
 
@@ -190,7 +190,7 @@ function privilegesField(user) {
                     <button type="button" data-preset="custom">Custom</button>
                 </div>
                 <button type="button" class="ghost small" data-advanced
-                    aria-expanded="false">Advanced</button>
+                    aria-expanded="false">${icon("sliders")}Advanced</button>
             </div>
             ${user?.mixed ? `<small class="form-note">Its databases have different privileges. These
                 are the first one's, and saving gives them all these.</small>` : ""}
@@ -382,9 +382,9 @@ function passwordField(required) {
                     ${required ? "required" : "placeholder=\"Leave empty to keep it\""}
                     spellcheck="false" autocomplete="off">
                 <button type="button" class="ghost small" data-make-password
-                    title="Make up another">New</button>
+                    title="Make up another">${icon("key")}New</button>
                 <button type="button" class="ghost small" data-copy-password
-                    title="Copy it">Copy</button>
+                    title="Copy it">${icon("copy")}Copy</button>
             </span>
         </label>
     `;
@@ -413,8 +413,8 @@ async function copyPassword(button) {
     }
 
     await navigator.clipboard.writeText(field.value);
-    button.textContent = "Copied";
-    setTimeout(() => { button.textContent = "Copy"; }, 1500);
+    setLabel(button, "Copied", "check");
+    setTimeout(() => setLabel(button, "Copy", "copy"), 1500);
 }
 
 

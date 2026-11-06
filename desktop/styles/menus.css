@@ -190,6 +190,8 @@
     filter: none;
     text-decoration: none;
 }
+/* A link in a menu lays out as the buttons do, so its icon lines up with theirs. */
+.menu > a { display: flex; align-items: center; gap: 6px; }
 .menu > button:disabled { background: none; opacity: .45; }
 .menu > button.danger-item { color: var(--red); }
 .menu > hr { margin: 5px 4px; border: 0; border-top: 1px solid var(--border); }

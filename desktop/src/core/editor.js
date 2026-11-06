@@ -1,7 +1,7 @@
 // The file editor: config.json, PHP's overrides file, and Apache's httpd.conf and vhosts.
 
 import { api, refresh } from "./api.js";
-import { ask, toast } from "./helpers.js";
+import { ask, setLabel, toast } from "./helpers.js";
 import { escapeCode, paintApache, paintIni, paintJson } from "./paint.js";
 import { setSettingsKeys } from "./state.js";
 import { pickSetting } from "../pages/settings.js";
@@ -152,8 +152,8 @@ async function openEditor(kind) {
     open.dataset.openFile = file.open;
     open.dataset.openPath = file.body?.file || "";
     document.getElementById("editor-insert").hidden      = kind !== "php" && kind !== "mariadb";
-    document.getElementById("editor-insert").textContent = kind === "mariadb" ? "Insert option"
-        : "Insert setting";
+    setLabel(document.getElementById("editor-insert"),
+        kind === "mariadb" ? "Insert option" : "Insert setting");
 
     updateEditor();
     /** @type {HTMLDialogElement} */ (document.getElementById("editor")).showModal();

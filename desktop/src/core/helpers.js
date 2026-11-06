@@ -4,6 +4,27 @@ import { refresh } from "./api.js";
 
 
 
+// The icon of a dialog's button, by the first word of what it says; a check otherwise.
+const LABEL_ICONS = {
+    Drop      : "trash",
+    Delete    : "trash",
+    Remove    : "trash",
+    Uninstall : "trash",
+    Empty     : "trash",
+    Clear     : "trash",
+    Stop      : "stop",
+    Turn      : "stop",
+    Import    : "download",
+    Export    : "upload",
+    Copy      : "copy",
+    Update    : "up",
+    Add       : "plus",
+    Create    : "plus",
+    Close     : "x",
+};
+
+
+
 /**
  * Gives every pill-tab control its sliding thumb. It follows the active tab
  * by watching the tabs' classes, and their sizes too: a tab's width changes
@@ -316,7 +337,7 @@ function ask({
     document.getElementById("ask-cancel").hidden     = closeX;
 
     const button = /** @type {HTMLButtonElement} */ (document.getElementById("ask-ok"));
-    button.textContent = ok;
+    setLabel(button, ok, iconFor(ok));
     button.className   = danger ? "danger-fill" : "";
     button.disabled    = false;
     button.hidden      = false;
@@ -385,7 +406,7 @@ function formDialog({
     document.getElementById("form-text").hidden       = !text;
 
     fields.innerHTML   = body;
-    button.textContent = ok;
+    setLabel(button, ok, iconFor(ok));
     button.className   = danger ? "danger-fill" : "";
     button.disabled    = false;
     status.textContent = "";
@@ -393,7 +414,7 @@ function formDialog({
 
     const drop = /** @type {HTMLButtonElement} */ (document.getElementById("form-remove"));
     drop.hidden      = !remove;
-    drop.textContent = remove?.label || "";
+    setLabel(drop, remove?.label || "", "trash");
     drop.onclick     = async () => {
         const removed = await remove.run();
         if (removed) {
@@ -445,6 +466,38 @@ function esc(value) {
 }
 
 /**
+ * An icon of the page's sprite, to go before a button's text.
+ * @param {string} name
+ * @returns {string}
+ */
+function icon(name) {
+    return `<svg class="i" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+}
+
+/**
+ * Changes a button's text, keeping its icon, or giving it another.
+ * @param {HTMLElement} button
+ * @param {string} text
+ * @param {string=} name the icon, the one the button has when none
+ * @returns {void}
+ */
+function setLabel(button, text, name = "") {
+    const which = name || button.querySelector(".i use")?.getAttribute("href").slice(3) || "";
+    button.innerHTML = `${which ? icon(which) : ""}${esc(text)}`;
+}
+
+/**
+ * The icon for a dialog's button, by its first word: Drop, Stop, Import and the like.
+ * @param {string} label
+ * @returns {string}
+ */
+function iconFor(label) {
+    const word = label.split(" ")[0];
+
+    return LABEL_ICONS[word] || "check";
+}
+
+/**
  * Opens a button's menu, or closes it; any other open menu closes.
  * @param {HTMLElement} button
  * @returns {void}
@@ -491,6 +544,8 @@ export {
     ask,
     formDialog,
     esc,
+    icon,
+    setLabel,
     toggleMenu,
     closeMenus,
 };

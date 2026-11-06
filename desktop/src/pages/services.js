@@ -1,6 +1,6 @@
 // The Services page.
 
-import { esc } from "../core/helpers.js";
+import { esc, icon } from "../core/helpers.js";
 import { LOGOS, logoSvg } from "../core/logos.js";
 import { SERVICE_INFO, state } from "../core/state.js";
 
@@ -23,10 +23,11 @@ function renderServices() {
             text    : info.text(state),
             actions : service.running
                 ? `<button class="ghost small" data-service="${formula}"
-                       data-op="restart">Restart</button>
+                       data-op="restart">${icon("restart")}Restart</button>
                    <button class="danger small" data-service="${formula}"
-                       data-op="stop">Stop</button>`
-                : `<button class="small" data-service="${formula}" data-op="start">Start</button>`,
+                       data-op="stop">${icon("stop")}Stop</button>`
+                : `<button class="small" data-service="${formula}"
+                       data-op="start">${icon("play")}Start</button>`,
         });
     });
 
@@ -38,7 +39,7 @@ function renderServices() {
         version : php.version,
         running : services.httpd.running,
         text    : "Runs inside Apache, so it is up whenever Apache is.",
-        actions : `<a class="button ghost small" href="/php">Settings</a>`,
+        actions : `<a class="button ghost small" href="/php">${icon("sliders")}Settings</a>`,
     }));
     cards.push(serviceCard({
         logo    : "phpmyadmin",
@@ -47,7 +48,7 @@ function renderServices() {
         running : services.httpd.running && services.mariadb.running,
         text    : "Served by Apache at /phpmyadmin on every site. Needs MariaDB too.",
         actions : `<a class="button ghost small" href="${phpmyadmin.url}" target="_blank"
-            rel="noopener">Open</a>`,
+            rel="noopener">${icon("external")}Open</a>`,
     }));
 
     // Node.js is not a service either: nothing runs until an app starts it.
@@ -67,7 +68,7 @@ function renderServices() {
         status  : nodeStatus,
         text    :
             "Runs the apps' servers and npm. It is not a service, so there is nothing to start.",
-        actions : `<a class="button ghost small" href="/node">Packages</a>`,
+        actions : `<a class="button ghost small" href="/node">${icon("box")}Packages</a>`,
     }));
 
     document.getElementById("service-cards").innerHTML = cards.join("");

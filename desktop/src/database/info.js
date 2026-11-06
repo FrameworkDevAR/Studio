@@ -1,7 +1,7 @@
 // A table's information, as Sequel Ace's: its engine, encoding, comment and next id.
 
 import { api } from "../core/api.js";
-import { bytes, esc, toast } from "../core/helpers.js";
+import { bytes, esc, icon, toast } from "../core/helpers.js";
 import { watchFades } from "./cells.js";
 import { browse, loadTables, rowsCell } from "./page.js";
 import { paintSql } from "./sql.js";
@@ -82,7 +82,7 @@ async function loadInfo() {
             <h2>${esc(table.name)} <span class="muted">· ${view ? "view" : "table"}</span></h2>
             <div class="actions">${view ? "" : `<span id="info-status"
                 class="editor-status"></span><button data-info-save
-                disabled>Save</button>`}${tableMenuButton()}</div>
+                disabled>${icon("check")}Save</button>`}${tableMenuButton()}</div>
         </div>
         <form id="info-form" class="info-form" autocomplete="off">
             <dl class="info-grid">
@@ -130,7 +130,8 @@ async function loadInfo() {
                         <input name="next" type="number" min="1" step="1" value="${table.next}"
                             class="info-next" title="The id the next row gets">
                         <button type="button" class="ghost" data-reset-next
-                            title="The id after the highest there, to save">Reset</button>
+                            title="The id after the highest there, to save">${
+                                icon("undo")}Reset</button>
                     </dd>
                 `}
                 ${pair("Free data size", view ? "" : bytes(table.free))}
@@ -145,7 +146,7 @@ async function loadInfo() {
             `}
             <dl class="info-wide info-create">
                 <dt>Create syntax<button type="button" class="ghost small"
-                    data-copy-create>Copy</button></dt>
+                    data-copy-create>${icon("copy")}Copy</button></dt>
                 <dd><pre>${paintSql(structure.create)}</pre></dd>
             </dl>
         </form>

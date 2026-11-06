@@ -3,7 +3,7 @@
 // only says where they are.
 
 import { act, api } from "../core/api.js";
-import { ask, esc, formDialog, setActive, toast } from "../core/helpers.js";
+import { ask, esc, formDialog, icon, setActive, toast } from "../core/helpers.js";
 import { state } from "../core/state.js";
 
 
@@ -70,8 +70,8 @@ function openProjectDialog(index = -1, adding = false) {
                     Without one, Apache serves the folder at the host; with no folder either,
                     the host is only a link.</span>
                 <div class="server-rows" data-server-rows>${rows.join("")}</div>
-                <button type="button" class="ghost small server-new" data-server-new>Add
-                    site</button>
+                <button type="button" class="ghost small server-new"
+                    data-server-new>${icon("plus")}Add site</button>
             </div>
         </div>
     `;
@@ -370,7 +370,7 @@ function folderField(dir, placeholder, required, name = "dir") {
             <input name="${name}" value="${esc(dir)}" ${required ? "required" : ""} maxlength="400"
                 placeholder="${esc(placeholder)}" spellcheck="false">
             <button type="button" class="ghost small" data-pick-folder
-                title="Pick it in a Finder dialog">Choose…</button>
+                title="Pick it in a Finder dialog">${icon("folder")}Choose…</button>
         </span>
     `;
 }

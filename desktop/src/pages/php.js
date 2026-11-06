@@ -1,7 +1,7 @@
 // The PHP page: its settings, where each comes from, and the extensions.
 
 import { api } from "../core/api.js";
-import { ask, esc, markColumnEnds, packageRow } from "../core/helpers.js";
+import { ask, esc, icon, markColumnEnds, packageRow } from "../core/helpers.js";
 import { logoSvg } from "../core/logos.js";
 import { phpTab } from "../core/routes.js";
 import { SETTING_GROUPS, state, updating } from "../core/state.js";
@@ -62,7 +62,7 @@ function renderPhpProblems() {
         let rebuild = "";
         if (ext.pecl) {
             rebuild = `<button class="small" data-pecl-rebuild="${esc(ext.name)}"
-                ${updating.has(`pecl:${ext.name}`) ? "disabled" : ""}>${
+                ${updating.has(`pecl:${ext.name}`) ? "disabled" : ""}>${icon("restart")}${
                     updating.has(`pecl:${ext.name}`) ? "Building…" : "Build again"
                 }</button>`;
         }
@@ -123,8 +123,8 @@ function renderExtensions() {
     } else if (!php.checked) {
         outdated = "Checking for updates…";
     } else if (behind) {
-        outdated = `<b>${behind} outdated</b> <button data-pecl-update-all>${isUpdating("pecl")
-            ? "Updating…" : "Update extensions"}</button>`;
+        outdated = `<b>${behind} outdated</b> <button data-pecl-update-all>${
+            icon("up")}${isUpdating("pecl") ? "Updating…" : "Update extensions"}</button>`;
     } else {
         outdated = "All up to date";
     }
@@ -396,12 +396,12 @@ function peclActions(ext) {
     const mine = state.php.extensions.find((one) => one.name.toLowerCase() === id);
     if (updating.has(`pecl-install:${id}`)) {
         return `<div class="npm-actions"><button class="npm-install"
-            disabled>Building…</button></div>`;
+            disabled>${icon("download")}Building…</button></div>`;
     }
     if (!mine) {
         return `<div class="npm-actions"><button class="npm-install"
             data-pecl-install="${esc(ext.name)}"
-            ${ext.version ? "" : "disabled"}>Install</button></div>`;
+            ${ext.version ? "" : "disabled"}>${icon("download")}Install</button></div>`;
     }
     if (!mine.pecl) {
         return `<div class="npm-actions"><span class="npm-here">${mine.added
@@ -415,7 +415,7 @@ function peclActions(ext) {
     let update = "";
     if (newer) {
         update = `<button class="small" data-pecl-update="${esc(id)}"
-            ${busy ? "disabled" : ""}>${busy ? "Updating…" : "Update"}</button>`;
+            ${busy ? "disabled" : ""}>${icon("up")}${busy ? "Updating…" : "Update"}</button>`;
     }
 
     return `
@@ -426,7 +426,8 @@ function peclActions(ext) {
             <span class="npm-buttons">
                 ${update}
                 <button class="small danger" data-pecl-remove="${esc(id)}"
-                    ${removing ? "disabled" : ""}>${removing ? "Removing…" : "Uninstall"}</button>
+                    ${removing ? "disabled" : ""}>${
+                        icon("trash")}${removing ? "Removing…" : "Uninstall"}</button>
             </span>
         </div>
     `;

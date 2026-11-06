@@ -358,10 +358,29 @@ button.ghost, .button.ghost {
 }
 button.ghost:hover, .button.ghost:hover { background: var(--hover); filter: none; }
 button.danger { background: var(--panel); color: var(--red); border-color: var(--border); }
-button.danger:hover { background: var(--red-bg); filter: none; }
+/* The border turns red with the fill, or the tint stops short of the button's edge. */
+button.danger:hover {
+    background: var(--red-bg);
+    border-color: color-mix(in srgb, var(--red) 50%, var(--border));
+    filter: none;
+}
 button.danger-fill { background: var(--red); border-color: var(--red); color: #fff; }
 button:disabled { opacity: .5; cursor: progress; }
 button.small, .button.small { padding: 3px 10px; font-size: 12.5px; }
+/* The icons' sprite: in the page for <use> to find, never shown itself. */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+/* A text button's icon, before its text in the button's color. */
+.i {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.small > .i { width: 12px; height: 12px; }
 
 /*
  * Pill tabs. The highlight behind the active tab is one thumb that slides
