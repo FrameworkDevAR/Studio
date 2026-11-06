@@ -85,6 +85,8 @@
 /* No bounce at the page's ends. Only the page's: on every box, Chrome stops the wheel in the grids
    inside. */
 html, body { overscroll-behavior: none; }
+/* The page stays put behind an open dialog; only the dialog's own content scrolls. */
+html:has(dialog:modal) { overflow: hidden; }
 
 body {
     margin: 0;
