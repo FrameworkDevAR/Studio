@@ -224,8 +224,10 @@ function configProblem(config) {
             return `the dir of ${name} must be a folder`;
         }
 
-        if (project.https !== undefined && typeof project.https !== "boolean") {
-            return `the https of ${name} must be true or false`;
+        for (const key of [ "https", "menu" ]) {
+            if (project[key] !== undefined && typeof project[key] !== "boolean") {
+                return `the ${key} of ${name} must be true or false`;
+            }
         }
 
         for (const key of [ "name", "host", "mainApp", "nestedApp" ]) {

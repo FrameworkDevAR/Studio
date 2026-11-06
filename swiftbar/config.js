@@ -44,6 +44,8 @@ const PROJECTS = (CONFIG.projects || []).map((project) => ({
     worktrees : Boolean(project.worktrees),
     mainApp   : project.mainApp || "desktop",
     nestedApp : project.nestedApp || "web",
+    // Left out of the menu with "menu": false; Studio still lists it, from the json.
+    menu      : project.menu !== false,
     // A site with a command is a server the menu starts; one without, Apache's, only linked.
     servers   : (project.sites || []).filter((site) => site.command),
     sites     : (project.sites || []).filter((site) => !site.command).map((site) => ({

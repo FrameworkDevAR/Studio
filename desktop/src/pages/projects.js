@@ -21,7 +21,7 @@ import { state } from "../core/state.js";
  * typed and in full, its servers and sites, and its host.
  * @typedef {{
  *     index: number, name: string, dir: string, home: string, worktrees: boolean,
- *     sites: ProjectServer[], host: string, https: boolean,
+ *     sites: ProjectServer[], host: string, https: boolean, menu: boolean,
  * }} PageProject
  */
 
@@ -63,6 +63,9 @@ function openProjectDialog(index = -1, adding = false) {
                 </div>
                 <span class="muted server-hint">Saving a host sets up its vhost, its line in
                     the hosts file and its certificate, then reloads Apache.</span>
+                <label class="check"><input type="checkbox" class="box" name="menu"
+                    ${!project || project.menu ? "checked" : ""}><span>Show in the SwiftBar
+                    menu</span></label>
             </div>
             <div class="project-pane" data-project-pane="sites" hidden>
                 <span class="muted server-hint">With a command, the menu starts it in its
@@ -104,6 +107,7 @@ function openProjectDialog(index = -1, adding = false) {
                 dir     : data.get("dir"),
                 host    : data.get("host"),
                 https   : data.has("https"),
+                menu    : data.has("menu"),
                 sites   : [ ...form.querySelectorAll(".server-row") ].map(readServer),
             });
         },

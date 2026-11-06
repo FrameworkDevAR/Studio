@@ -81,6 +81,8 @@ object with its own settings:
   desktop apps in the menu.
 - `mainApp`, `nestedApp`: the app listed first, and the folder holding a web app
   inside another app's folder. They are `desktop` and `web` unless set.
+- `menu`: `false` leaves the project out of the SwiftBar menu; Studio still lists it.
+  The project's dialog sets it.
 - `sites`: what the project serves, each with a `name`. One with a `command` is a server
   the menu starts: an `id`, its folder, and the command, with its arguments, as typed in
   a shell (`npm run dev --port=3000`). The port is the server's own: it is found by what

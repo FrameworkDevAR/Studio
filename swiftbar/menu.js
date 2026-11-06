@@ -181,6 +181,10 @@ function renderProjects(state) {
     const { servers, stopping, portByPid } = state;
 
     for (const project of PROJECTS) {
+        if (!project.menu) {
+            continue;
+        }
+
         // A project with a folder shows its servers in its own section, below
         if (!project.dir) {
             if (project.servers.length) {

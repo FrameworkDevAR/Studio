@@ -37,11 +37,11 @@ const HOST_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 /**
  * A project as the config has it: what it is called, the folder of its apps, the host Apache
  * serves that folder at and whether over https, whether each subfolder of the folder is a
- * worktree, which app goes first and which folder holds a nested one, and its own servers
- * and sites.
+ * worktree, which app goes first and which folder holds a nested one, its own servers
+ * and sites, and false for menu when the SwiftBar menu leaves it out.
  * @typedef {{
  *     name?: string, dir?: string, host?: string, https?: boolean, worktrees?: boolean,
- *     mainApp?: string, nestedApp?: string, sites?: ServerEntry[],
+ *     mainApp?: string, nestedApp?: string, sites?: ServerEntry[], menu?: boolean,
  * }} ProjectEntry
  */
 
@@ -69,11 +69,11 @@ const HOST_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
 /**
  * A project for the page: the config's, with its place in it, its folder in full, which the
- * apps the plugin lists are found in, its servers and sites, and its host and whether over
- * https.
+ * apps the plugin lists are found in, its servers and sites, its host and whether over
+ * https, and whether the SwiftBar menu shows it.
  * @typedef {{
  *     index: number, name: string, dir: string, home: string, worktrees: boolean,
- *     sites: PageServer[], host: string, https: boolean,
+ *     sites: PageServer[], host: string, https: boolean, menu: boolean,
  * }} StudioProject
  */
 
@@ -108,6 +108,7 @@ function readProjects() {
             sites     : (project.sites || []).map((site) => pageServer(site, vhosts)),
             host      : project.host || "",
             https     : Boolean(project.https),
+            menu      : project.menu !== false,
         };
     });
 }
@@ -118,7 +119,7 @@ function readProjects() {
  * Its vhosts are set first, so one Apache refuses leaves the config as it was.
  * @param {{
  *     index: number, name: string, dir: string, sites: ServerForm[], host: string,
- *     https: boolean,
+ *     https: boolean, menu: boolean,
  * }} form
  * @returns {Promise<{ message: string }>}
  */
@@ -163,8 +164,14 @@ async function saveProject(form) {
         host,
         https : Boolean(host && form.https),
         sites : sitesFrom(form.sites || [], old.sites || [], others, Boolean(form.https)),
-        ...without(old, [ "name", "dir", "host", "https", "sites" ]),
+        ...without(old, [ "name", "dir", "host", "https", "sites", "menu" ]),
     }));
+
+    // Shown is the default, so only a project left out of the menu says so; prune would
+    // drop the false, so it goes in after.
+    if (form.menu === false) {
+        project.menu = false;
+    }
 
     if (index >= 0) {
         projects[index] = project;
