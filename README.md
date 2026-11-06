@@ -74,16 +74,25 @@ object with its own settings:
 - `name`: the project's title. Without one, it is made from the folder's name.
 - `dir`: the project's folder. Its apps are the folders in it with a `package.json`
   holding a `start` script, each called by its folder's name.
+- `host`: the host Apache serves the project's folder at, as `shop.local`, with
+  `"https" : true` when it is served over https. The project's dialog writes its vhost.
 - `worktrees`: `true` when every subfolder of `dir` is a project of its own, the
   worktrees of one repository, each titled from its folder. `name` then names their
   desktop apps in the menu.
 - `mainApp`, `nestedApp`: the app listed first, and the folder holding a web app
   inside another app's folder. They are `desktop` and `web` unless set.
-- `servers`: instead of a `dir`, servers of the project's own: an id, a name, its
-  folder and the command that starts it. The port is the server's own: it is found
-  by what listens from that folder. The project's `name` titles their section.
-- `sites`: the sites Apache serves for the project, listed in the menu under its title:
-  a name and the url it opens. They are only listed, never checked.
+- `sites`: what the project serves, each with a `name`. One with a `command` is a server
+  the menu starts: an `id`, its folder, and the command, with its arguments, as typed in
+  a shell (`npm run dev --port=3000`). The port is the server's own: it is found by what
+  listens from that folder. A `host`, as `docs.shop.local`, opens it there rather than
+  at localhost; the project's dialog adds it to the hosts file. One without a `command`
+  is Apache's: the `host` it is served at, with `"https" : true` when over https. Its
+  folder is its vhost's, and with no vhost it is only a link. Apache's sites are only
+  listed, never checked. The project's `name` titles them.
+
+A project's vhost and those of its sites are found by their host in the vhosts file:
+the project's dialog writes them there, with their line in the hosts file and their
+certificate.
 
 Folders may start with `~`.
 

@@ -230,7 +230,7 @@ td strong { font-weight: 600; }
 
 /* ---------------------------------------------------------------- apps */
 
-#apps-pane { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+#apps-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 /*
  * A project's block: a wash of its color from the corner behind the header,
  * an accent line along the top, and the header's badge in the same color.
@@ -238,7 +238,6 @@ td strong { font-weight: 600; }
 .app-block {
     position: relative;
     overflow: hidden;
-    grid-column: span var(--span);
     margin: 0;
     padding: 18px 20px 20px;
     border-color: color-mix(in srgb, var(--tone) 22%, var(--border));
@@ -339,12 +338,34 @@ td strong { font-weight: 600; }
 }
 a.host:hover { color: var(--tone); text-decoration: none; }
 
-.group-start { gap: 5px; }
+/* As tall as the pencil beside it, so the two line up. */
+.group-start { gap: 5px; height: 28px; }
 .group-start svg { width: 11px; height: 11px; fill: currentColor; }
-.group-start:hover {
+.group-start:disabled { cursor: default; }
+.group-start:hover:not(:disabled) {
     color: var(--green);
     border-color: color-mix(in srgb, var(--green) 50%, var(--border));
     background: var(--green-bg);
+}
+
+/* Changing the project, quiet until the block is hovered. */
+.block-head .block-edit { flex: none; width: 28px; height: 28px; border-radius: 9px; opacity: .45; }
+.block-head .block-edit svg { width: 13px; height: 13px; }
+.app-block:hover .block-edit, .block-edit:focus-visible { opacity: 1; }
+/* Close to Start all, as the two act on the same block; the head's gap is for its parts. */
+.block-head .group-start + .block-edit { margin-left: -8px; }
+
+/* A project with nothing found in it yet: where its apps are looked for. */
+.block-empty {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 68px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px dashed var(--border);
+    font-size: 13px;
 }
 
 /* One dot per app, green while it runs, and the count under them. */
@@ -358,10 +379,12 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 .state-dots i.mid { background: var(--amber); animation: pulse 1.1s ease-in-out infinite; }
 .state-text { font-size: 11.5px; color: var(--muted); }
 .state-text.on { color: var(--green); font-weight: 600; }
-/* A block's apps share its width: as many columns as it has apps, up to 4. */
-.app-block .app-cards { grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); }
+/* A project takes a line, its cards always 4 across, so they are one size in every block. */
+.app-block .app-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 .app-cards { display: grid; gap: 12px; }
+/* A card with a hot reload and restart beside Open and Stop needs two columns for its name. */
+.app-cards .app-card.wide { grid-column: span 2; }
 
 /*
  * One app: its kind's icon, its name and address, and its actions. A running
@@ -501,6 +524,12 @@ a.host:hover { color: var(--tone); text-decoration: none; }
     color: var(--red);
     border-color: color-mix(in srgb, var(--red) 50%, var(--border));
     background: var(--red-bg);
+}
+.icon-btn.reload svg { fill: currentColor; stroke-width: 1.5; }
+.icon-btn.reload:hover, .icon-btn.restart:hover {
+    color: var(--amber);
+    border-color: color-mix(in srgb, var(--amber) 50%, var(--border));
+    background: var(--amber-bg);
 }
 .icon-btn:disabled { opacity: .4; }
 

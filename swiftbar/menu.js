@@ -117,28 +117,14 @@ function renderServices({ apacheWorkers, mysqlUp, redisUp, stackBusy, versions }
  * @param {MenuState} state
  * @returns {void}
  */
-function renderServers(project, { extras, stopping }) {
-    const ids     = new Set(project.servers.map((server) => server.id));
-    const servers = extras.filter((server) => ids.has(server.id));
+function renderServers(project, state) {
+    const servers = serversOf(project, state);
     const running = servers.filter((server) => server.pid);
     const title   = project.name || SERVERS_NAME;
 
     separator();
     item(running.length ? `${title} — ${running.length} running` : title, { size : 13 });
-
-    for (const server of servers) {
-        if (server.pid) {
-            runningServer({
-                name : server.name,
-                pid  : server.pid,
-                url  : urlOf(server),
-                dir  : server.dir,
-                stopping : stopping.has(server.pid),
-            });
-        } else if (server.starting) {
-            item(`🟡 ${server.name} — starting…`, { color : GREY });
-        }
-    }
+    renderRunningServers(servers, state);
 
     const idle = servers.filter((server) => !server.pid && !server.starting);
     if (idle.length) {
@@ -146,6 +132,40 @@ function renderServers(project, { extras, stopping }) {
         startAllItem(idle.length, onClick("start-extras", `"${title}"`));
         for (const server of idle) {
             subItem(server.name, onClick("start-extra", server.id));
+        }
+    }
+}
+
+/**
+ * The project's own servers, as the state finds them.
+ * @param {import("./apps.js").Project} project
+ * @param {MenuState} state
+ * @returns {import("./state.js").ExtraServer[]}
+ */
+function serversOf(project, { extras }) {
+    const ids = new Set(project.servers.map((server) => server.id));
+    return extras.filter((server) => ids.has(server.id));
+}
+
+/**
+ * The running servers, and the ones starting.
+ * @param {import("./state.js").ExtraServer[]} servers
+ * @param {MenuState} state
+ * @returns {void}
+ */
+function renderRunningServers(servers, { stopping }) {
+    for (const server of servers) {
+        if (server.pid) {
+            runningServer({
+                name : server.name,
+                pid  : server.pid,
+                url  : urlOf(server),
+                dir  : server.dir,
+                stopping  : stopping.has(server.pid),
+                hotReload : server.hotReload,
+            });
+        } else if (server.starting) {
+            item(`🟡 ${server.name} — starting…`, { color : GREY });
         }
     }
 }
@@ -161,12 +181,16 @@ function renderProjects(state) {
     const { servers, stopping, portByPid } = state;
 
     for (const project of PROJECTS) {
-        if (project.servers.length) {
-            renderServers(project, state);
-        }
+        // A project with a folder shows its servers in its own section, below
         if (!project.dir) {
+            if (project.servers.length) {
+                renderServers(project, state);
+            }
             continue;
         }
+
+        const extras      = serversOf(project, state);
+        const extrasIdle  = extras.filter((server) => !server.pid && !server.starting);
 
         const worktrees = projectRoots()
             .filter((root) => root.project === project)
@@ -181,13 +205,14 @@ function renderProjects(state) {
                 return { title : titleOf(path.basename(root)), running, idle };
             })
             .filter(({ running, idle }) => running.length || idle.length);
-        if (!worktrees.length) {
+        if (!worktrees.length && !extras.length) {
             continue;
         }
 
         separator();
         const title   = project.name || titleOf(path.basename(project.dir));
-        const running = worktrees.reduce((count, worktree) => count + worktree.running.length, 0);
+        const running = worktrees.reduce((count, worktree) => count + worktree.running.length, 0)
+            + extras.filter((server) => server.pid).length;
         item(running ? `${title} — ${running} running` : title, { size : 13 });
 
         for (const site of project.sites) {
@@ -210,15 +235,17 @@ function renderProjects(state) {
             }
         }
 
+        renderRunningServers(extras, state);
+
         const idle = worktrees.filter((one) => one.idle.length);
-        if (!idle.length) {
+        if (!idle.length && !extrasIdle.length) {
             continue;
         }
 
         item("Start…", { color : GREY });
         if (project.worktrees) {
             renderEveryWorktree(idle);
-        } else {
+        } else if (idle.length) {
             startAllItem(
                 idle[0].idle.length,
                 onClick("start-apps", `"${idle[0].idle.map((app) => app.dir).join(":")}"`),
@@ -236,6 +263,15 @@ function renderProjects(state) {
                 );
             }
         });
+
+        if (extrasIdle.length) {
+            if (idle.length) {
+                separator(1);
+            }
+            for (const server of extrasIdle) {
+                subItem(server.name, onClick("start-extra", server.id));
+            }
+        }
     }
 }
 
@@ -343,11 +379,16 @@ function service({ label, version, up, detail = "", start, stop }) {
 }
 
 /**
- * A running server row: Open (reusing the tab), a terminal, then Stop.
- * @param {{ name: string, url: string, pid: string, dir: string, stopping: boolean }} server
+ * A running server row: Open (reusing the tab), a terminal, then Stop. A `flutter run`
+ * has no terminal to press r or R in, so it gets Reload and Restart, sending it the
+ * signals that do the same.
+ * @param {{
+ *     name: string, url: string, pid: string, dir: string, stopping: boolean,
+ *     hotReload?: boolean,
+ * }} server
  * @returns {void}
  */
-function runningServer({ name, url, pid, dir, stopping }) {
+function runningServer({ name, url, pid, dir, stopping, hotReload = false }) {
     // Mid shutdown there is nothing left to open or stop.
     if (stopping) {
         item(`🟡 ${name} — stopping…`, { color : GREY });
@@ -362,6 +403,11 @@ function runningServer({ name, url, pid, dir, stopping }) {
     }
 
     subItem("Open in Terminal", opensTerminal(dir));
+    if (hotReload) {
+        separator(1);
+        subItem("Reload", onClick("reload-proc", pid, { refresh : false }));
+        subItem("Restart", onClick("restart-proc", pid, { refresh : false }));
+    }
     separator(1);
     subItem("Stop", onClick("stop-proc", pid));
 }

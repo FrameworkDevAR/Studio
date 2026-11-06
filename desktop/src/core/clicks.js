@@ -63,6 +63,7 @@ import {
     saveSettings,
     toggleUnset,
 } from "../pages/settings.js";
+import { openProjectDialog, pickFolder } from "../pages/projects.js";
 import { renderSites } from "../pages/sites.js";
 import {
     copyPassword,
@@ -283,14 +284,21 @@ function onClick(event) {
         }
 
         act({ action, ...which }, target);
+    } else if (target.dataset.appReload !== undefined) {
+        act({
+            action  : "app-reload",
+            id      : target.dataset.appId,
+            restart : target.dataset.appReload === "restart",
+        }, target);
     } else if (target.dataset.clearLog) {
         clearLog(target.dataset.clearLog, target);
     } else if (target.dataset.groupStart) {
-        const group = target.dataset.groupStart;
+        // A block may hold a project's apps and its servers, which the plugin names apart.
+        const group = /** @type {string[]} */ (JSON.parse(target.dataset.groupStart));
         const cards = [
-            ...state.servers.filter((server) => server.project === group && !server.running)
-                .map((server) => `id:${server.id}`),
-            ...state.apps.filter((app) => app.project === group && !app.running)
+            ...state.servers.filter((server) => group.includes(server.project)
+                && !server.running).map((server) => `id:${server.id}`),
+            ...state.apps.filter((app) => group.includes(app.project) && !app.running)
                 .map((app) => `dir:${app.dir}`),
         ];
 
@@ -327,6 +335,14 @@ function onClick(event) {
         }
     } else if (target.dataset.editConfig !== undefined) {
         openEditor("config");
+    } else if (target.dataset.projectNew !== undefined) {
+        openProjectDialog();
+    } else if (target.dataset.projectEdit) {
+        openProjectDialog(Number(target.dataset.projectEdit));
+    } else if (target.dataset.serverAdd) {
+        openProjectDialog(Number(target.dataset.serverAdd), true);
+    } else if (target.dataset.pickFolder !== undefined) {
+        pickFolder(/** @type {HTMLButtonElement} */ (target));
     } else if (target.dataset.closeEditor !== undefined) {
         closeEditor();
     } else if (target.dataset.saveEditor !== undefined) {

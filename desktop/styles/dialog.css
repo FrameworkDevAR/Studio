@@ -18,8 +18,78 @@
 .form-row input[readonly]:hover { border-color: var(--border); }
 .form-row .segmented { align-self: flex-start; }
 .form-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/*
+ * The project's dialog: larger, for its servers, and one height for both tabs, so it does
+ * not jump between them.
+ */
+.editor.form:has(.project-form) {
+    width: min(680px, calc(100vw - 48px));
+    height: min(640px, calc(100vh - 48px));
+}
+/* The form fills that height, so the buttons stay at the bottom on a short tab. */
+.editor.form:has(.project-form) form { flex: 1; }
+.project-form { display: flex; flex-direction: column; gap: 16px; }
+.project-form > .segmented { align-self: flex-start; }
+.project-form em {
+    font-style: normal;
+    margin-left: 4px;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+.project-pane { display: flex; flex-direction: column; gap: 14px; }
+/* A project's servers and sites, each a line that opens in place, saved with the project. */
+.server-hint { font-size: 12px; line-height: 1.4; }
+.server-rows { display: flex; flex-direction: column; gap: 6px; }
+.server-rows:empty { display: none; }
+.fold { border: 1px solid var(--border); border-radius: 12px; }
+.fold summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px 7px 10px;
+    cursor: pointer;
+    list-style: none;
+}
+.fold summary::-webkit-details-marker { display: none; }
+.server-chevron {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform .12s;
+}
+.fold[open] .server-chevron { transform: rotate(90deg); }
+.server-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.server-title strong { font-size: 13px; font-weight: 600; color: var(--strong); }
+.server-title small {
+    font-family: "SF Mono", ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.server-title small:empty { display: none; }
+.fold summary .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
+.fold summary .icon-btn svg { width: 12px; height: 12px; }
+.fold .form-pair { padding: 6px 12px 12px; }
+/* As wide as its text: the pane is a column, which would stretch it across. */
+.server-new { align-self: flex-start; }
+/* A project's host with its https box. */
+.host-line { display: flex; align-items: flex-end; gap: 12px; }
+.host-line .form-row { flex: 1; }
+.host-line .check { flex: none; padding-bottom: 7px; }
 .form-pair .wide { grid-column: 1 / -1; }
 .password { display: flex; gap: 6px; }
+/* A folder's path, with the button that picks one in Finder's dialog. */
+.folder { display: flex; gap: 6px; min-width: 0; }
+.folder input { flex: 1; min-width: 0; }
+.folder button { flex: none; }
 .password input {
     flex: 1;
     font-family: "SF Mono", ui-monospace, Menlo, monospace;
@@ -60,7 +130,8 @@
 .form-body > .check { padding: 0; }
 .form-note { color: var(--muted); font-size: 12px; line-height: 1.45; }
 /* A field that must be filled has a red star by its label. */
-.form-row:has(> input:required, .password input:required) > span:first-child::after {
+.form-row:has(> input:required, .password input:required, .folder input:required)
+    > span:first-child::after {
     content: " *";
     color: var(--red);
 }

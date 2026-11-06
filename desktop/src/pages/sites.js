@@ -2,6 +2,7 @@
 
 import { esc, shortPath } from "../core/helpers.js";
 import { starting, state } from "../core/state.js";
+import { projectTitle } from "./projects.js";
 
 
 
@@ -9,13 +10,19 @@ import { starting, state } from "../core/state.js";
  * A card of the Sites page: one app or server, with what its card shows.
  * @typedef {{ key: string, target: string, label: string, running: boolean,
  *     starting: boolean, stopping: boolean, url: string, port: number,
- *     mark?: string }} SitesCard
+ *     mark?: string, site?: boolean, reload?: boolean }} SitesCard
  */
 
 /**
  * A block of the Sites page: a project, and the cards of its apps or servers;
- * its kind is "servers" or "apps".
- * @typedef {{ title: string, kind: string, project: string, cards: SitesCard[] }} SitesBlock
+ * its kind is "servers", "apps", "sites" for a project with only those, or
+ * "empty" for a project of the config with nothing yet. index is the project's
+ * place in the config, -1 when unknown. groups are what Start all starts: the
+ * plugin's name for the project's apps, and for its servers.
+ * @typedef {{
+ *     title: string, kind: string, project: string, index: number, cards: SitesCard[],
+ *     groups: string[],
+ * }} SitesBlock
  */
 
 
@@ -40,43 +47,13 @@ function hostOf(project) {
 }
 
 /**
- * How many of the 4 columns each block takes. A block needs as many as it
- * has apps, so projects with an app or two share a row; then the blocks of a
- * row that is not full share out what is left, so the row is always filled.
- * Two projects of one app each take half a row each.
- * @param {number[]} needs
- * @returns {number[]}
- */
-function blockSpans(needs) {
-    const spans = [ ...needs ];
-    let row = [];
-
-    const fill = () => {
-        let left = 4 - row.reduce((sum, index) => sum + spans[index], 0);
-        for (let turn = 0; left > 0 && row.length; turn++, left--) {
-            spans[row[turn % row.length]]++;
-        }
-        row = [];
-    };
-
-    needs.forEach((need, index) => {
-        if (row.reduce((sum, at) => sum + spans[at], 0) + need > 4) {
-            fill();
-        }
-        row.push(index);
-    });
-
-    fill();
-    return spans;
-}
-
-/**
  * How many of a block's apps could be started now.
  * @param {SitesBlock} group
  * @returns {number}
  */
 function stoppedCount(group) {
-    return group.cards.filter((card) => !card.running && !card.starting && !card.stopping).length;
+    return group.cards.filter((card) => !card.site && !card.running && !card.starting
+        && !card.stopping).length;
 }
 
 /** Each block's color, in turn, starting in blue. */
@@ -228,7 +205,16 @@ function renderSites() {
     for (const server of state.servers) {
         const title = server.project;
         if (groups.at(-1)?.project !== title) {
-            groups.push({ title, kind : "servers", project : title, cards : [] });
+            const index = state.projects.findIndex((project) => project.sites
+                .some((one) => one.id === server.id));
+            groups.push({
+                title,
+                kind    : "servers",
+                project : title,
+                index,
+                cards   : [],
+                groups  : [ title ],
+            });
         }
 
         groups.at(-1).cards.push({
@@ -243,13 +229,22 @@ function renderSites() {
             stopping : server.stopping,
             url      : server.running ? server.url : null,
             port     : server.port,
+            reload   : server.reload,
         });
     }
 
     for (const app of state.apps) {
         const title = app.name.split(" - ")[0];
         if (groups.at(-1)?.project !== app.project) {
-            groups.push({ title, kind : "apps", project : app.project, cards : [] });
+            const index = projectIndexOf(app.root);
+            groups.push({
+                title,
+                kind    : "apps",
+                project : app.project,
+                index,
+                cards   : [],
+                groups  : [ app.project ],
+            });
         }
 
         groups.at(-1).cards.push({
@@ -266,6 +261,8 @@ function renderSites() {
         });
     }
 
+    mergeServers(groups);
+
     // A start is done once its app runs, or given up on after 30s.
     for (const [ key, since ] of starting) {
         const card = groups.flatMap((group) => group.cards).find((one) => one.key === key);
@@ -274,28 +271,42 @@ function renderSites() {
         }
     }
 
+    addSites(groups);
+
+    // A project of the config with no apps found and no servers still shows, to change it.
+    for (const project of state.projects) {
+        if (!groups.some((group) => group.index === project.index)) {
+            groups.push({
+                title   : projectTitle(project),
+                kind    : "empty",
+                project : "",
+                index   : project.index,
+                cards   : [],
+                groups  : [],
+            });
+        }
+    }
+
     for (const group of groups) {
         markCards(group.cards);
     }
 
-    const spans = blockSpans(groups.map((group) => Math.min(group.cards.length, 4)));
     document.getElementById("apps-pane").innerHTML = groups.map((group, index) => {
-        const cols   = Math.min(group.cards.length, 4);
-        const span   = spans[index];
-        const up     = group.cards.filter((card) => card.running).length;
+        const apps   = group.cards.filter((card) => !card.site);
+        const up     = apps.filter((card) => card.running).length;
         const branch = group.project ? state.branches[group.project] : "";
         const host   = group.project ? hostOf(group.project) : "";
         // The host opens the project's first running app, in the block's order
         // (its desktop app first); with none running, the project's Apache site.
-        const first  = group.cards.find((card) => card.running && card.url);
+        const first  = apps.find((card) => card.running && card.url);
         const vhost  = host
             ? state.vhosts.find((one) => one.name === host && !one.ssl)
                 || state.vhosts.find((one) => one.name === host)
             : null;
         const target = first ? first.url : vhost?.url;
         const noun   = group.kind === "servers" ? "server" : "app";
-        const count  = `${group.cards.length} ${noun}${group.cards.length === 1 ? "" : "s"}`;
-        const dots   = group.cards
+        const count  = countText(apps.length, group.cards.length - apps.length, noun);
+        const dots   = apps
             .map((card) => {
                 let dot = "";
                 if (card.running) {
@@ -321,7 +332,7 @@ function renderSites() {
 
         return `
             <div class="panel app-block tone-${BLOCK_TONES[index % BLOCK_TONES.length]}"
-                style="--span:${span}; --cols:${cols};${iconTone(group.project)}">
+                style="${iconTone(group.project)}">
                 <div class="block-head">
                     <span class="block-badge ${state.icons.includes(group.project)
                         ? "icon" : ""}">${state.icons.includes(group.project)
@@ -338,21 +349,17 @@ function renderSites() {
                             <span>${count}</span>
                         </div>
                     </div>
-                    ${stoppedCount(group) >= 2 ? `
-                        <button class="ghost small group-start"
-                            data-group-start="${esc(group.project)}"
-                            title="Start the ${stoppedCount(group)} stopped ${noun}s">
-                            <svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>Start all
-                        </button>` : ""}
-                    <div class="block-state" title="${up
-                        ? `${up} of ${group.cards.length} running`
-                        : "None running"}">
-                        <span class="state-dots">${dots}</span>
-                        <span class="state-text ${up ? "on" : ""}">${up
-                            ? `${up} running` : "Stopped"}</span>
-                    </div>
+                    ${apps.length ? blockState(apps.length, up, dots) : ""}
+                    ${startAll(group, noun)}
+                    ${group.index >= 0 ? `<button class="icon-btn block-edit"
+                        data-project-edit="${group.index}" title="Change the project"
+                        aria-label="Change the project"><svg viewBox="0 0 24 24"><path
+                        d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg></button>`
+                        : ""}
                 </div>
-                <div class="app-cards">${group.cards.map(appCard).join("")}</div>
+                ${group.cards.length
+                    ? `<div class="app-cards">${group.cards.map(appCard).join("")}</div>`
+                    : emptyText(state.projects[group.index])}
             </div>
         `;
     }).join("");
@@ -365,6 +372,167 @@ function renderSites() {
     );
 
     renderVhosts();
+}
+
+/**
+ * Puts a project's servers in the block of its apps, when it has both, as the menu shows
+ * them: the plugin names the two by the project's title and by its folder.
+ * @param {SitesBlock[]} groups
+ * @returns {void}
+ */
+function mergeServers(groups) {
+    for (const servers of groups.filter((group) => group.kind === "servers")) {
+        const apps = groups.find((group) => group.kind === "apps" && group.index >= 0
+            && group.index === servers.index);
+
+        if (apps) {
+            apps.cards.push(...servers.cards);
+            apps.groups.push(...servers.groups);
+            groups.splice(groups.indexOf(servers), 1);
+        }
+    }
+}
+
+/**
+ * A block's Start all, in every block so the headers line up; it is off with nothing
+ * stopped to start.
+ * @param {SitesBlock} group
+ * @param {string} noun "app" or "server"
+ * @returns {string}
+ */
+function startAll(group, noun) {
+    const stopped = stoppedCount(group);
+
+    let title = "Nothing to start";
+    if (stopped) {
+        title = `Start the ${stopped} stopped ${noun}${stopped === 1 ? "" : "s"}`;
+    }
+
+    return `
+        <button class="ghost small group-start"
+            data-group-start="${esc(JSON.stringify(group.groups))}"
+            title="${title}" ${stopped ? "" : "disabled"}>
+            <svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg>Start all
+        </button>
+    `;
+}
+
+/**
+ * Puts each project's sites in its first block, or in one of their own for a project with
+ * nothing else. Apache serves them, so they are up while it runs: they are listed, never
+ * requested to see.
+ * @param {SitesBlock[]} groups
+ * @returns {void}
+ */
+function addSites(groups) {
+    const running = Boolean(state.services.httpd?.running);
+
+    for (const project of state.projects) {
+        // A site with a command is a server, which has its own card.
+        const sites = project.sites.filter((site) => !site.command);
+        if (!sites.length) {
+            continue;
+        }
+
+        let group = groups.find((one) => one.index === project.index);
+        if (!group) {
+            group = {
+                title   : projectTitle(project),
+                kind    : "sites",
+                project : "",
+                index   : project.index,
+                cards   : [],
+                groups  : [],
+            };
+            groups.push(group);
+        }
+
+        for (const site of sites) {
+            group.cards.push({
+                key      : `site:${site.url}`,
+                target   : "",
+                label    : site.name,
+                running,
+                starting : false,
+                stopping : false,
+                url      : site.url,
+                port     : null,
+                site     : true,
+            });
+        }
+    }
+}
+
+/**
+ * What a block holds, as its header says it.
+ * @param {number} apps its apps or servers
+ * @param {number} sites
+ * @param {string} noun "app" or "server"
+ * @returns {string}
+ */
+function countText(apps, sites, noun) {
+    const parts = [];
+    if (apps) {
+        parts.push(`${apps} ${noun}${apps === 1 ? "" : "s"}`);
+    }
+    if (sites) {
+        parts.push(`${sites} site${sites === 1 ? "" : "s"}`);
+    }
+
+    return parts.join(", ") || "Nothing yet";
+}
+
+/**
+ * The dots of a block's apps, green while they run, and how many do under them.
+ * @param {number} count
+ * @param {number} up how many run
+ * @param {string} dots the dots, as HTML
+ * @returns {string}
+ */
+function blockState(count, up, dots) {
+    return `
+        <div class="block-state" title="${up ? `${up} of ${count} running` : "None running"}">
+            <span class="state-dots">${dots}</span>
+            <span class="state-text ${up ? "on" : ""}">${up ? `${up} running` : "Stopped"}</span>
+        </div>
+    `;
+}
+
+/**
+ * What a project with no apps and no sites says, in place of its cards: where its apps
+ * are looked for, and a way to add a site.
+ * @param {{ index: number, dir: string, home: string, worktrees: boolean }} project
+ * @returns {string}
+ */
+function emptyText(project) {
+    let where = "No apps, and no sites yet.";
+    if (project.dir && project.worktrees) {
+        where = `No worktrees with apps in ${esc(shortPath(project.home))} yet.`;
+    } else if (project.dir) {
+        where = `No apps in ${esc(shortPath(project.home))} yet: each is a folder with a
+            package.json.`;
+    }
+
+    return `
+        <div class="block-empty">
+            <span class="muted">${where}</span>
+            <button class="ghost small" data-server-add="${project.index}">Add site</button>
+        </div>
+    `;
+}
+
+/**
+ * The place in the config of the project an app's folder is in: the project's own
+ * folder, or a worktree in it. -1 when no project has it.
+ * @param {string} root the project folder the plugin reports with the app
+ * @returns {number}
+ */
+function projectIndexOf(root) {
+    const clean  = (dir) => dir.replace(/\/+$/, "");
+    const parent = clean(root).replace(/\/[^/]*$/, "");
+
+    return state.projects.findIndex((project) => project.home && (clean(project.home)
+        === clean(root) || (project.worktrees && clean(project.home) === parent)));
 }
 
 /**
@@ -388,15 +556,18 @@ function markCards(cards) {
     }
 }
 
+// A hot reload is a bolt and a hot restart a turning arrow, as in Flutter's own tools.
 const ACTION_ICONS = {
-    start : `<path d="M7 4.5v15l12.5-7.5z"/>`,
-    open  : `<path d="M7 17L17 7M9 7h8v8"/>`,
-    stop  : `<rect x="6" y="6" width="12" height="12" rx="2"/>`,
+    start   : `<path d="M7 4.5v15l12.5-7.5z"/>`,
+    open    : `<path d="M7 17L17 7M9 7h8v8"/>`,
+    stop    : `<rect x="6" y="6" width="12" height="12" rx="2"/>`,
+    reload  : `<path d="M13 3L5 13.5h6.5L10.5 21 19 10.5h-6.5z"/>`,
+    restart : `<path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.7"/><path d="M20 4v4.7h-4.7"/>`,
 };
 
 /**
  * An action of a card as an icon button, its label for a title.
- * @param {"start" | "open" | "stop"} kind
+ * @param {"start" | "open" | "stop" | "reload" | "restart"} kind
  * @param {string} label
  * @param {string} attributes the button's data attributes, as HTML
  * @returns {string}
@@ -404,6 +575,19 @@ const ACTION_ICONS = {
 function iconButton(kind, label, attributes) {
     return `<button class="icon-btn ${kind}" title="${esc(label)}" aria-label="${esc(label)}"
         ${attributes}><svg viewBox="0 0 24 24">${ACTION_ICONS[kind]}</svg></button>`;
+}
+
+/**
+ * A flutter run's hot reload and hot restart, its r and R, which the menu has too.
+ * @param {SitesCard} card
+ * @returns {string}
+ */
+function reloadButtons(card) {
+    return `
+        ${iconButton("reload", `Hot reload ${card.label}`, `data-app-reload ${card.target}`)}
+        ${iconButton("restart", `Hot restart ${card.label}`,
+            `data-app-reload="restart" ${card.target}`)}
+    `;
 }
 
 /**
@@ -429,6 +613,10 @@ function appCard(card) {
         status = "Running";
     }
 
+    const open  = card.url ? `<a class="icon-btn open" href="${esc(card.url)}" target="_blank"
+        rel="noopener" title="Open ${esc(card.url)}" aria-label="Open"><svg
+        viewBox="0 0 24 24">${ACTION_ICONS.open}</svg></a>` : "";
+
     let actions = iconButton("start", `Start ${card.label}`, `data-app-start ${card.target}`);
 
     if (card.stopping || (card.starting && !card.running)) {
@@ -437,15 +625,22 @@ function appCard(card) {
         actions = "";
     } else if (card.running) {
         actions = `
-            ${card.url ? `<a class="icon-btn open" href="${esc(card.url)}" target="_blank"
-                rel="noopener" title="Open ${esc(card.url)}" aria-label="Open"><svg
-                viewBox="0 0 24 24">${ACTION_ICONS.open}</svg></a>` : ""}
+            ${card.reload ? reloadButtons(card) : ""}
+            ${open}
             ${iconButton("stop", `Stop ${card.label}`, `data-app-stop ${card.target}`)}
         `;
     }
 
+    // Apache starts and stops a site, so the card only opens it, and says where it is.
+    if (card.site) {
+        status  = card.running
+            ? `${esc(card.url.replace(/^https?:\/\/|\/$/g, ""))}${lock}`
+            : "Apache is stopped";
+        actions = card.running ? open : "";
+    }
+
     return `
-        <div class="app-card ${state}">
+        <div class="app-card ${state}${card.reload ? " wide" : ""}">
             <span class="app-icon">${esc(card.mark)}<i class="dot ${state}"></i></span>
             <div class="app-text">
                 <strong>${esc(card.label)}</strong>

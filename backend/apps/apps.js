@@ -14,10 +14,12 @@ import { SWIFTBAR, run } from "../core/system.js";
  */
 
 /**
- * A project's own server as the plugin lists it: its id, its project, and whether it runs.
+ * A project's own server as the plugin lists it: its id, its project, whether it runs, and
+ * whether it takes a hot reload, as a flutter run does.
  * @typedef {{
  *     id: string, name: string, project: string, dir: string, running: boolean,
  *     starting: boolean, stopping: boolean, pid: number, port: number, url: string,
+ *     reload: boolean,
  * }} StudioServer
  */
 
@@ -114,39 +116,40 @@ async function stopApp(dir) {
 
 /**
  * Every stopped app or server of one block of the Sites page: a project's
- * servers, by its title, or the apps of a project folder. Only a group the
- * plugin lists can be asked for.
- * @param {string} group
+ * servers, by its title, and the apps of a project folder, as a block may
+ * hold both. Only a group the plugin lists can be asked for.
+ * @param {string|string[]} group one, or the several of a block
  * @returns {Promise<{ message: string }>}
  */
 async function startGroup(group) {
+    const names   = [ group ].flat().map(String);
     const { apps, servers } = await readApps();
-    const own = servers.filter((server) => server.project === group);
-    if (own.length) {
-        const stopped = own.filter((server) => !server.running && !server.starting);
-        await run(SWIFTBAR, [ "start-extras", group ]);
-        return {
-            message : `Starting ${stopped.length} server${
-                stopped.length === 1 ? "" : "s"
-            } of ${group}…`,
-        };
-    }
-
-    const projectApps = apps.filter((app) => app.project === group);
-    if (!projectApps.length) {
+    const own     = servers.filter((server) => names.includes(server.project));
+    const mine    = apps.filter((app) => names.includes(app.project));
+    if (!own.length && !mine.length) {
         throw new Error("Unknown project");
     }
 
-    const stopped = projectApps.filter((app) => !app.running);
-    for (const app of stopped) {
+    const stoppedServers = own.filter((server) => !server.running && !server.starting);
+    for (const name of new Set(own.map((server) => server.project))) {
+        await run(SWIFTBAR, [ "start-extras", name ]);
+    }
+
+    const stoppedApps = mine.filter((app) => !app.running);
+    for (const app of stoppedApps) {
         await run(SWIFTBAR, [ "start-app", app.dir ]);
     }
 
-    return {
-        message : `Starting ${stopped.length} app${stopped.length === 1 ? "" : "s"} of ${
-            projectApps[0].name.split(" - ")[0]
-        }…`,
-    };
+    const parts = [];
+    if (stoppedApps.length || !own.length) {
+        parts.push(`${stoppedApps.length} app${stoppedApps.length === 1 ? "" : "s"}`);
+    }
+    if (own.length) {
+        parts.push(`${stoppedServers.length} server${stoppedServers.length === 1 ? "" : "s"}`);
+    }
+
+    const title = mine[0]?.name.split(" - ")[0] || own[0].project;
+    return { message : `Starting ${parts.join(" and ")} of ${title}…` };
 }
 
 /**
@@ -185,6 +188,24 @@ async function stopServer(id) {
 }
 
 /**
+ * Hot reloads or hot restarts a running server that takes them, a flutter run, with the
+ * plugin's own action, as the menu does: its r and R, with no terminal to press them in.
+ * @param {string} id
+ * @param {boolean} restart a hot restart, which starts the app over, rather than a reload
+ * @returns {Promise<{ message: string }>}
+ */
+async function reloadServer(id, restart) {
+    const { servers } = await readApps();
+    const server      = servers.find((one) => one.id === id);
+    if (!server || !server.pid || !server.reload) {
+        throw new Error("That server is not running, or cannot be reloaded");
+    }
+
+    await run(SWIFTBAR, [ restart ? "restart-proc" : "reload-proc", String(server.pid) ]);
+    return { message : `${restart ? "Restarting" : "Reloading"} ${server.name}…` };
+}
+
+/**
  * Each project's folder, by project, as the plugin reports it with each app.
  * @param {StudioApp[]} apps
  * @returns {Object<string, string>}
@@ -204,4 +225,5 @@ export {
     startGroup,
     startServer,
     stopServer,
+    reloadServer,
 };

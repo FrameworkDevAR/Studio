@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
+import { splitCommand } from "../backend/core/command.js";
 
 
 
@@ -43,8 +44,12 @@ const PROJECTS = (CONFIG.projects || []).map((project) => ({
     worktrees : Boolean(project.worktrees),
     mainApp   : project.mainApp || "desktop",
     nestedApp : project.nestedApp || "web",
-    servers   : project.servers || [],
-    sites     : project.sites || [],
+    // A site with a command is a server the menu starts; one without, Apache's, only linked.
+    servers   : (project.sites || []).filter((site) => site.command),
+    sites     : (project.sites || []).filter((site) => !site.command).map((site) => ({
+        name : site.name,
+        url  : `${site.https ? "https" : "http"}://${site.host}/`,
+    })),
 }));
 
 // The settings of a folder that belongs to no project.
@@ -61,13 +66,21 @@ const SERVERS_NAME = PROJECTS.find((project) => project.servers.length)?.name ||
 /**
  * The projects' own servers: each started by its own command, and found by
  * what listens on its port. `pathPrefix` goes before PATH for its command only.
+ * The config's command is a line, split here into the command and its args. A
+ * `flutter run` has no terminal to press r or R in, so it takes signals for them.
  */
-const EXTRA_SERVERS = PROJECTS.flatMap((project) => project.servers.map((server) => ({
-    args    : [],
-    ...server,
-    dir     : expandHome(server.dir),
-    group   : project.name || SERVERS_NAME,
-})));
+const EXTRA_SERVERS = PROJECTS.flatMap((project) => project.servers.map((server) => {
+    const [ command = "", ...args ] = splitCommand(server.command || "");
+
+    return {
+        ...server,
+        command,
+        args,
+        dir       : expandHome(server.dir),
+        group     : project.name || SERVERS_NAME,
+        hotReload : command === "flutter",
+    };
+}));
 
 // Studio, started on demand. node resolves the link SwiftBar runs this through,
 // so import.meta.dirname is the plugin's folder, inside Studio's.

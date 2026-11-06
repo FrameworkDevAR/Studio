@@ -8,7 +8,9 @@
         "mysqlCnf"  : "/opt/homebrew/etc/my.cnf.d/local-dev.cnf",
         "apacheLog" : "/opt/homebrew/var/log/httpd/error_log",
         "accessLog" : "/opt/homebrew/var/log/httpd/access_log",
-        "redisLog"  : "/opt/homebrew/var/log/redis.log"
+        "redisLog"  : "/opt/homebrew/var/log/redis.log",
+        "hosts"     : "/etc/hosts",
+        "certs"     : "~/.certs"
     },
 
     "browser"    : "Google Chrome",
@@ -17,21 +19,19 @@
 
     "projects" : [
         {
-            "name"    : "Framework",
-            "servers" : [
+            "name"  : "Framework",
+            "sites" : [
                 {
                     "id"      : "docs",
                     "name"    : "Framework Docs",
                     "dir"     : "~/GitHub/Framework",
-                    "command" : "./framework",
-                    "args"    : [ "docs", "--port=2000" ]
+                    "command" : "./framework docs --port=2000"
                 },
                 {
                     "id"      : "tool",
                     "name"    : "Tool",
                     "dir"     : "~/GitHub/Tool",
-                    "command" : "npm",
-                    "args"    : [ "start" ]
+                    "command" : "npm start"
                 }
             ]
         },
@@ -42,8 +42,10 @@
         {
             "name"  : "Clinic",
             "dir"   : "~/Projects/Clinic/clinic-admin",
+            "host"  : "clinic.local",
+            "https" : true,
             "sites" : [
-                { "name" : "Site", "url" : "https://site.clinic.local/" }
+                { "name" : "Site", "host" : "site.clinic.local", "https" : true }
             ]
         },
         {

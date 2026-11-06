@@ -6,8 +6,9 @@ the apps and servers of each project. See the README.
 - `backend/` is the server. `main.js` answers the page and the api; the rest is in folders
   by what it covers, a file per part:
   - `core/`: `system.js` with the paths and helpers the others share, `paths.js` with the
-    stack's paths and their defaults (for the plugin too), `config.js`, and `jobs.js`, which
-    runs the npm and pecl installs the page follows as they go.
+    stack's paths and their defaults (for the plugin too), `command.js`, which splits a
+    server's command line (for the plugin too), `config.js`, and `jobs.js`, which runs the
+    npm and pecl installs the page follows as they go.
   - `stack/`: `services.js`, `apache.js`, PHP's `php.js` (settings and overrides), `ini.js`
     (asking PHP, the ini files) and `pecl.js` (extensions), `node.js` and `logs.js`.
   - `apps/`: the projects' apps and their icons.
@@ -32,7 +33,7 @@ the apps and servers of each project. See the README.
 
 - Only commit when the user says to. Finishing a change is not a request to commit
   it; leave it uncommitted and say it is ready. The same for pushing.
-- End every message with `Co-Authored-By: Claude <noreply@anthropic.com>` — just
+- End every commit message with `Co-Authored-By: Claude <noreply@anthropic.com>` — just
   "Claude", never a model name or version.
 - Subjects are imperative and plain, as in the other repos: "Add the…", "Fix the…",
   "Ignore the…".

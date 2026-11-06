@@ -15,6 +15,7 @@ import * as node from "./stack/node.js";
 import * as logs from "./stack/logs.js";
 import * as apps from "./apps/apps.js";
 import * as icons from "./apps/icons.js";
+import * as projects from "./apps/projects.js";
 import * as databases from "./database/databases.js";
 import * as mariadb from "./database/mariadb.js";
 import * as schema from "./database/schema.js";
@@ -244,7 +245,7 @@ function readBody(request) {
  */
 async function readState() {
     const [
-        serviceList, phpState, nodeState, databaseList, mariadbState, projects, disk,
+        serviceList, phpState, nodeState, databaseList, mariadbState, found, disk,
     ] = await Promise.all([
         services.readServices(),
         php.readPhp(),
@@ -261,11 +262,13 @@ async function readState() {
         node       : nodeState,
         databases  : databaseList,
         mariadb    : mariadbState,
-        apps       : projects.apps,
-        servers    : projects.servers,
-        branches   : projects.branches,
+        apps       : found.apps,
+        servers    : found.servers,
+        branches   : found.branches,
+        // The config's projects, for the forms that add and change them.
+        projects   : projects.readProjects(),
         // The projects with a favicon, which the page asks /api/icon for.
-        icons      : Object.keys(icons.readIcons(projects.apps, projects.servers)),
+        icons      : Object.keys(icons.readIcons(found.apps, found.servers)),
         disk,
         listen     : apache.readListen(),
         logs       : logs.readLogSizes(),
@@ -328,10 +331,14 @@ async function runAction(body) {
         Boolean(body.enabled),
     );
 
-    // The apps and their servers.
+    // The apps and their servers, and the projects of the config they come from.
     case "app-start":       return body.id ? apps.startServer(body.id) : apps.startApp(body.dir);
     case "app-stop":        return body.id ? apps.stopServer(body.id) : apps.stopApp(body.dir);
+    case "app-reload":      return apps.reloadServer(body.id, Boolean(body.restart));
     case "group-start":     return apps.startGroup(body.group);
+    case "project-save":    return projects.saveProject(body);
+    case "project-remove":  return projects.removeProject(body.index);
+    case "pick-folder":     return projects.pickFolder(body.dir);
 
     // Studio's config, the logs, and a file opened in its editor. A file Apache includes
     // opens by its path, once it is known to be one.

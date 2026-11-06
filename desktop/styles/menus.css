@@ -32,9 +32,9 @@
     main { --gutter: 18px; --top: 24px; margin-left: 0; }
     .grid-2 { grid-template-columns: 1fr; }
     section[data-view="overview"].active { height: auto; }
-    #apps-pane { grid-template-columns: 1fr; }
-    .app-block { grid-column: auto; }
     .app-block .app-cards { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+    /* The columns may come down to one, which two would overflow: a wide card takes the row. */
+    .app-cards .app-card.wide { grid-column: 1 / -1; }
     .page-head { flex-direction: column; }
 }
 

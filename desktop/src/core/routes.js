@@ -198,6 +198,7 @@ function showSitesTab() {
     document.getElementById("apache-pane").hidden = tab !== "apache";
     document.getElementById("edit-vhosts").hidden = tab !== "apache";
     document.getElementById("edit-config").hidden = tab !== "apps";
+    document.getElementById("new-project").hidden = tab !== "apps";
     document.getElementById("sites-text").textContent = tab === "apps"
         ? "The apps and servers of each project, found by their processes, " +
             "never by requesting them."

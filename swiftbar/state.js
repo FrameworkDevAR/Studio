@@ -19,10 +19,11 @@ import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
 
 /**
  * One of the projects' own servers, as the config gives it, with its project's name as its
- * group, and the process serving it, if any.
+ * group, whether it takes a hot reload, and the process serving it, if any.
  * @typedef {{
- *     id: string, name: string, command: string, args: string[], dir: string,
- *     pathPrefix?: string, group: string, pid: string, port: number, starting: boolean,
+ *     id: string, name: string, command: string, args: string[], dir: string, host?: string,
+ *     pathPrefix?: string, group: string, hotReload: boolean, pid: string, port: number,
+ *     starting: boolean,
  * }} ExtraServer
  */
 
@@ -150,12 +151,13 @@ function realPathOf(dir) {
 }
 
 /**
- * The page of a server on its port, or null when it is not listening.
- * @param {{ port: number }} server
+ * The page of a server on its port, at its host or localhost, or null when it is not
+ * listening.
+ * @param {{ port: number, host?: string }} server
  * @returns {string}
  */
 function urlOf(server) {
-    return server.port ? `http://localhost:${server.port}/` : null;
+    return server.port ? `http://${server.host || "localhost"}:${server.port}/` : null;
 }
 
 /**

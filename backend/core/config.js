@@ -46,11 +46,7 @@ async function saveConfig(text) {
         throw new Error(`The config was not saved: ${problem}`);
     }
 
-    if (fs.existsSync(CONFIG)) {
-        fs.copyFileSync(CONFIG, `${CONFIG}.bak`);
-    }
-
-    fs.writeFileSync(CONFIG, text.endsWith("\n") ? text : `${text}\n`);
+    await storeConfig(text);
     const moved = JSON.stringify(pathsOf(config)) !== JSON.stringify(PATHS)
         || JSON.stringify(toolsOf(config)) !== JSON.stringify(TOOLS);
 
@@ -59,6 +55,117 @@ async function saveConfig(text) {
             moved ? ". Restart Studio to use the new paths and tools" : ""
         }`,
     };
+}
+
+/**
+ * The config as it is saved, for the forms that change a part of it: {} without
+ * one yet. A file that is not JSON is refused rather than read as {}, which
+ * saving would then write over.
+ * @returns {Object<string, *>}
+ */
+function readConfig() {
+    if (!fs.existsSync(CONFIG)) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(readFile(CONFIG));
+    } catch {
+        throw new Error(`${path.basename(CONFIG)} is not valid JSON: fix it with Edit config`);
+    }
+}
+
+/**
+ * Saves a config a form changed, checked as the editor's is, and written the
+ * way the example is laid out, so it still reads well in the editor.
+ * @param {Object<string, *>} config
+ * @returns {Promise<void>}
+ */
+async function writeConfig(config) {
+    const problem = configProblem(config);
+    if (problem) {
+        throw new Error(`The config was not saved: ${problem}`);
+    }
+
+    await storeConfig(`${formatConfig(config)}\n`);
+}
+
+/**
+ * Writes the config's text, keeping the previous file as config.json.bak, and
+ * redraws the menu, which reads the config on every run, so it lists the
+ * projects at once rather than in up to 10s.
+ * @param {string} text
+ * @returns {Promise<void>}
+ */
+async function storeConfig(text) {
+    if (fs.existsSync(CONFIG)) {
+        fs.copyFileSync(CONFIG, `${CONFIG}.bak`);
+    }
+
+    fs.writeFileSync(CONFIG, text.endsWith("\n") ? text : `${text}\n`);
+    await run("/usr/bin/open", [ "-g", "swiftbar://refreshplugin?name=swiftbar" ]);
+}
+
+/**
+ * A value as JSON laid out like the example: an object a key per line with
+ * the colons aligned, a list of texts or numbers on one line, a list of
+ * objects one per line. At the top, the settings that are a text or a number
+ * stay together and the rest stand apart, a blank line around each; each group
+ * aligns its own colons. A project's sites with no command take a line each, being so
+ * short.
+ * @param {*} value
+ * @param {number=} depth
+ * @param {boolean=} flat whether an object with no command goes on one line
+ * @returns {string}
+ */
+function formatConfig(value, depth = 0, flat = false) {
+    const pad   = " ".repeat(4 * depth);
+    const inner = " ".repeat(4 * (depth + 1));
+    const isBig = (one) => Boolean(one) && typeof one === "object";
+
+    if (Array.isArray(value)) {
+        if (!value.length) {
+            return "[]";
+        }
+        if (!value.some(isBig)) {
+            return `[ ${value.map((one) => JSON.stringify(one)).join(", ")} ]`;
+        }
+        return `[\n${value.map((one) => inner + formatConfig(one, depth + 1, flat))
+            .join(",\n")}\n${pad}]`;
+    }
+
+    if (!isBig(value)) {
+        return JSON.stringify(value);
+    }
+
+    const keys = Object.keys(value);
+    if (!keys.length) {
+        return "{}";
+    }
+
+    if (flat && value.command === undefined) {
+        const pairs = keys.map((key) => `${JSON.stringify(key)} : ${JSON.stringify(value[key])}`);
+        return `{ ${pairs.join(", ")} }`;
+    }
+
+    // The groups of keys, each aligned on its own: one inside, several at the top.
+    const groups = [];
+    for (const key of keys) {
+        const alone = depth === 0 && isBig(value[key]);
+        if (!groups.length || alone || groups.at(-1).alone) {
+            groups.push({ alone, keys : [] });
+        }
+        groups.at(-1).keys.push(key);
+    }
+
+    const lines = groups.map((group) => {
+        const width = Math.max(...group.keys.map((key) => JSON.stringify(key).length));
+        return group.keys.map((key) => `${inner}${JSON.stringify(key).padEnd(width)} : ${
+            formatConfig(value[key], depth + 1, key === "sites")
+        }`).join(",\n");
+    });
+
+    return `{\n${lines.join(depth === 0 ? ",\n\n" : ",\n")}\n${pad}}`;
 }
 
 /**
@@ -94,6 +201,9 @@ function configProblem(config) {
     if (config.projects === undefined) {
         return "";
     }
+
+    // The plugin starts a server by its id, so two with one would start the same.
+    const ids = [];
     if (!Array.isArray(config.projects)) {
         return "projects must be a list";
     }
@@ -106,30 +216,50 @@ function configProblem(config) {
             return `${name} must be an object, between { and }`;
         }
 
-        if (!project.dir && !project.servers) {
-            return `${name} needs a dir, or servers`;
+        if (!project.name && !project.dir && !project.sites) {
+            return `${name} needs a name, a dir, or sites`;
         }
 
         if (project.dir !== undefined && typeof project.dir !== "string") {
             return `the dir of ${name} must be a folder`;
         }
 
-        for (const key of [ "name", "mainApp", "nestedApp" ]) {
+        if (project.https !== undefined && typeof project.https !== "boolean") {
+            return `the https of ${name} must be true or false`;
+        }
+
+        for (const key of [ "name", "host", "mainApp", "nestedApp" ]) {
             if (project[key] !== undefined && typeof project[key] !== "string") {
                 return `the ${key} of ${name} must be a text`;
             }
         }
 
-        if (project.servers === undefined) {
-            continue;
-        }
-        if (!Array.isArray(project.servers)) {
-            return `the servers of ${name} must be a list`;
+        if (project.servers !== undefined) {
+            return `the servers of ${name} go in its sites now, as they are`;
         }
 
-        for (const [ at, server ] of project.servers.entries()) {
-            const which = isObject(server) && server.id ? `the server "${server.id}"`
-                : `server ${at + 1} of ${name}`;
+        if (project.sites === undefined) {
+            continue;
+        }
+        if (!Array.isArray(project.sites)) {
+            return `the sites of ${name} must be a list`;
+        }
+
+        for (const [ at, server ] of project.sites.entries()) {
+            const which = isObject(server) && (server.id || server.name)
+                ? `the site "${server.id || server.name}"`
+                : `site ${at + 1} of ${name}`;
+
+            // One with no command is Apache's, served at its host; a url is from before.
+            if (isObject(server) && server.command === undefined) {
+                if (server.url !== undefined) {
+                    return `${which} has a url: it takes a host now, and "https" : true`;
+                }
+                if (typeof server.name !== "string" || typeof server.host !== "string") {
+                    return `${which} needs a name and a host, or a command`;
+                }
+                continue;
+            }
 
             if (!isObject(server) || typeof server.id !== "string" || !server.id) {
                 return `${which} needs an id`;
@@ -137,9 +267,14 @@ function configProblem(config) {
             if (typeof server.dir !== "string" || typeof server.command !== "string") {
                 return `${which} needs a dir and a command`;
             }
-            if (server.args !== undefined && !isList(server.args)) {
-                return `the args of ${which} must be a list of texts`;
+            if (server.args !== undefined) {
+                return `${which} has args: they go in its command now, as "npm run dev"`;
             }
+            if (ids.includes(server.id)) {
+                return `two sites have the id "${server.id}"`;
+            }
+
+            ids.push(server.id);
         }
     }
 
@@ -198,5 +333,7 @@ async function openFile(which, included = "") {
 export {
     readConfigFile,
     saveConfig,
+    readConfig,
+    writeConfig,
     openFile,
 };

@@ -69,6 +69,10 @@ function runAction(action, argument) {
         startDetached(SELF, [ "await-stop", argument ], HOME);
         break;
 
+    // A flutter run's hot reload and hot restart, its r and R.
+    case "reload-proc":  sh(`kill -USR1 ${argument}`); break;
+    case "restart-proc": sh(`kill -USR2 ${argument}`); break;
+
     case "await-stop":
         for (let attempt = 0; attempt < 60; attempt++) {
             if (sh(`ps -p ${argument} -o pid=`) === "") {
@@ -229,6 +233,7 @@ function runAction(action, argument) {
             pid      : server.pid ? Number(server.pid) : null,
             port     : server.port,
             url      : urlOf(server),
+            reload   : server.hotReload,
         }));
 
         console.log(JSON.stringify({ apps, servers }));

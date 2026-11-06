@@ -18,6 +18,8 @@ const DEFAULTS = {
     apacheLog : "/opt/homebrew/var/log/httpd/error_log",
     accessLog : "/opt/homebrew/var/log/httpd/access_log",
     redisLog  : "/opt/homebrew/var/log/redis.log",
+    hosts     : "/etc/hosts",
+    certs     : path.join(os.homedir(), ".certs"),
 };
 
 /**
