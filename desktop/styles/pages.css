@@ -230,7 +230,7 @@ td strong { font-weight: 600; }
 
 /* ---------------------------------------------------------------- apps */
 
-#apps-pane { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+#app-groups { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 /*
  * A project's block: a wash of its color from the corner behind the header,
  * an accent line along the top, and the header's badge in the same color.
@@ -537,12 +537,5 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 }
 .icon-btn:disabled { opacity: .4; }
 
-#site-tabs em, #php-tabs em, #apache-tabs em, #db-tabs em {
-    font-style: normal;
-    margin-left: 4px;
-    font-size: 11.5px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-}
 [hidden] { display: none !important; }
 .dot.idle { background: var(--border); }

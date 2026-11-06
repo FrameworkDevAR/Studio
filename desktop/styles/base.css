@@ -329,6 +329,20 @@ body.scrolled .page-head::after { opacity: 1; }
     margin-bottom: 14px;
 }
 .panel-head a { font-size: 13px; }
+/*
+ * A tab's own heading, for the tabs whose content is not one panel: its name, and the
+ * buttons that act on it, as a panel's head has them. The page's header keeps only what
+ * every tab shares, so nothing there moves as the tabs change.
+ */
+.pane-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+}
+/* A head's tools on its right: a filter, a status and the tab's buttons, in a row. */
+.head-tools { display: flex; align-items: center; gap: 8px; }
 .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
 
 
@@ -430,6 +444,54 @@ button.small, .button.small { padding: 3px 10px; font-size: 12.5px; }
 }
 @media (prefers-reduced-motion: reduce) {
     .segmented.ready .seg-thumb { transition: none; }
+}
+/*
+ * A page's own tabs, first in the header's row: a round track, where the buttons are
+ * boxes with corners, the active tab a capsule in the accent, and each count in a
+ * badge. A line and a wider gap keep the buttons after them apart, so the tabs read as
+ * where you are rather than as one more button.
+ */
+.page-tabs {
+    margin-right: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--border) 45%, var(--bg));
+}
+.page-tabs::after {
+    content: "";
+    position: absolute;
+    right: -8px;
+    top: 7px;
+    bottom: 7px;
+    width: 1px;
+    background: var(--border);
+}
+/* Alone in the row, there are no buttons to keep apart. */
+.page-tabs:last-child { margin-right: 0; }
+.page-tabs:last-child::after { display: none; }
+.page-tabs button { gap: 4px; padding: 5px 9px; border-radius: 999px; }
+.page-tabs button.active { color: var(--accent); }
+.page-tabs .seg-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+}
+.page-tabs:not(.has-thumb) button.active {
+    background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+}
+.page-tabs em {
+    padding: 0 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--border) 80%, var(--bg));
+    color: var(--muted);
+    font-size: 11px;
+    font-style: normal;
+    line-height: 16px;
+    font-variant-numeric: tabular-nums;
+}
+.page-tabs em:empty { display: none; }
+.page-tabs button.active em {
+    background: color-mix(in srgb, var(--accent) 25%, var(--panel));
+    color: var(--accent);
 }
 /* The line under the Logs title: the file, its size and Clear. */
 #log-file { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }

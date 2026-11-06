@@ -180,7 +180,6 @@ section[data-view="database"] > .page-head { margin-bottom: 2px; }
 .structure-indexes .structure-line:hover { background: var(--hover); }
 .index-list { min-height: 0; overflow: auto; }
 #structure-filter { width: 240px; }
-.head-tools { display: flex; align-items: center; gap: 8px; }
 /* A column being dragged, and the line where it would land. */
 #structure-grid tr.dragging td { opacity: .45; }
 #structure-grid tr.drop-above td { box-shadow: inset 0 2px 0 var(--accent); }

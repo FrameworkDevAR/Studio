@@ -291,7 +291,7 @@ function renderSites() {
         markCards(group.cards);
     }
 
-    document.getElementById("apps-pane").innerHTML = groups.map((group, index) => {
+    document.getElementById("app-groups").innerHTML = groups.map((group, index) => {
         const apps   = group.cards.filter((card) => !card.site);
         const up     = apps.filter((card) => card.running).length;
         const branch = group.project ? state.branches[group.project] : "";

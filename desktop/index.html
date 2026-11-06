@@ -293,23 +293,39 @@
                     <p class="muted" id="sites-text"></p>
                 </div>
                 <div class="actions">
-                    <button class="ghost" id="new-project" data-project-new
-                        title="A folder of apps, or of servers, for the menu and here">New
-                        project</button>
-                    <button class="ghost" id="edit-config" data-edit-config
-                        title="The projects and servers listed here">Edit config</button>
-                    <button data-edit-apache="vhosts" class="ghost"
-                        id="edit-vhosts">Edit vhosts</button>
-                    <div class="segmented" id="site-tabs">
-                        <button data-site-tab="apps">Apps <em id="tab-apps-count"></em></button>
-                        <button data-site-tab="apache">Apache <em
+                    <div class="segmented page-tabs" id="site-tabs">
+                        <button data-site-tab="apps"><svg class="i"><use
+                            href="#i-grid"/></svg>Apps <em id="tab-apps-count"></em></button>
+                        <button data-site-tab="apache"><svg class="i"><use
+                            href="#i-globe"/></svg>Apache <em
                             id="tab-apache-count"></em></button>
                     </div>
                 </div>
             </header>
-            <div id="apps-pane"></div>
-            <div id="apache-pane"><div class="panel flush"><table id="vhost-table"
-                class="fixed"></table></div></div>
+            <div id="apps-pane">
+                <div class="pane-head">
+                    <h2>Projects</h2>
+                    <div class="head-tools">
+                        <button class="ghost" id="new-project" data-project-new
+                            title="A folder of apps, or of servers, for the menu and here"><svg
+                            class="i"><use href="#i-plus"/></svg>New project</button>
+                        <button class="ghost" id="edit-config" data-edit-config
+                            title="The projects and servers listed here"><svg class="i"><use
+                            href="#i-pencil"/></svg>Edit config</button>
+                    </div>
+                </div>
+                <div id="app-groups"></div>
+            </div>
+            <div id="apache-pane">
+                <div class="pane-head">
+                    <h2>Virtual hosts</h2>
+                    <div class="head-tools">
+                        <button data-edit-apache="vhosts" class="ghost" id="edit-vhosts"><svg
+                            class="i"><use href="#i-pencil"/></svg>Edit vhosts</button>
+                    </div>
+                </div>
+                <div class="panel flush"><table id="vhost-table" class="fixed"></table></div>
+            </div>
         </section>
 
         <!-- ----------------------------------------------------------- php -->
@@ -320,24 +336,27 @@
                     <p class="muted" id="php-text"></p>
                 </div>
                 <div class="actions">
-                    <span id="php-settings-actions" class="actions">
-                        <button class="ghost" data-pick-setting="php">Add setting</button>
-                        <button class="ghost" data-edit-php>Edit overrides</button>
-                    </span>
-                    <span id="php-ext-actions" class="actions">
-                        <span id="pecl-outdated"></span>
-                        <button class="ghost" data-pecl-open>Install extension</button>
-                    </span>
-                    <div class="segmented" id="php-tabs">
-                        <button data-php-tab="settings">Overrides <em
+                    <div class="segmented page-tabs" id="php-tabs">
+                        <button data-php-tab="settings"><svg class="i"><use
+                            href="#i-sliders"/></svg>Overrides <em
                             id="tab-overrides-count"></em></button>
-                        <button data-php-tab="extensions">Extensions <em
+                        <button data-php-tab="extensions"><svg class="i"><use
+                            href="#i-puzzle"/></svg>Extensions <em
                             id="ext-count"></em></button>
                     </div>
                 </div>
             </header>
             <div id="php-problem" class="panel problem" hidden></div>
             <div id="php-settings-pane">
+            <div class="pane-head">
+                <h2>Overrides</h2>
+                <div class="head-tools">
+                    <button class="ghost" data-pick-setting="php"><svg class="i"><use
+                        href="#i-plus"/></svg>Add setting</button>
+                    <button class="ghost" data-edit-php><svg class="i"><use
+                        href="#i-pencil"/></svg>Edit overrides</button>
+                </div>
+            </div>
             <div id="php-settings" class="setting-groups"></div>
             <div id="php-changes" class="panel changes" hidden>
                 <div class="changes-text">
@@ -355,8 +374,13 @@
             <div id="php-ext-pane" class="panel">
                 <div class="panel-head">
                     <h2>Extensions <span id="ext-panel-count" class="muted"></span></h2>
-                    <input id="php-ext-filter" type="search"
-                        placeholder="Filter extensions…" spellcheck="false" autocomplete="off">
+                    <div class="head-tools">
+                        <span id="pecl-outdated"></span>
+                        <input id="php-ext-filter" type="search" placeholder="Filter extensions…"
+                            spellcheck="false" autocomplete="off">
+                        <button class="ghost" data-pecl-open><svg class="i"><use
+                            href="#i-download"/></svg>Install extension</button>
+                    </div>
                 </div>
                 <div id="php-extensions"></div>
             </div>
@@ -394,32 +418,42 @@
                     <p class="muted" id="apache-text"></p>
                 </div>
                 <div class="actions">
-                    <button data-action="reload" class="ghost">Reload Apache</button>
-                    <button data-edit-apache="httpd" class="ghost">Edit httpd.conf</button>
-                    <div class="segmented" id="apache-tabs">
-                        <button data-apache-tab="modules">Modules <em
+                    <div class="segmented page-tabs" id="apache-tabs">
+                        <button data-apache-tab="modules"><svg class="i"><use
+                            href="#i-puzzle"/></svg>Modules <em
                             id="tab-modules-count"></em></button>
-                        <button data-apache-tab="configs">Configs <em
+                        <button data-apache-tab="configs"><svg class="i"><use
+                            href="#i-file"/></svg>Configs <em
                             id="tab-configs-count"></em></button>
                     </div>
+                    <button data-action="reload" class="ghost"><svg class="i"><use
+                        href="#i-restart"/></svg>Reload Apache</button>
                 </div>
             </header>
             <div class="panel" id="apache-configs-pane">
                 <div class="panel-head">
                     <h2>Configs <span id="config-count" class="muted"></span></h2>
+                    <div class="head-tools">
+                        <button data-edit-apache="httpd" class="ghost"><svg class="i"><use
+                            href="#i-pencil"/></svg>Edit httpd.conf</button>
+                    </div>
                 </div>
                 <div id="apache-configs" class="configs"></div>
             </div>
             <div class="panel" id="apache-modules-pane">
                 <div class="panel-head">
                     <h2>Modules <span id="module-count" class="muted"></span></h2>
-                    <div class="filters">
-                        <input id="module-search" type="search" placeholder="Filter modules…">
-                        <div class="segmented" id="module-filter">
-                            <button data-filter="all" class="active">All</button>
-                            <button data-filter="on">On</button>
-                            <button data-filter="off">Off</button>
+                    <div class="head-tools">
+                        <div class="filters">
+                            <input id="module-search" type="search" placeholder="Filter modules…">
+                            <div class="segmented" id="module-filter">
+                                <button data-filter="all" class="active">All</button>
+                                <button data-filter="on">On</button>
+                                <button data-filter="off">Off</button>
+                            </div>
                         </div>
+                        <button data-edit-apache="httpd" class="ghost"><svg class="i"><use
+                            href="#i-pencil"/></svg>Edit httpd.conf</button>
                     </div>
                 </div>
                 <div id="modules" class="modules"></div>
@@ -444,12 +478,17 @@
                         role="listbox"></div></div></span></h1>
                 </div>
                 <div class="actions">
-                    <div class="segmented" id="browse-tabs">
-                        <button data-browse-tab="tables">Tables</button>
-                        <button data-browse-tab="structure">Structure</button>
-                        <button data-browse-tab="rows">Rows</button>
-                        <button data-browse-tab="info">Information</button>
-                        <button data-browse-tab="sql">SQL</button>
+                    <div class="segmented page-tabs" id="browse-tabs">
+                        <button data-browse-tab="tables"><svg class="i"><use
+                            href="#i-table"/></svg>Tables</button>
+                        <button data-browse-tab="structure"><svg class="i"><use
+                            href="#i-columns"/></svg>Structure</button>
+                        <button data-browse-tab="rows"><svg class="i"><use
+                            href="#i-rows"/></svg>Rows</button>
+                        <button data-browse-tab="info"><svg class="i"><use
+                            href="#i-info"/></svg>Information</button>
+                        <button data-browse-tab="sql"><svg class="i"><use
+                            href="#i-prompt"/></svg>SQL</button>
                     </div>
                     <!-- What is done to the database as a whole, in a menu. -->
                     <div class="menu-wrap">
@@ -578,27 +617,19 @@
                     <p class="muted" id="db-text"></p>
                 </div>
                 <div class="actions">
-                    <span id="db-list-actions" class="actions">
-                        <a id="phpmyadmin-link" class="button ghost"
-                            target="_blank" rel="noopener">Open phpMyAdmin</a>
-                        <button class="ghost" data-db-new>New database</button>
-                    </span>
-                    <span id="db-user-actions" class="actions">
-                        <a id="phpmyadmin-users-link" class="button ghost"
-                            target="_blank" rel="noopener">Open phpMyAdmin</a>
-                        <button class="ghost" data-user-new>New user</button>
-                    </span>
-                    <span id="db-option-actions" class="actions">
-                        <button class="ghost" data-pick-setting="mariadb">Add option</button>
-                        <button class="ghost" data-edit-mariadb>Edit options</button>
-                    </span>
-                    <div class="segmented" id="db-tabs">
-                        <button data-db-tab="databases">Databases <em
+                    <div class="segmented page-tabs" id="db-tabs">
+                        <button data-db-tab="databases"><svg class="i"><use
+                            href="#i-database"/></svg>Databases <em
                             id="tab-db-count"></em></button>
-                        <button data-db-tab="users">Users <em id="tab-user-count"></em></button>
-                        <button data-db-tab="options">Options <em
+                        <button data-db-tab="users"><svg class="i"><use
+                            href="#i-user"/></svg>Users <em id="tab-user-count"></em></button>
+                        <button data-db-tab="options"><svg class="i"><use
+                            href="#i-sliders"/></svg>Options <em
                             id="tab-option-count"></em></button>
                     </div>
+                    <a id="phpmyadmin-link" class="button ghost" title="Open phpMyAdmin"
+                        target="_blank" rel="noopener"><svg class="i"><use
+                        href="#i-external"/></svg>phpMyAdmin</a>
                 </div>
             </header>
             <div id="db-problem" class="panel problem" hidden>MariaDB is not running.
@@ -606,20 +637,37 @@
             <div id="db-list-pane" class="panel">
                 <div class="panel-head">
                     <h2>Databases <span id="db-total" class="muted"></span></h2>
-                    <input id="db-filter" type="search"
-                        placeholder="Filter databases…" spellcheck="false" autocomplete="off">
+                    <div class="head-tools">
+                        <input id="db-filter" type="search"
+                            placeholder="Filter databases…" spellcheck="false" autocomplete="off">
+                        <button class="ghost" data-db-new><svg class="i"><use
+                            href="#i-plus"/></svg>New database</button>
+                    </div>
                 </div>
                 <div id="db-list" class="db-list"></div>
             </div>
             <div id="db-users-pane" class="panel">
                 <div class="panel-head">
                     <h2>Users <span id="user-count" class="muted"></span></h2>
-                    <input id="user-filter" type="search"
-                        placeholder="Filter users…" spellcheck="false" autocomplete="off">
+                    <div class="head-tools">
+                        <input id="user-filter" type="search"
+                            placeholder="Filter users…" spellcheck="false" autocomplete="off">
+                        <button class="ghost" data-user-new><svg class="i"><use
+                            href="#i-plus"/></svg>New user</button>
+                    </div>
                 </div>
                 <div id="db-users" class="db-list"></div>
             </div>
             <div id="db-options-pane">
+                <div class="pane-head">
+                    <h2>Options</h2>
+                    <div class="head-tools">
+                        <button class="ghost" data-pick-setting="mariadb"><svg class="i"><use
+                            href="#i-plus"/></svg>Add option</button>
+                        <button class="ghost" data-edit-mariadb><svg class="i"><use
+                            href="#i-pencil"/></svg>Edit options</button>
+                    </div>
+                </div>
                 <div id="db-options" class="setting-groups"></div>
                 <div id="db-changes" class="panel changes" hidden>
                     <div class="changes-text">
@@ -643,34 +691,41 @@
                     <h1>Logs</h1>
                 </div>
                 <div class="actions">
-                    <div class="segmented" id="log-tabs">
-                        <button data-log="apache" class="active">Apache + PHP</button>
-                        <button data-log="access">Requests</button>
-                        <button data-log="mariadb">MariaDB</button>
-                        <button data-log="redis">Redis</button>
+                    <div class="segmented page-tabs" id="log-tabs">
+                        <button data-log="apache" class="active"><svg class="i"><use
+                            href="#i-globe"/></svg>Apache + PHP</button>
+                        <button data-log="access"><svg class="i"><use
+                            href="#i-pulse"/></svg>Requests</button>
+                        <button data-log="mariadb"><svg class="i"><use
+                            href="#i-database"/></svg>MariaDB</button>
+                        <button data-log="redis"><svg class="i"><use
+                            href="#i-layers"/></svg>Redis</button>
                     </div>
-                    <button id="log-errors" class="toggle danger-tone"
-                        aria-pressed="false" title="Show only errors and warnings">
-                        <svg viewBox="0 0 24 24"><path
-                            d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0
-                            0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
-                        Errors only
-                    </button>
-                    <button id="log-follow" class="toggle" aria-pressed="true"
-                        title="Keep loading new lines and stay at the end">
-                        <svg viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
-                        Follow
-                    </button>
                 </div>
                 <div class="page-meta log-meta">
                     <p id="log-file" class="muted"></p>
-                    <label class="search">
-                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11"
-                            r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-                        <input id="log-search" type="search"
-                            placeholder="Search this log…" spellcheck="false" autocomplete="off">
-                        <span id="log-matches"></span>
-                    </label>
+                    <div class="head-tools">
+                        <label class="search">
+                            <svg viewBox="0 0 24 24"><circle cx="11" cy="11"
+                                r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+                            <input id="log-search" type="search" placeholder="Search this log…"
+                                spellcheck="false" autocomplete="off">
+                            <span id="log-matches"></span>
+                        </label>
+                        <button id="log-errors" class="toggle danger-tone"
+                            aria-pressed="false" title="Show only errors and warnings">
+                            <svg viewBox="0 0 24 24"><path
+                                d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2
+                                0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                            Errors only
+                        </button>
+                        <button id="log-follow" class="toggle" aria-pressed="true"
+                            title="Keep loading new lines and stay at the end">
+                            <svg viewBox="0 0 24 24"><path
+                                d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
+                            Follow
+                        </button>
+                    </div>
                 </div>
             </header>
             <div class="log-wrap">

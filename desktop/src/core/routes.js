@@ -122,12 +122,9 @@ function showDbTab() {
         button.classList.toggle("active", button.dataset.dbTab === tab);
     }
 
-    document.getElementById("db-list-pane").hidden      = tab !== "databases";
-    document.getElementById("db-list-actions").hidden   = tab !== "databases";
-    document.getElementById("db-users-pane").hidden     = tab !== "users";
-    document.getElementById("db-user-actions").hidden   = tab !== "users";
-    document.getElementById("db-options-pane").hidden   = tab !== "options";
-    document.getElementById("db-option-actions").hidden = tab !== "options";
+    document.getElementById("db-list-pane").hidden    = tab !== "databases";
+    document.getElementById("db-users-pane").hidden   = tab !== "users";
+    document.getElementById("db-options-pane").hidden = tab !== "options";
 
     if (state) {
         renderDbText();
@@ -171,10 +168,8 @@ function showPhpTab() {
         button.classList.toggle("active", button.dataset.phpTab === tab);
     }
 
-    document.getElementById("php-settings-pane").hidden    = tab !== "settings";
-    document.getElementById("php-settings-actions").hidden = tab !== "settings";
-    document.getElementById("php-ext-pane").hidden         = tab !== "extensions";
-    document.getElementById("php-ext-actions").hidden      = tab !== "extensions";
+    document.getElementById("php-settings-pane").hidden = tab !== "settings";
+    document.getElementById("php-ext-pane").hidden      = tab !== "extensions";
 
     if (state) {
         renderPhpText();
@@ -196,13 +191,9 @@ function showSitesTab() {
 
     document.getElementById("apps-pane").hidden   = tab !== "apps";
     document.getElementById("apache-pane").hidden = tab !== "apache";
-    document.getElementById("edit-vhosts").hidden = tab !== "apache";
-    document.getElementById("edit-config").hidden = tab !== "apps";
-    document.getElementById("new-project").hidden = tab !== "apps";
     document.getElementById("sites-text").textContent = tab === "apps"
-        ? "The apps and servers of each project, found by their processes, " +
-            "never by requesting them."
-        : "The vhosts Apache serves, as configured. They are listed, never checked.";
+        ? "Each project's apps and servers, found by their processes."
+        : "The vhosts Apache serves, listed and never requested.";
 }
 
 

@@ -40,12 +40,7 @@ import { hostSelect, passwordField, privilegeSummary } from "./users.js";
  * @returns {void}
  */
 function renderDatabases() {
-    const { databases, mariadb, phpmyadmin } = state;
-    /** @type {HTMLAnchorElement} */ (document.getElementById("phpmyadmin-link")).href
-        = phpmyadmin.url;
-    /** @type {HTMLAnchorElement} */ (document.getElementById("phpmyadmin-users-link")).href
-        = `${phpmyadmin.url}/index.php?route=/server/privileges`;
-
+    const { databases, mariadb } = state;
     document.getElementById("db-version").textContent = mariadb.version
         ? `MariaDB ${mariadb.version}` : "";
     document.getElementById("db-problem").hidden       = databases.available;
@@ -72,20 +67,23 @@ function renderDatabases() {
 }
 
 /**
- * The line under the title, about the tab shown.
+ * The line under the title, about the tab shown, and where phpMyAdmin opens for it.
  * @returns {void}
  */
 function renderDbText() {
     const file = state.mariadb.file.split("/").pop();
+    const link = /** @type {HTMLAnchorElement} */ (document.getElementById("phpmyadmin-link"));
+
+    // phpMyAdmin opens on what the tab shows: its users' privileges, or its home.
+    link.href = dbTab() === "users"
+        ? `${state.phpmyadmin.url}/index.php?route=/server/privileges`
+        : state.phpmyadmin.url;
+
     document.getElementById("db-text").innerHTML = {
-        databases : "MariaDB on port 3306. Sizes include indexes and refresh every 30 seconds; " +
-            "a name opens its tables.",
-        users     : "The users the sites log in as: the databases each reaches, and what it may " +
-            "do there. root and your own user look after MariaDB, so they are left to phpMyAdmin.",
-        options   : `Values saved here go to
-            <code title="${esc(state.mariadb.file)}">${esc(file)}</code>, which MariaDB reads after
-            <code>my.cnf</code>, so they win over it. MariaDB checks them first; the ones it can
-            change as it runs apply at once, and the rest restart it.`,
+        databases : "MariaDB on port 3306. Sizes include indexes.",
+        users     : "The sites' users and what they may do. Admins stay in phpMyAdmin.",
+        options   : `Saved to <code title="${esc(state.mariadb.file)}">${esc(file)}</code>, over
+            <code>my.cnf</code>; some restart MariaDB.`,
     }[dbTab()];
 }
 
