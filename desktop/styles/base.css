@@ -264,7 +264,7 @@ section[data-view].active { display: block; }
 }
 /* Only once the page scrolled: at the top it would cover the first row. */
 body.scrolled .page-head::after { opacity: 1; }
-.page-head p { max-width: 640px; font-size: 13.5px; }
+.page-head p { font-size: 13.5px; }
 /* The title side gives way first, so the controls stay on one row. */
 .page-head > div:first-child { flex: 1; min-width: 0; }
 .page-head > .actions { flex: none; flex-wrap: nowrap; }

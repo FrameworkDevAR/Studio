@@ -147,12 +147,11 @@ function showApacheTab() {
     document.getElementById("apache-modules-pane").hidden = tab !== "modules";
     document.getElementById("apache-configs-pane").hidden = tab !== "configs";
     document.getElementById("apache-text").innerHTML = tab === "modules"
-        ? `Each change is checked by Apache before it is kept, and undone if Apache rejects it.
-            <span class="tag">used</span> means Apache's config, the vhosts or the sites'
-            <code>.htaccess</code> files need it.`
-        : `The config files <code>httpd.conf</code> includes. Turning one on uncomments its
-            <code>Include</code> line; Apache checks it first, and it is undone if
-            Apache rejects it.`;
+        ? `Apache checks each change first. <span class="tag"
+            title="Apache's config, the vhosts or a site's .htaccess">used</span> means something
+            needs it.`
+        : `The files <code>httpd.conf</code> includes, each turned on by its
+            <code>Include</code> line.`;
 }
 
 /**

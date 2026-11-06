@@ -37,8 +37,9 @@ function renderNode() {
         node.corepack && `corepack ${esc(node.corepack)}`,
     ].filter(Boolean);
     document.getElementById("node-text").innerHTML = [
-        `Homebrew's <code>node</code>${tools.length ? `, with ${tools.join(" and ")}` : ""}.`,
-        node.root ? `Global packages go to <code>${esc(node.root)}</code>.` : "",
+        `From Homebrew${tools.length ? `, with ${tools.join(" and ")}` : ""}.`,
+        node.root ? `Globals in <code title="${esc(node.root)}">${
+            esc(node.root.split("/").slice(-2).join("/"))}</code>.` : "",
     ].join(" ");
 
     const problem = document.getElementById("node-problem");

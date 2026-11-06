@@ -41,12 +41,9 @@ function renderPhpText() {
     const { php } = state;
     const file    = php.iniFile.split("/").pop();
     document.getElementById("php-text").innerHTML = phpTab() === "settings"
-        ? `Values saved here go to <code title="${esc(php.iniFile)}">${esc(file)}</code>, which PHP
-            reads after <code title="${esc(php.mainIni)}">php.ini</code>, so they win over it.
-            The × takes one out, back to php.ini's value. Changes wait in a panel until saved, then
-            Apache reloads.`
-        : `The extensions PHP loads. The ones added with pecl are built from their source for this
-            PHP version, and can be updated or removed here; the rest come with PHP.`;
+        ? `Saved to <code title="${esc(php.iniFile)}">${esc(file)}</code>, which overrides
+            <code title="${esc(php.mainIni)}">php.ini</code>. Apache reloads on save.`
+        : "The extensions PHP loads. Those from pecl can be updated or removed.";
 }
 
 /**
