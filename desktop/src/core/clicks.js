@@ -105,6 +105,7 @@ function onClick(event) {
         clicked.closest("button, input[data-module], input[data-include]")
     );
     if (!target) {
+        openCard(clicked, event);
         return;
     }
 
@@ -374,6 +375,27 @@ function onClick(event) {
         setLogName(target.dataset.log);
         setActive(target);
         loadLog(true);
+    }
+}
+
+/**
+ * A click on a card that opens a page, away from its buttons and links: a
+ * database's goes to its tables. Selecting text in the card does not open it,
+ * and ⌘ or Ctrl opens it in a new tab, as a link would.
+ * @param {Element} clicked
+ * @param {MouseEvent} event
+ * @returns {void}
+ */
+function openCard(clicked, event) {
+    const card = /** @type {HTMLElement|null} */ (clicked.closest("[data-db-open]"));
+    if (!card || event.button !== 0 || !window.getSelection().isCollapsed) {
+        return;
+    }
+
+    if (event.metaKey || event.ctrlKey) {
+        window.open(card.dataset.dbOpen, "_blank");
+    } else {
+        navigate(card.dataset.dbOpen);
     }
 }
 

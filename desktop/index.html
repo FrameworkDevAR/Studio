@@ -457,10 +457,20 @@
                             aria-haspopup="menu">Actions<svg class="chevron"
                             viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
                         <div id="browse-menu" class="menu" role="menu" hidden>
-                            <button role="menuitem" data-db-import>Import…</button>
-                            <button role="menuitem" data-db-export>Export…</button>
-                            <a role="menuitem" id="browse-pma"
-                                target="_blank" rel="noopener">Open phpMyAdmin</a>
+                            <button role="menuitem" data-db-import><svg class="i"><use
+                                href="#i-download"/></svg>Import…</button>
+                            <button role="menuitem" data-db-export><svg class="i"><use
+                                href="#i-upload"/></svg>Export…</button>
+                            <hr>
+                            <button role="menuitem" id="browse-edit" data-db-edit><svg
+                                class="i"><use href="#i-pencil"/></svg>Edit…</button>
+                            <button role="menuitem" id="browse-drop" class="danger-item"
+                                data-db-drop><svg class="i"><use
+                                href="#i-trash"/></svg>Drop…</button>
+                            <hr>
+                            <a role="menuitem" id="browse-pma" target="_blank"
+                                rel="noopener"><svg class="i"><use
+                                href="#i-external"/></svg>Open phpMyAdmin</a>
                         </div>
                     </div>
                 </div>

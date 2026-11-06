@@ -17,6 +17,8 @@
     transition: border-color .15s;
 }
 .db-card:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+/* A database's card opens it from anywhere on it, not only its name. */
+.db-card[data-db-open] { cursor: pointer; }
 .db-card-head { display: flex; align-items: center; gap: 12px; }
 .db-icon {
     flex: none;

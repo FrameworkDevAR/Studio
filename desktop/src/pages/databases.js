@@ -3,7 +3,7 @@
 
 import { act, api } from "../core/api.js";
 import { ask, bytes, esc, formDialog, setActive, toast } from "../core/helpers.js";
-import { dbTab } from "../core/routes.js";
+import { dbTab, navigate } from "../core/routes.js";
 import { OPTION_GROUPS, settingsKeys, state } from "../core/state.js";
 import { renderBrowseHead } from "../database/page.js";
 import { renderSettingGroups } from "./settings.js";
@@ -111,7 +111,7 @@ function renderDbList() {
     document.getElementById("db-list").innerHTML = !databases.available
         ? `<div class="pkg-none">MariaDB is not running.</div>`
         : list.map((db) => `
-            <div class="db-card">
+            <div class="db-card" data-db-open="/database/${encodeURIComponent(db.name)}">
                 <div class="db-card-head">
                     <span class="db-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5.5"
                         rx="7.5" ry="3"/><path
@@ -538,7 +538,14 @@ async function dropDatabase(name) {
     if (sure) {
         const going = [ ...document.querySelectorAll("#ask-body input:checked") ]
             .map((box) => /** @type {HTMLInputElement} */ (box).value);
-        act({ action : "db-drop", name, users : going });
+        await act({ action : "db-drop", name, users : going });
+
+        // Dropped from its own page, through the Actions menu, there is nothing left to show.
+        const page = `/database/${encodeURIComponent(name)}`;
+        const gone = !state.databases.list.some((one) => one.name === name);
+        if (gone && (location.pathname === page || location.pathname.startsWith(`${page}/`))) {
+            navigate("/databases");
+        }
     }
 }
 

@@ -243,11 +243,15 @@ function showCounts() {
 }
 
 /**
- * phpMyAdmin's page of the database, from the page's state.
+ * The Actions menu's links to the database: phpMyAdmin's page of it, and its
+ * edit and drop, which act on the database open.
  * @returns {void}
  */
 function renderBrowseHead() {
     const db = state?.databases.list.find((one) => one.name === browse.db);
+
+    document.getElementById("browse-edit").dataset.dbEdit = browse.db;
+    document.getElementById("browse-drop").dataset.dbDrop = browse.db;
     /** @type {HTMLAnchorElement} */ (document.getElementById("browse-pma")).href = db?.url
         || state?.phpmyadmin.url
         || "#";
