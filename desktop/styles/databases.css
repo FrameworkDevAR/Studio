@@ -61,7 +61,7 @@
 .db-actions { flex: none; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
 .db-card:hover .db-actions, .user-row:hover .db-actions, .db-actions:focus-within { opacity: 1; }
 .db-actions .icon-btn { width: 26px; height: 26px; border-radius: 8px; }
-.db-actions .icon-btn svg { width: 13px; height: 13px; }
+.db-actions .icon-btn svg { width: 14px; height: 14px; }
 .db-actions .icon-btn:hover {
     color: var(--accent);
     border-color: color-mix(in srgb, var(--accent) 50%, var(--border));

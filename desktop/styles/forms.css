@@ -419,7 +419,7 @@ a.pkg-text:hover .pkg-scope { color: inherit; }
 .pkg.pick.all { border-bottom-width: 2px; }
 .pkg.pick.all .pkg-text { color: var(--muted); font-family: inherit; font-weight: 600; }
 .pkg .icon-btn { flex: none; width: 24px; height: 24px; border-radius: 7px; }
-.pkg .icon-btn svg { width: 13px; height: 13px; }
+.pkg .icon-btn svg { width: 14px; height: 14px; }
 .pkg .icon-btn.update:hover {
     color: var(--amber);
     border-color: color-mix(in srgb, var(--amber) 50%, var(--border));

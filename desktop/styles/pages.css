@@ -350,7 +350,7 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 
 /* Changing the project, quiet until the block is hovered. */
 .block-head .block-edit { flex: none; width: 28px; height: 28px; border-radius: 9px; opacity: .45; }
-.block-head .block-edit svg { width: 13px; height: 13px; }
+.block-head .block-edit svg { width: 14px; height: 14px; }
 .app-block:hover .block-edit, .block-edit:focus-visible { opacity: 1; }
 /* Close to Start all, as the two act on the same block; the head's gap is for its parts. */
 .block-head .group-start + .block-edit { margin-left: -8px; }
@@ -492,9 +492,13 @@ a.host:hover { color: var(--tone); text-decoration: none; }
     cursor: pointer;
     transition: color .12s, background .12s, border-color .12s;
 }
+/*
+ * Icons are an even size, as the buttons are: an odd one leaves half a pixel on each side,
+ * which a 1x screen rounds to one side, and the icon sits off-centre.
+ */
 .icon-btn svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     fill: none;
     stroke: currentColor;
     stroke-width: 2.2;
