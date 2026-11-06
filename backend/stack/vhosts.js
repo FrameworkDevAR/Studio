@@ -1,12 +1,14 @@
-// The vhosts of a project, as its form changes them, with what each needs to answer on its
-// .local address: its blocks in the vhosts file, a certificate for https, and its name in
-// the hosts file. The vhosts file stays the one record of them, comments and all.
+// The vhosts, as a project's form or the Sites page's own changes them, with what each needs
+// to answer on its .local address: its blocks in the vhosts file, a certificate for https,
+// and its name in the hosts file. The vhosts file stays the one record of them, comments and
+// all.
 
 import fs from "node:fs";
 import path from "node:path";
 
 import { PATHS, VHOSTS, run, readFile } from "../core/system.js";
 import { expandHome } from "../core/paths.js";
+import { readConfig } from "../core/config.js";
 import { readVhosts, saveApacheFile } from "./apache.js";
 
 
@@ -41,6 +43,75 @@ const NEVER_DROP   = [ "localhost", "broadcasthost" ];
  * }} VhostChange
  */
 
+
+
+// --------------------------------------------------------------- one vhost ---
+
+/**
+ * Adds a vhost, or changes one, from the Sites page: one that is no project's, as a
+ * project's are changed in its own form, which keeps the config in step.
+ * @param {VhostForm} form
+ * @returns {Promise<{ message: string }>}
+ */
+async function saveVhost(form) {
+    const adding = !form.oldName;
+    if (!adding) {
+        checkLoose(form.oldName);
+    }
+
+    const name = String(form.name || "").trim().toLowerCase();
+    const done = await saveVhosts({ forms : [ form ], drops : [], title : name, home : "" });
+    if (!done) {
+        return { message : "Nothing changed" };
+    }
+
+    return { message : `${adding ? "Added" : "Saved"} ${name}. ${done}` };
+}
+
+/**
+ * Takes a vhost out, its http and https blocks both, and its name out of the hosts file. Its
+ * folder and its certificate stay.
+ * @param {{ name: string, root: string }} vhost
+ * @returns {Promise<{ message: string }>}
+ */
+async function removeVhost({ name, root }) {
+    checkLoose(name);
+
+    const drops = [ { name, root } ];
+    const done  = await saveVhosts({ forms : [], drops, title : "", home : "" });
+
+    return { message : done ? `Removed ${name}. ${done}` : `${name} was not there` };
+}
+
+/**
+ * Throws for a vhost the page may not change on its own: Apache's default, and a project's,
+ * which its form changes, so the config never names a vhost that is gone.
+ * @param {string} name
+ * @returns {void}
+ */
+function checkLoose(name) {
+    if (!HOST_PATTERN.test(name)) {
+        throw new Error(`${name} is Apache's own, and stays`);
+    }
+
+    const owner = ownerOf(name);
+    if (owner) {
+        throw new Error(`${name} is ${owner}'s: change it in that project`);
+    }
+}
+
+/**
+ * The project a host name is of, as its own host or one of its sites, or "".
+ * @param {string} name
+ * @returns {string}
+ */
+function ownerOf(name) {
+    const projects = readConfig().projects || [];
+    const project  = projects.find((one) => one.host === name
+        || (one.sites || []).some((site) => !site.command && site.host === name));
+
+    return project ? project.name || project.dir || "a project" : "";
+}
 
 
 // ------------------------------------------------------------------ vhosts ---
@@ -399,6 +470,8 @@ function isInside(dir, home) {
 
 // The public API
 export {
+    saveVhost,
+    removeVhost,
     saveVhosts,
     saveHosts,
     rewriteVhosts,

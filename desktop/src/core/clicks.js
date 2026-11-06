@@ -65,6 +65,7 @@ import {
 } from "../pages/settings.js";
 import { openProjectDialog, pickFolder } from "../pages/projects.js";
 import { renderSites } from "../pages/sites.js";
+import { joinProject, makeProject, openVhostDialog, removeVhost } from "../pages/vhosts.js";
 import {
     copyPassword,
     dropUser,
@@ -312,7 +313,7 @@ function onClick(event) {
     } else if (target.dataset.phpTab) {
         navigate(target.dataset.phpTab === "extensions" ? "/php/extensions" : "/php");
     } else if (target.dataset.siteTab) {
-        navigate(target.dataset.siteTab === "apache" ? "/sites/apache" : "/sites");
+        navigate(target.dataset.siteTab === "vhosts" ? "/sites/vhosts" : "/sites");
     } else if (target.dataset.service) {
         const { service, op } = target.dataset;
         const name = state.services[service].name;
@@ -340,6 +341,16 @@ function onClick(event) {
         openProjectDialog();
     } else if (target.dataset.projectEdit) {
         openProjectDialog(Number(target.dataset.projectEdit));
+    } else if (target.dataset.vhostNew !== undefined) {
+        openVhostDialog();
+    } else if (target.dataset.vhostEdit) {
+        openVhostDialog(target.dataset.vhostEdit, target.dataset.vhostRoot);
+    } else if (target.dataset.vhostProject !== undefined) {
+        makeProject(target.dataset.vhostName, target.dataset.vhostRoot);
+    } else if (target.dataset.vhostJoin !== undefined) {
+        joinProject(target);
+    } else if (target.dataset.vhostRemove) {
+        removeVhost(target.dataset.vhostRemove, target.dataset.vhostRoot);
     } else if (target.dataset.serverAdd) {
         openProjectDialog(Number(target.dataset.serverAdd), true);
     } else if (target.dataset.pickFolder !== undefined) {

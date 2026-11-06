@@ -94,7 +94,9 @@ object with its own settings:
 
 A project's vhost and those of its sites are found by their host in the vhosts file:
 the project's dialog writes them there, with their line in the hosts file and their
-certificate.
+certificate. The Sites page's Virtual hosts tab adds, changes and removes the vhosts
+that are no project's the same way; a project's open its dialog, and those on localhost
+the file.
 
 Folders may start with `~`.
 

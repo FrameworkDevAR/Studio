@@ -3,6 +3,7 @@
 import { esc, icon, shortPath } from "../core/helpers.js";
 import { starting, state } from "../core/state.js";
 import { projectTitle } from "./projects.js";
+import { renderVhosts } from "./vhosts.js";
 
 
 
@@ -364,10 +365,8 @@ function renderSites() {
         `;
     }).join("");
 
-    const all = allApps();
-    document.getElementById("tab-apps-count").textContent   = `${all
-        .filter((app) => app.running).length}/${all.length}`;
-    document.getElementById("tab-apache-count").textContent = String(
+    document.getElementById("tab-project-count").textContent = String(groups.length);
+    document.getElementById("tab-vhost-count").textContent   = String(
         new Set(state.vhosts.map((vhost) => vhost.name + vhost.root)).size,
     );
 
@@ -652,51 +651,6 @@ function appCard(card) {
             </div>
             <div class="app-actions">${actions}</div>
         </div>
-    `;
-}
-
-/**
- * The vhosts, one row per name with its http and https side by side, never checked.
- * @returns {void}
- */
-function renderVhosts() {
-    const rows = new Map();
-
-    for (const vhost of state.vhosts) {
-        const key = `${vhost.name}:${vhost.ssl ? 80 : vhost.port}:${vhost.root}`;
-        const row = rows.get(key) || {
-            name   : vhost.name,
-            root   : vhost.root,
-            exists : vhost.exists,
-            http   : null,
-            https  : null,
-        };
-
-        row[vhost.ssl ? "https" : "http"] = vhost;
-        rows.set(key, row);
-    }
-
-    const link = (vhost, label) => vhost
-        ? `<a href="${esc(vhost.url)}" target="_blank" rel="noopener">${label}</a>`
-        : `<span class="muted">—</span>`;
-
-    document.getElementById("vhost-table").innerHTML = `
-        <colgroup><col style="width:26%"><col><col style="width:80px"><col
-            style="width:80px"></colgroup>
-        <thead><tr><th>Site</th><th>Folder</th><th class="num">HTTP</th><th
-            class="num">HTTPS</th></tr></thead>
-        <tbody>
-            ${[ ...rows.values() ].map((row) => `
-                <tr>
-                    <td><strong>${esc(row.name)}</strong>${row.http && row.http.port !== 80
-                        ? `<span class="muted">:${row.http.port}</span>` : ""}</td>
-                    <td class="path">${esc(shortPath(row.root))}${row.exists
-                        ? "" : ` <span class="badge bad">missing</span>`}</td>
-                    <td class="num">${link(row.http, "Open")}</td>
-                    <td class="num">${link(row.https, "Open")}</td>
-                </tr>
-            `).join("")}
-        </tbody>
     `;
 }
 

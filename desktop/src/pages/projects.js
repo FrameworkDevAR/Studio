@@ -35,11 +35,18 @@ import { state } from "../core/state.js";
  * together.
  * @param {number=} index the project's place in the config, none for a new one
  * @param {boolean=} adding whether it opens with a new server to fill in
+ * @param {{
+ *     name?: string, dir?: string, host?: string, https?: boolean,
+ *     site?: { name: string, host: string, dir: string },
+ * }=} preset a new project's fields, as one made from a vhost, or the site a project
+ *     opens with when adding, as one a vhost joins; either takes the vhost as its own
  * @returns {void}
  */
-function openProjectDialog(index = -1, adding = false) {
+function openProjectDialog(index = -1, adding = false, preset = undefined) {
     const project = state.projects[index];
     const rows    = (project?.sites || []).map((site, at) => serverRow(site, at));
+    const start   = project || preset;
+    const https   = project?.https ?? preset?.https ?? true;
 
     const body = `
         <div class="project-form" data-project>
@@ -50,16 +57,16 @@ function openProjectDialog(index = -1, adding = false) {
             </div>
             <div class="project-pane" data-project-pane="project">
                 <label class="form-row"><span>Name</span><input name="name"
-                    value="${esc(project?.name || "")}" maxlength="80" placeholder="Shop"
+                    value="${esc(start?.name || "")}" maxlength="80" placeholder="Shop"
                     spellcheck="false"></label>
-                <label class="form-row"><span>Folder</span>${folderField(project?.dir || "",
+                <label class="form-row"><span>Folder</span>${folderField(start?.dir || "",
                     "~/Projects/Shop", false)}</label>
                 <div class="host-line">
                     <label class="form-row"><span>Host</span><input name="host"
-                        value="${esc(project?.host || "")}" maxlength="120"
+                        value="${esc(start?.host || "")}" maxlength="120"
                         placeholder="shop.local" spellcheck="false"></label>
                     <label class="check"><input type="checkbox" class="box" name="https"
-                        ${!project || project.https ? "checked" : ""}><span>HTTPS</span></label>
+                        ${https ? "checked" : ""}><span>HTTPS</span></label>
                 </div>
                 <span class="muted server-hint">Saving a host sets up its vhost, its line in
                     the hosts file and its certificate, then reloads Apache.</span>
@@ -79,11 +86,18 @@ function openProjectDialog(index = -1, adding = false) {
         </div>
     `;
 
+    let text = "A folder of apps, each in a subfolder with a package.json, its own sites " +
+        "and servers, or both.";
+    if (project) {
+        text = "";
+    } else if (preset) {
+        text = `Made from the vhost ${preset.host}, which it takes as its own: the vhost ` +
+            "stays as it is.";
+    }
+
     formDialog({
         title  : project ? `Change ${projectTitle(project)}` : "New project",
-        text   : project ? ""
-            : "A folder of apps, each in a subfolder with a package.json, its own sites and " +
-                "servers, or both.",
+        text,
         body,
         ok     : project ? "Save" : "Add",
         remove : project ? { label : "Remove", run : () => removeProject(index) } : null,
@@ -94,7 +108,7 @@ function openProjectDialog(index = -1, adding = false) {
             if (adding) {
                 requestAnimationFrame(() => {
                     showTab(fields, "sites");
-                    addServer(fields);
+                    addServer(fields, preset?.site);
                 });
             }
         },
@@ -299,15 +313,18 @@ function countServers(fields) {
 }
 
 /**
- * Adds a line for a new server, in the project's folder, and goes to its name.
+ * Adds a line for a new server, in the project's folder, or for a site as given, open, and
+ * goes to its name.
  * @param {HTMLElement} fields
+ * @param {{ name: string, host: string, dir: string }=} site
  * @returns {void}
  */
-function addServer(fields) {
+function addServer(fields, site = undefined) {
     const dir = /** @type {HTMLInputElement} */ (fields.querySelector("[name=dir]")).value;
-    const row = serverRow(undefined, -1, dir);
+    const row = serverRow(site && { id : "", command : "", url : "", ...site }, -1, dir);
 
     fields.querySelector("[data-server-rows]").insertAdjacentHTML("beforeend", row);
+    /** @type {HTMLDetailsElement} */ (fields.querySelector(".server-row:last-child")).open = true;
     countServers(fields);
     /** @type {HTMLElement} */ (
         fields.querySelector(".server-row:last-child [name=server-name]")
@@ -410,6 +427,7 @@ async function pickFolder(button) {
 // The public API
 export {
     openProjectDialog,
+    folderField,
     projectTitle,
     pickFolder,
 };

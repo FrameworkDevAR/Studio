@@ -156,6 +156,15 @@ async function saveProject(form) {
         throw new Error(`That folder is the project ${twin.name || twin.dir} already`);
     }
 
+    // A host is one project's, its own or a site's: two would both write its vhost.
+    for (const name of hostsOf(host, form.sites || [])) {
+        const holder = projects.find((one, at) => at !== index && (one.host === name
+            || (one.sites || []).some((site) => !site.command && site.host === name)));
+        if (holder) {
+            throw new Error(`${name} is the project ${holder.name || holder.dir}'s already`);
+        }
+    }
+
     const others  = projects.filter((one) => one !== old)
         .flatMap((one) => (one.sites || []).map((site) => site.id).filter(Boolean));
     const project = /** @type {ProjectEntry} */ (prune({
@@ -268,6 +277,8 @@ function entryOf(form, old) {
  * What a form changes in the vhosts: the project's own, at its host, and one for each site
  * with a folder. A vhost goes when its host is cleared, or its site or folder is taken out,
  * or its site is given a command; a site's vhost outside the project is another's, and stays.
+ * A project, or a new site of one, given a host that a vhost of its folder has already, as
+ * one made from that vhost, takes it as its own rather than adding a second.
  * @param {{ dir: string, host: string, https: boolean, sites: ServerForm[] }} form
  * @param {ProjectEntry} old
  * @returns {{ forms: VhostForm[], drops: { name: string, root: string }[] }}
@@ -275,7 +286,9 @@ function entryOf(form, old) {
 function vhostChange(form, old) {
     const vhosts  = readVhosts();
     const home    = expandHome(old.dir);
-    const main    = vhosts.find((vhost) => old.host && vhost.name === old.host);
+    const main    = vhosts.find((vhost) => (old.host
+        ? vhost.name === old.host
+        : isOwnVhost(vhost, form)));
     const https   = Boolean(form.https);
     const entries = old.sites || [];
     const forms   = [];
@@ -297,7 +310,8 @@ function vhostChange(form, old) {
     for (const site of (form.sites || []).filter(isSite)) {
         const before = entryOf(site, entries);
         const vhost  = before && isSite(before)
-            ? vhosts.find((one) => one.name === before.host) : undefined;
+            ? vhosts.find((one) => one.name === before.host)
+            : vhosts.find((one) => isOwnVhost(one, site));
         kept.push(before);
 
         // A site at the project's own host is that vhost, already set above.
@@ -327,6 +341,33 @@ function vhostChange(form, old) {
     }
 
     return { forms, drops };
+}
+
+/**
+ * The hosts a form gives its project: its own, and its sites' that have no command.
+ * @param {string} host
+ * @param {ServerForm[]} sites
+ * @returns {string[]}
+ */
+function hostsOf(host, sites) {
+    const named = sites.filter((site) => !text(site.command))
+        .map((site) => text(site.host).toLowerCase());
+
+    return [ host, ...named ].filter(Boolean);
+}
+
+/**
+ * Whether a vhost is the one a form's host and folder describe: the same name, serving the
+ * same folder.
+ * @param {{ name: string, root: string }} vhost
+ * @param {{ dir: string, host: string }} form
+ * @returns {boolean}
+ */
+function isOwnVhost(vhost, form) {
+    const dir = expandHome(text(form.dir)).replace(/(.)\/+$/, "$1");
+
+    return Boolean(text(form.host)) && vhost.name === text(form.host).toLowerCase()
+        && vhost.root === dir;
 }
 
 /**

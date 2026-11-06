@@ -228,6 +228,78 @@ td strong { font-weight: 600; }
 .size-bar { display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
 .size-bar .meter { width: 120px; }
 
+/*
+ * The vhosts, as the database cards are: a lock in green when one is served over https.
+ */
+.vhost-card .db-icon.secure {
+    color: var(--green);
+    background: color-mix(in srgb, var(--green) 12%, var(--field));
+}
+.vhost-card .db-name .muted { font-weight: 500; }
+.vhost-card .db-title small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vhost-card .db-icon .i { width: 18px; height: 18px; stroke-width: 1.9; }
+/*
+ * The tile opens the site: a button, so it takes a border and its color on hover, and its
+ * lock or globe turns to the arrow of a link that opens elsewhere.
+ */
+.vhost-open {
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+    transition: background .12s, border-color .12s, transform .12s;
+}
+.vhost-open.secure { border-color: color-mix(in srgb, var(--green) 30%, var(--border)); }
+.vhost-open:hover {
+    background: color-mix(in srgb, var(--accent) 22%, var(--field));
+    border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+    text-decoration: none;
+}
+.vhost-open.secure:hover {
+    background: color-mix(in srgb, var(--green) 22%, var(--field));
+    border-color: color-mix(in srgb, var(--green) 60%, var(--border));
+}
+.vhost-open:active { transform: scale(.94); }
+.vhost-open .i:last-child, .vhost-open:hover .i:first-child { display: none; }
+.vhost-open:hover .i:last-child { display: block; }
+/* Its links, as chips: http plain, https green, each with its icon. */
+.vhost-links { flex: none; display: flex; gap: 5px; }
+/* A long project name gives way to the links, cut rather than wrapped. */
+.vhost-card .db-foot .tag {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vhost-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 7px 0 6px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: .04em;
+    transition: color .12s, border-color .12s, background .12s;
+}
+.vhost-link .i { width: 10px; height: 10px; }
+.vhost-link:hover {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+    background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+    text-decoration: none;
+}
+.vhost-link.secure {
+    color: var(--green);
+    border-color: color-mix(in srgb, var(--green) 35%, var(--border));
+    background: color-mix(in srgb, var(--green) 10%, var(--panel));
+}
+.vhost-link.secure:hover {
+    border-color: color-mix(in srgb, var(--green) 60%, var(--border));
+    background: color-mix(in srgb, var(--green) 18%, var(--panel));
+}
+
 /* ---------------------------------------------------------------- apps */
 
 #app-groups { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }

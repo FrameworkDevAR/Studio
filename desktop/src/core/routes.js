@@ -18,11 +18,13 @@ function currentView() {
 }
 
 /**
- * The tab of the Sites page, from /sites/apache; the apps otherwise.
- * @returns {"apache" | "apps"}
+ * The tab of the Sites page, from /sites/vhosts; the projects otherwise. The tab was
+ * /sites/apache before, which still opens it.
+ * @returns {"vhosts" | "projects"}
  */
 function sitesTab() {
-    return location.pathname.split("/")[2] === "apache" ? "apache" : "apps";
+    const part = location.pathname.split("/")[2];
+    return part === "vhosts" || part === "apache" ? "vhosts" : "projects";
 }
 
 /**
@@ -182,15 +184,20 @@ function showPhpTab() {
 function showSitesTab() {
     const tab = sitesTab();
 
+    // An old link to the tab goes on at its address now, without a step back to it.
+    if (location.pathname.startsWith("/sites/apache")) {
+        history.replaceState(null, "", "/sites/vhosts");
+    }
+
     for (const button of /** @type {NodeListOf<HTMLElement>} */ (
         document.querySelectorAll("#site-tabs button")
     )) {
         button.classList.toggle("active", button.dataset.siteTab === tab);
     }
 
-    document.getElementById("apps-pane").hidden   = tab !== "apps";
-    document.getElementById("apache-pane").hidden = tab !== "apache";
-    document.getElementById("sites-text").textContent = tab === "apps"
+    document.getElementById("projects-pane").hidden = tab !== "projects";
+    document.getElementById("vhosts-pane").hidden   = tab !== "vhosts";
+    document.getElementById("sites-text").textContent = tab === "projects"
         ? "Each project's apps and servers, found by their processes."
         : "The vhosts Apache serves, listed and never requested.";
 }

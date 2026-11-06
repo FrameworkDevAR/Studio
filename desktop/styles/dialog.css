@@ -170,3 +170,22 @@
     font-family: "SF Mono", ui-monospace, Menlo, monospace;
 }
 #ask-body .form-row { padding: 8px 0 10px; }
+
+/*
+ * A vhost's project, at the foot of its form and apart from its own fields: across the whole
+ * dialog under a line, tinted, with its own heading.
+ */
+.vhost-project {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 4px -20px -20px;
+    padding: 16px 20px 18px;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+}
+.vhost-project h3 { margin: 0; font-size: 14px; }
+.vhost-project p { margin: 0; font-size: 12.5px; }
+.vhost-join { display: flex; gap: 8px; }
+.vhost-join .field.select { flex: 1; min-width: 0; }
+.vhost-new-project { align-self: flex-start; }

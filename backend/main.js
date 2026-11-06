@@ -13,6 +13,7 @@ import * as php from "./stack/php.js";
 import * as pecl from "./stack/pecl.js";
 import * as node from "./stack/node.js";
 import * as logs from "./stack/logs.js";
+import * as vhosts from "./stack/vhosts.js";
 import * as apps from "./apps/apps.js";
 import * as icons from "./apps/icons.js";
 import * as projects from "./apps/projects.js";
@@ -172,7 +173,7 @@ function send(response, status, data) {
 
 /**
  * A file of the page, never one outside desktop/. A path with no extension is
- * one of the page's views, like /sites/apache, so it gets the page itself.
+ * one of the page's views, like /sites/vhosts, so it gets the page itself.
  * @param {import("http").ServerResponse} response
  * @param {string} pathname
  * @returns {void}
@@ -330,6 +331,10 @@ async function runAction(body) {
         String(body.file || ""),
         Boolean(body.enabled),
     );
+
+    // The vhosts that are no project's; a project's are its form's to change.
+    case "vhost-save":      return vhosts.saveVhost(body);
+    case "vhost-remove":    return vhosts.removeVhost(body);
 
     // The apps and their servers, and the projects of the config they come from.
     case "app-start":       return body.id ? apps.startServer(body.id) : apps.startApp(body.dir);

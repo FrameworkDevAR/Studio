@@ -61,6 +61,8 @@
 .db-title small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 /* The buttons show on hover, as they would crowd every card otherwise. */
 .db-actions { flex: none; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
+/* Up against the card's corner, as far from its top as from its side. */
+.db-card-head .db-actions { align-self: flex-start; }
 .db-card:hover .db-actions, .user-row:hover .db-actions, .db-actions:focus-within { opacity: 1; }
 .db-actions .icon-btn { width: 26px; height: 26px; border-radius: 8px; }
 .db-actions .icon-btn svg { width: 14px; height: 14px; }
