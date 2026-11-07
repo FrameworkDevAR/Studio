@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/styles/editor.css">
     <link rel="stylesheet" href="/styles/menus.css">
 </head>
-<body>
+<body class="loading">
     <!-- The icons of the buttons and tabs, each used where it goes as <use href="#i-name">. -->
     <svg class="sprite" aria-hidden="true">
         <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></symbol>
@@ -742,6 +742,9 @@
                 </button>
             </div>
         </section>
+
+        <!-- Shown in place of a page's panels until the first state comes in. -->
+        <div class="boot" role="status"><i></i>Reading the stack…</div>
     </main>
 
     <!-- The install dialogs, dressed as the sites they search. -->

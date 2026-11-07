@@ -234,6 +234,38 @@ section[data-view].active { display: block; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
 
 /*
+ * Until the first state comes in, which takes a few seconds when Studio has just started, a
+ * page shows its title and a loader rather than its panels empty. The database and the logs
+ * read their own, and say so, so they show as they are.
+ */
+.boot { display: none; }
+body.loading .boot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 120px 0;
+    color: var(--muted);
+    font-size: 13px;
+    animation: fade .3s ease-out .15s backwards;
+}
+.boot i {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+body.loading section[data-view].active:not([data-view="database"], .logs-view)
+    > :not(.page-head) { display: none; }
+body.loading main:has(section[data-view="database"].active, section.logs-view.active) .boot {
+    display: none;
+}
+/* The overview fills the window, which would put the loader under it. */
+body.loading section[data-view="overview"].active { height: auto; }
+
+/*
  * The title row stays at the top while the page scrolls. It reaches over the
  * page's padding, so nothing shows beside or above it, and a gradient below
  * it fades the content out as it slides underneath.

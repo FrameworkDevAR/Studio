@@ -60,6 +60,10 @@ async function refresh() {
     try {
         const fresh = await api("/api/state");
         setState(fresh);
+
+        // The pages' panels show from the first state on, in place of the loader, before
+        // they are drawn, so what measures itself as it draws has its size.
+        document.body.classList.remove("loading");
         render();
     } catch {
         document.getElementById("brand-status").innerHTML = `<i class="dot off"></i> Not reachable`;
