@@ -1,12 +1,30 @@
 # Studio
 
-A control panel for the local development stack, that runs in the browser: Apache,
-MariaDB, PHP, Node.js and Redis from Homebrew, and the apps and servers of each
-project. It shows what is running, starts and stops it, changes the PHP settings and
-the Apache modules, installs PHP extensions with pecl and Node's global packages with
-npm, creates and changes the databases, their users and MariaDB's options, browses and
-edits their tables, rows and structure, runs SQL, exports and imports them, and reads
-the logs, and everything stays on the machine.
+A control panel for the local development stack, in the browser: Apache, MariaDB, PHP,
+Node.js and Redis from Homebrew, and the apps and servers of each project. It starts
+and stops them, changes PHP's settings and Apache's modules, installs pecl extensions
+and npm packages, works with the databases, and reads the logs. Everything stays on
+the machine.
+
+## Setting it up
+
+```
+./setup.sh
+```
+
+It asks before each step, and skips what is already there, so it can be run again
+to update:
+
+- **Homebrew**: Apache, PHP, MariaDB, Redis, Node.js, mkcert, SwiftBar and phpMyAdmin.
+  It offers their updates and restarts the services they change. When PHP moves to a
+  new minor version, it moves Studio's PHP settings and rebuilds the pecl extensions.
+- **Apache**: what the vhosts need in `httpd.conf`, checked with `configtest` and
+  undone if it fails; mkcert's authority; the hosts file, made yours so Studio can
+  write it; phpMyAdmin, signing in by itself for this Mac only; and the log rotation.
+- **Studio**: the config, node in `/usr/local/bin` for SwiftBar, and the plugin in
+  SwiftBar's folder.
+
+It starts none of the stack: Studio's Services page does.
 
 ## Running it
 
@@ -14,37 +32,18 @@ the logs, and everything stays on the machine.
 backend/main.js
 ```
 
-It answers on [http://localhost:9900](http://localhost:9900), and only there. It needs
-no packages: the code in `backend/` runs on Node's own http server, and the page is in
-`desktop/`. See `CLAUDE.md` for how the code is laid out.
+It answers on [http://localhost:9900](http://localhost:9900), and only there. The
+**🎛️ Studio** entry of the SwiftBar menu starts it and opens the page. It needs no
+packages: see `CLAUDE.md` for how the code is laid out.
 
-The **🎛️ Studio** entry of the SwiftBar menu starts it when it is not running and
-opens its page.
-
-## The SwiftBar menu
-
-`swiftbar.10s.js` is the menu bar plugin: the stack, the apps and the Framework servers,
-started and stopped from the menu bar. SwiftBar runs it from its plugin folder, through
-a link to this file; the `10s` in its name is how often it redraws.
-
-SwiftBar runs plugins with a short PATH that has `/usr/local/bin` but not the folders
-node usually lives in, and both files start with `#!/usr/bin/env node`. So node is
-linked there too, once:
-
-```
-ln -s ~/GitHub/Studio/swiftbar.10s.js ~/Documents/SwiftBar/swiftbar.10s.js
-ln -s "$(command -v node)" /usr/local/bin/node
-```
+`swiftbar.10s.js` is the menu bar plugin, for the stack, the apps and the servers. The
+`10s` in its name is how often it redraws.
 
 ## The config
 
-What is particular to a machine lives in `config/config.json` (or in the file
-`STUDIO_CONFIG` names). git ignores it, so it never leaves the machine. Copy
-`config/config.example.json`, which shows its shape, to start one:
-
-```
-cp config/config.example.json config/config.json
-```
+What is particular to a machine lives in `config/config.json` (or the file
+`STUDIO_CONFIG` names), which git ignores. The setup makes it, and
+`config/config.example.json` shows its shape.
 
 It holds `paths`, where the stack's files are, the apps Studio opens things with, and
 `projects`.
@@ -111,19 +110,9 @@ Folders may start with `~`.
 - **MariaDB** as the user running Studio, which Homebrew's MariaDB lets in through its
   socket. A `~/.my.cnf` can name another user.
 
-## Rotating the logs
+## The logs
 
-Homebrew's Apache never rotates its logs, and the access log grows quickly. Studio
-shows their sizes and can clear them, and macOS's newsyslog can rotate them on its
-own. Save this as `/etc/newsyslog.d/homebrew-httpd.conf`, with your user and group,
-and the paths changed if Homebrew lives elsewhere:
-
-```
-# logfilename                           owner:group  mode count size(KB) when flags pid_file                              sig
-/opt/homebrew/var/log/httpd/error_log   you:staff    644  3     10240    *    Z     /opt/homebrew/var/run/httpd/httpd.pid 30
-/opt/homebrew/var/log/httpd/access_log  you:staff    644  3     10240    *    Z     /opt/homebrew/var/run/httpd/httpd.pid 30
-```
-
-At 10 MB a log is gzipped to `<log>.0.gz`, keeping the last 3, and Apache gets signal
-30 (SIGUSR1, a graceful restart) to reopen its logs. Studio counts the rotated copies
-in a log's size and deletes them when it clears the log.
+Homebrew's Apache never rotates its logs. The setup has the Mac's newsyslog do it, in
+`/etc/newsyslog.d/homebrew-httpd.conf`: at 10 MB a log is gzipped, keeping the last 3,
+and Apache reopens it. Studio counts the rotated copies in a log's size, and deletes
+them when it clears the log.

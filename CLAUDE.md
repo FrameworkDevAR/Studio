@@ -25,6 +25,9 @@ the apps and servers of each project. See the README.
 - `swiftbar.10s.js` is the SwiftBar menu plugin, which SwiftBar runs through a link in
   `~/Documents/SwiftBar/`. It is the entry; its parts are in `swiftbar/`, which node finds
   through the link.
+- `setup.sh` sets up a Mac for Studio. It is bash, not node, as node may not be installed
+  yet: a wizard with a banner, a spinner for each step and questions answered with the
+  arrows. It asks before each part that changes the Mac, and skips what is already there.
 - `config/` holds the config and its example.
 - `checks/` holds the checks: `code.js` for the rules below and the types, `api.sh` for the
   api's answers.
