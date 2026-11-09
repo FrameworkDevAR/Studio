@@ -178,40 +178,16 @@ async function uninstallExtension(name) {
 }
 
 /**
- * Runs pecl as a job the page follows, an extension a step. It builds each
- * from its source, which can take a minute. pecl asks questions as it goes,
- * about options to build with, so each is answered with its default. Once
- * done, php.ini loads what is installed and nothing that is not, and Apache
- * reloads to pick it up.
+ * Runs pecl as a job the page follows, an extension a step. Once done, php.ini loads what is
+ * installed and nothing that is not, and Apache reloads to pick it up.
  * @param {import("../core/jobs.js").JobStep[]} steps
  * @param {(worked: string[]) => string} done
  * @returns {{ job: string }}
  */
 function runPecl(steps, done) {
     return runJob("pecl", steps, {
-        runStep : async (step) => {
-            const lines = [];
-            const code  = await spawnLines(PECL, step.args, {
-                // phpize, autoconf and pkg-config, which a build needs, are Homebrew's.
-                env     : {
-                    ...process.env,
-                    PATH : `${PATHS.homebrew}/bin:${PATHS.homebrew}/sbin:${process.env.PATH}`,
-                },
-                input   : "\n".repeat(50),
-                timeout : 15 * 60_000,
-                onLine  : (line) => lines.push(line),
-            });
-
-            const ok = lines.some((line) => /^(install|upgrade|uninstall) ok:/.test(line))
-                || (step.args[0] === "upgrade" && lines.some(
-                    (line) => /is already installed and is (the same as|newer than)/.test(line),
-                ));
-            if (code === 0 && ok) {
-                return "";
-            }
-            return peclError(lines);
-        },
-        after : async (worked) => {
+        runStep : (step) => peclStep(step.args),
+        after   : async (worked) => {
             peclCache.at = 0;
             upgrades.at  = 0;
             upgrades.round++;
@@ -223,6 +199,60 @@ function runPecl(steps, done) {
         },
         done,
     });
+}
+
+/**
+ * Builds extensions again for a new minor version of PHP, as 8.5 to 8.6, which cannot load
+ * those pecl built for the last. Their names are read before PHP is updated, since the new
+ * PHP's pecl does not know them. Apache is left alone: the PHP update starts it again.
+ * @param {string[]} names
+ * @returns {Promise<{ built: string[], failed: string[] }>}
+ */
+async function rebuildExtensions(names) {
+    const built  = [];
+    const failed = [];
+
+    for (const name of names.filter((one) => EXTENSION_SPEC.test(one))) {
+        const error = await peclStep([ "install", "-f", name ]);
+        (error ? failed : built).push(name);
+    }
+
+    peclCache.at = 0;
+    if (built.length) {
+        await syncExtensionLines();
+    }
+
+    return { built, failed };
+}
+
+/**
+ * Runs pecl once, as a step of a job: it builds from the source, which can take a minute,
+ * and asks about the options to build with, each answered with its default. Gives what went
+ * wrong, or "".
+ * @param {string[]} args
+ * @returns {Promise<string>}
+ */
+async function peclStep(args) {
+    const lines = [];
+    const code  = await spawnLines(PECL, args, {
+        // phpize, autoconf and pkg-config, which a build needs, are Homebrew's.
+        env     : {
+            ...process.env,
+            PATH : `${PATHS.homebrew}/bin:${PATHS.homebrew}/sbin:${process.env.PATH}`,
+        },
+        input   : "\n".repeat(50),
+        timeout : 15 * 60_000,
+        onLine  : (line) => lines.push(line),
+    });
+
+    const ok = lines.some((line) => /^(install|upgrade|uninstall) ok:/.test(line))
+        || (args[0] === "upgrade" && lines.some(
+            (line) => /is already installed and is (the same as|newer than)/.test(line),
+        ));
+    if (code === 0 && ok) {
+        return "";
+    }
+    return peclError(lines);
 }
 
 /**
@@ -435,6 +465,7 @@ export {
     installExtension,
     updateExtensions,
     reinstallExtension,
+    rebuildExtensions,
     uninstallExtension,
     searchExtensions,
 };

@@ -16,6 +16,9 @@ const HOME = os.homedir();
 // This machine's settings, which the plugin reads: the same file it looks for.
 const CONFIG = process.env.STUDIO_CONFIG || path.join(ROOT, "config", "config.json");
 
+// The stack's updates, a line of JSON each, next to the config: Studio and the setup add to it.
+const UPDATES = path.join(path.dirname(CONFIG), "updates.log");
+
 // The paths of the stack: the config's, or Homebrew's own. Read once, so a
 // change to them applies when Studio restarts.
 const PATHS      = pathsOf(readJson(CONFIG));
@@ -171,6 +174,7 @@ export {
     ROOT,
     HOME,
     CONFIG,
+    UPDATES,
     PATHS,
     BREW,
     HTTPD,

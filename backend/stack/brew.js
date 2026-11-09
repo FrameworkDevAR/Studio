@@ -1,17 +1,21 @@
 // Homebrew's updates of the stack: which of its formulas, and SwiftBar's cask, have a newer
 // version, asked in the background at most once an hour, and updating them as a job the page
-// follows, with the running services each changes started again on the new version. Only the
-// versions the config's "versions" allows are offered: a part's patches when it gives none. One
-// it leaves out, as a new minor version of PHP, is held, and moving its range updates it.
+// follows, with the running services each changes started again on the new version, and each
+// noted in the updates log. Only the versions the config's "versions" allows are offered: a
+// part's patches when it gives none. One it leaves out, as a new minor version of PHP, is held,
+// and moving its range updates it.
 
 import fs from "node:fs";
 import path from "node:path";
 
-import { BREW, CONFIG, PATHS, readJson, run, versionOf } from "../core/system.js";
+import {
+    BREW, CONFIG, PATHS, UPDATES, readFile, readJson, run, versionOf
+} from "../core/system.js";
 import { runJob, spawnLines } from "../core/jobs.js";
 import { movedTo, patchesOf, satisfies } from "../core/versions.js";
 import { readConfig, writeConfig } from "../core/config.js";
 import { readServices, serviceAction } from "./services.js";
+import { readPecl, rebuildExtensions } from "./pecl.js";
 
 
 
@@ -57,6 +61,12 @@ const HOUR = 60 * 60_000;
 /**
  * An update the config's range for it leaves out: the range, and the one that would take it.
  * @typedef {BrewUpdate & { range: string, next: string }} HeldUpdate
+ */
+
+/**
+ * An update done, as the log keeps it: when, the package, the versions it went from and to,
+ * and whether Studio or the setup did it.
+ * @typedef {{ at: string, name: string, from: string, to: string, by: string }} UpdateRecord
  */
 
 
@@ -185,11 +195,12 @@ function parseOutdated(text) {
 
 /**
  * Updates some of the stack's packages, one after the other, as a job the page follows. Once
- * done, the running services they change are started again, so they run the new versions.
+ * done, each is noted in the log, PHP's settings and extensions follow a new minor version of
+ * it, and the running services they change are started again, so they run the new versions.
  * @param {string | string[]} names
- * @returns {{ job: string }}
+ * @returns {Promise<{ job: string }>}
  */
-function updateStack(names) {
+async function updateStack(names) {
     const chosen = [].concat(names).map(String);
     const offers = offered().map((one) => one.name);
     if (!chosen.length || chosen.some((name) => !offers.includes(name))) {
@@ -205,6 +216,13 @@ function updateStack(names) {
         args : CASKS.includes(name) ? [ "upgrade", "--cask", name ] : [ "upgrade", name ],
     }));
 
+    // The new PHP's pecl does not know the extensions built for the last, so they are read now.
+    let extensions = [];
+    if (chosen.includes("php")) {
+        const pecl = await readPecl();
+        extensions = Object.keys(pecl);
+    }
+
     return runJob("brew", steps, {
         runStep : async (step) => {
             const lines = [];
@@ -218,14 +236,17 @@ function updateStack(names) {
             worked.forEach((name) => delete outdated.packages[name]);
             outdated.at = 0;
             outdated.round++;
+            recordUpdates(worked, before);
 
-            const restarted = await restartServices(worked);
-            const notes     = [ restarted ];
+            // PHP's extensions are built before Apache starts again, so it loads them.
+            let php = "";
             if (worked.includes("php")) {
-                notes.push(movePhpSettings(before.php));
+                php = await movePhp(before.php, extensions);
             }
 
-            return notes.filter(Boolean).join(". ");
+            const restarted = await restartServices(worked);
+
+            return [ restarted, php ].filter(Boolean).join(". ");
         },
         done    : (worked) => (worked.length === 1
             ? `${STACK[worked[0]]} updated`
@@ -278,13 +299,14 @@ async function restartServices(worked) {
 }
 
 /**
- * Moves Studio's PHP settings to a new minor version of PHP, as 8.5 to 8.6, which reads them
- * from a folder of its own, unless it has some already. Its pecl extensions were built for the
- * last one, and the PHP page offers to build them again. Gives what is left to do.
+ * Moves PHP to a new minor version, as 8.5 to 8.6: Studio's PHP settings go to the new one's
+ * folder, unless it has some already, and its pecl extensions are built again. Gives how it
+ * went, with those that did not build, which the PHP page offers again; "" for a patch.
  * @param {string} from the version before
- * @returns {string}
+ * @param {string[]} extensions pecl's extensions, read before the update
+ * @returns {Promise<string>}
  */
-function movePhpSettings(from) {
+async function movePhp(from, extensions) {
     const [ old, now ] = [ from, versionOf("php") ].map((version) => version
         .split(".").slice(0, 2).join("."));
     if (!old || !now || old === now) {
@@ -301,9 +323,61 @@ function movePhpSettings(from) {
         }
     }
 
-    return `PHP is ${now} now: build its extensions again on the PHP page`;
+    const { built, failed } = await rebuildExtensions(extensions);
+    let note = `PHP is ${now} now`;
+    if (built.length) {
+        note += `, with ${listOf(built)} built again`;
+    }
+    if (failed.length) {
+        note += `. ${listOf(failed)} did not build: try again on the PHP page`;
+    }
+
+    return note;
 }
 
+
+// ----------------------------------------------------------------- history ---
+
+/**
+ * Notes each package updated in the log, with the version it went from and the one installed
+ * now. A log that cannot be written leaves the update as it is.
+ * @param {string[]} worked
+ * @param {Object<string, string>} before
+ * @returns {void}
+ */
+function recordUpdates(worked, before) {
+    const at    = new Date().toISOString();
+    const lines = worked.map((name) => JSON.stringify({
+        at, name, from : before[name], to : installedOf(name), by : "Studio",
+    }));
+
+    try {
+        fs.appendFileSync(UPDATES, lines.map((line) => `${line}\n`).join(""));
+    } catch {
+        // The update is done, which matters more than its note.
+    }
+}
+
+/**
+ * The last updates of the log, newest first, each with its package's name on the page. A line
+ * that is not JSON, as one cut short, is left out.
+ * @param {number=} count
+ * @returns {(UpdateRecord & { label: string })[]}
+ */
+function readHistory(count = 8) {
+    const records = [];
+
+    for (const line of readFile(UPDATES).split("\n").filter(Boolean)) {
+        try {
+            records.push(JSON.parse(line));
+        } catch {
+            // Skipped.
+        }
+    }
+
+    return records.slice(-count).reverse()
+        .map((one) => ({ ...one, label : STACK[one.name] || one.name }));
+}
 
 /**
  * Each installed package of the stack with its version and the config's range for it, "" when
@@ -354,6 +428,17 @@ function isInstalled(name) {
 }
 
 /**
+ * Names as a sentence lists them: "apcu", "apcu and redis", "apcu, igbinary and redis".
+ * @param {string[]} names
+ * @returns {string}
+ */
+function listOf(names) {
+    return names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+        : names.join("");
+}
+
+/**
  * What went wrong in a brew run, from its last error lines.
  * @param {string[]} lines
  * @returns {string}
@@ -372,4 +457,5 @@ export {
     updateStack,
     moveStack,
     readVersions,
+    readHistory,
 };

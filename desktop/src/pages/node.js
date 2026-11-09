@@ -572,9 +572,7 @@ async function confirmMove(name) {
         return;
     }
 
-    // PHP's settings move to the new version's folder, but its extensions are built for the old.
-    const php  = name === "php" ? " PHP's settings move over, and its pecl extensions need"
-        + " building again on the PHP page." : "";
+    const php  = name === "php" ? phpMoveText() : "";
     const sure = await ask({
         title  : `Update ${pkg.label} to ${pkg.latest}`,
         text   : `The config keeps ${pkg.label} at ${pkg.range}. This sets it to ${pkg.next}, then
@@ -588,6 +586,25 @@ async function confirmMove(name) {
     if (sure) {
         updatePackages([ name ], "move");
     }
+}
+
+/**
+ * What else moving PHP to a new minor version does: its settings move to the new version's
+ * folder, and its pecl extensions, built for the old one, are built again, by name.
+ * @returns {string}
+ */
+function phpMoveText() {
+    const names = [ ...state.php.extensions, ...state.php.missing ]
+        .filter((ext) => ext.pecl).map((ext) => ext.name);
+    if (!names.length) {
+        return " PHP's settings move over.";
+    }
+
+    const list = names.length > 1
+        ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`
+        : names[0];
+    return ` PHP's settings move over, and ${list} ${names.length > 1 ? "are" : "is"} built
+        again for it, which takes a minute each.`;
 }
 
 /**

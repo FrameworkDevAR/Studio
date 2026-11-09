@@ -395,9 +395,21 @@ check_updates() {
     fi
 }
 
-# Upgrades a formula, or a cask with --cask
+# Upgrades a formula, or a cask, given its kind, name and the version installed, then notes it
+# in the updates log next to the config, as Studio does, with the version installed now
 brew_upgrade() {
-    "$BREW" upgrade "$@"
+    local kind=$1 name=$2 old=$3 new
+    if [ "$kind" = cask ]; then
+        "$BREW" upgrade --cask "$name"
+        new=$("$BREW" list --cask --versions "$name" | awk '{print $2}')
+    else
+        "$BREW" upgrade "$name"
+        new=$(version_of "$name")
+    fi
+
+    [ -d config ] || return 0
+    printf '{"at":"%s","name":"%s","from":"%s","to":"%s","by":"setup"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$name" "$old" "${new%%,*}" >>config/updates.log
 }
 
 # The label of a formula, or of a cask
@@ -419,7 +431,7 @@ label_of() {
 # range to take it. UPDATE is how it picks instead: "all" takes every one the ranges allow,
 # and a list of names takes those, moving the ranges of the held ones
 update_brew() {
-    local kind name old new range i line options=() kinds=() names=() news=() nexts=()
+    local kind name old new range i line options=() kinds=() names=() news=() nexts=() olds=()
     local picked=() moved=() held=0 pass
     run "Checking for updates" check_updates
     if [ ! -s "$TMP/outdated" ]; then
@@ -454,6 +466,7 @@ update_brew() {
             kinds+=("$kind")
             names+=("$name")
             news+=("$new")
+            olds+=("$old")
         done <"$TMP/outdated"
     done
     printf '%s\n' "$BAR"
@@ -506,11 +519,8 @@ update_brew() {
     for i in "${PICKED[@]}"; do
         picked+=("${names[$i]}")
         [ "${names[$i]}" = php ] && PHP_TO_PICKED=$PHP_TO
-        if [ "${kinds[$i]}" = cask ]; then
-            run "Updating $(label_of "${names[$i]}")" brew_upgrade --cask "${names[$i]}"
-        else
-            run "Updating $(label_of "${names[$i]}")" brew_upgrade "${names[$i]}"
-        fi
+        run "Updating $(label_of "${names[$i]}")" brew_upgrade "${kinds[$i]}" "${names[$i]}" \
+            "${olds[$i]}"
     done
     PHP_TO=$PHP_TO_PICKED
 
