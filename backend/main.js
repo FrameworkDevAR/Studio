@@ -7,6 +7,7 @@ import path from "node:path";
 import * as system from "./core/system.js";
 import * as config from "./core/config.js";
 import * as jobs from "./core/jobs.js";
+import * as settings from "./core/settings.js";
 import * as services from "./stack/services.js";
 import * as brew from "./stack/brew.js";
 import * as apache from "./stack/apache.js";
@@ -281,6 +282,8 @@ async function readState() {
         phpmyadmin : { url : system.PHPMYADMIN, version : system.versionOf("phpmyadmin") },
         // The stack's packages with a newer version in Homebrew, checked once an hour.
         updates    : brew.readUpdates(),
+        // The Settings page: the browser, the editor and the ranges of versions.
+        settings   : settings.readSettings(),
         files      : {
             httpdConf : system.HTTPD_CONF,
             vhosts    : system.VHOSTS,
@@ -355,6 +358,7 @@ async function runAction(body) {
     // Studio's config, the logs, and a file opened in its editor. A file Apache includes
     // opens by its path, once it is known to be one.
     case "save-config":     return config.saveConfig(body.text);
+    case "save-setting":    return settings.saveSetting(body);
     case "clear-log":       return logs.clearLog(body.name);
     case "open-file":       return config.openFile(
         body.file,

@@ -23,15 +23,16 @@ const DEFAULTS = {
 };
 
 /**
- * What opens what: the browser for the pages, the editor for the config
- * files, and where phpMyAdmin answers. An empty browser or editor is the
- * Mac's default one.
+ * What opens what: the browser for the pages and the editor for the config files. An empty
+ * one is the Mac's default.
  */
 const TOOLS = {
-    browser    : "",
-    editor     : "",
-    phpMyAdmin : "http://localhost/phpmyadmin",
+    browser : "",
+    editor  : "",
 };
+
+/** Where phpMyAdmin answers: the setup serves it there, by an Alias on every vhost. */
+const PHPMYADMIN = "http://localhost/phpmyadmin";
 
 
 
@@ -61,7 +62,7 @@ function pathsOf(config) {
 /**
  * The tools of a config, with the defaults filled in.
  * @param {Object<string, *>} config
- * @returns {{ browser: string, editor: string, phpMyAdmin: string }}
+ * @returns {{ browser: string, editor: string }}
  */
 function toolsOf(config) {
     const tools = { ...TOOLS };
@@ -90,6 +91,7 @@ function expandHome(dir) {
 export {
     DEFAULTS,
     TOOLS,
+    PHPMYADMIN,
 
     pathsOf,
     toolsOf,

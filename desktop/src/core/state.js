@@ -14,6 +14,7 @@ const VIEWS      = [
     "databases",
     "database",
     "logs",
+    "settings",
 ];
 const TITLES     = {
     overview  : "Overview",
@@ -25,6 +26,7 @@ const TITLES     = {
     databases : "Databases",
     database  : "Database",
     logs      : "Logs",
+    settings  : "Settings",
 };
 
 /** How each service card looks and what it says. */

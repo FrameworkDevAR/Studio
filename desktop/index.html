@@ -193,6 +193,11 @@
                     d="M14 3v6h6M8 13h8M8 17h5"/></svg>
                 <span>Logs</span><em id="badge-logs"></em>
             </a>
+            <a href="/settings" data-view="settings">
+                <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle
+                    cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+                <span>Settings</span>
+            </a>
         </nav>
 
         <div class="disk" id="disk">
@@ -202,6 +207,30 @@
     </aside>
 
     <main>
+        <!-- ------------------------------------------------------ settings -->
+        <section data-view="settings">
+            <header class="page-head">
+                <div>
+                    <h1>Settings</h1>
+                    <p class="muted">What Studio opens things with, and how far the stack
+                        updates. Each change is saved at once.</p>
+                </div>
+                <div class="actions">
+                    <button class="ghost" data-edit-config
+                        title="The whole config, with the projects and the paths"><svg
+                        class="i"><use href="#i-pencil"/></svg>Edit config</button>
+                </div>
+            </header>
+            <div class="panel">
+                <div class="panel-head"><h2>Apps</h2></div>
+                <div id="settings-apps"></div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><h2>Versions</h2></div>
+                <div id="settings-versions"></div>
+            </div>
+        </section>
+
         <!-- ------------------------------------------------------ overview -->
         <section data-view="overview">
             <header class="page-head">

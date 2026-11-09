@@ -671,3 +671,22 @@ a.host:hover { color: var(--tone); text-decoration: none; }
 
 [hidden] { display: none !important; }
 .dot.idle { background: var(--border); }
+
+/* A setting of the Settings page: its name and what it does, then its field, every row's
+   field in one column. */
+.pref {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.pref:first-child { padding-top: 0; }
+.pref:last-child { border-bottom: 0; padding-bottom: 0; }
+.pref-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pref-text b { color: var(--strong); font-weight: 600; }
+.pref-text small { font-size: 12px; }
+@media (max-width: 640px) {
+    .pref { grid-template-columns: 1fr; gap: 8px; }
+}

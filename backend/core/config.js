@@ -3,9 +3,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { DEFAULTS, TOOLS as TOOL_DEFAULTS, pathsOf, toolsOf } from "./paths.js";
+import { DEFAULTS, TOOLS, pathsOf, toolsOf } from "./paths.js";
 import {
-    ROOT, CONFIG, PATHS, TOOLS, HTTPD_CONF, VHOSTS, MYSQL_CNF, run, readFile
+    ROOT, CONFIG, PATHS, HTTPD_CONF, VHOSTS, MYSQL_CNF, run, readFile, readJson
 } from "./system.js";
 import { isRange } from "./versions.js";
 import { phpIniFile } from "../stack/php.js";
@@ -48,12 +48,11 @@ async function saveConfig(text) {
     }
 
     await storeConfig(text);
-    const moved = JSON.stringify(pathsOf(config)) !== JSON.stringify(PATHS)
-        || JSON.stringify(toolsOf(config)) !== JSON.stringify(TOOLS);
+    const moved = JSON.stringify(pathsOf(config)) !== JSON.stringify(PATHS);
 
     return {
         message : `Saved ${path.basename(CONFIG)}${
-            moved ? ". Restart Studio to use the new paths and tools" : ""
+            moved ? ". Restart Studio to use the new paths" : ""
         }`,
     };
 }
@@ -188,7 +187,7 @@ function configProblem(config) {
         return "paths must be an object of folders and files, by name";
     }
 
-    const tool = Object.keys(TOOL_DEFAULTS)
+    const tool = Object.keys(TOOLS)
         .find((key) => config[key] !== undefined && typeof config[key] !== "string");
     if (tool) {
         return `${tool} must be a text`;
@@ -321,10 +320,11 @@ async function openFile(which, included = "") {
     }
 
     // The editor of the config, when it names one and it opens; the Mac's
-    // default text editor otherwise.
-    let opened = false;
-    if (TOOLS.editor) {
-        const result = await run("/usr/bin/open", [ "-a", TOOLS.editor, files[which] ]);
+    // default text editor otherwise. It is read each time, as the Settings page changes it.
+    const editor = toolsOf(readJson(CONFIG)).editor;
+    let opened   = false;
+    if (editor) {
+        const result = await run("/usr/bin/open", [ "-a", editor, files[which] ]);
         opened       = result.ok;
     }
 

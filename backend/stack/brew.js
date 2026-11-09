@@ -305,7 +305,43 @@ function movePhpSettings(from) {
 }
 
 
+/**
+ * Each installed package of the stack with its version and the config's range for it, "" when
+ * it gives none, for the Settings page.
+ * @returns {{ name: string, label: string, version: string, range: string }[]}
+ */
+function readVersions() {
+    const versions = readJson(CONFIG).versions || {};
+
+    return Object.keys(STACK).filter(isInstalled).map((name) => ({
+        name,
+        label   : STACK[name],
+        version : installedOf(name),
+        range   : versions[name] || "",
+    }));
+}
+
+
 // ----------------------------------------------------------------- helpers ---
+
+/**
+ * The version of a package installed: a formula's opt link names it, a cask's folder holds
+ * one named by it.
+ * @param {string} name
+ * @returns {string}
+ */
+function installedOf(name) {
+    if (!CASKS.includes(name)) {
+        return versionOf(name);
+    }
+
+    try {
+        return fs.readdirSync(path.join(PATHS.homebrew, "Caskroom", name))
+            .filter((one) => !one.startsWith(".")).sort().pop()?.split(",")[0] || "";
+    } catch {
+        return "";
+    }
+}
 
 /**
  * Whether a package of the stack is installed: a formula has its opt link, a cask its folder.
@@ -335,4 +371,5 @@ export {
     readUpdates,
     updateStack,
     moveStack,
+    readVersions,
 };

@@ -7,7 +7,8 @@ the apps and servers of each project. See the README.
   by what it covers, a file per part:
   - `core/`: `system.js` with the paths and helpers the others share, `paths.js` with the
     stack's paths and their defaults (for the plugin too), `command.js`, which splits a
-    server's command line (for the plugin too), `config.js`, `versions.js` (the config's
+    server's command line (for the plugin too), `config.js`, `settings.js` (the Settings
+    page: the browser, the editor and the version ranges), `versions.js` (the config's
     version ranges), and `jobs.js`, which runs the npm and pecl installs the page follows
     as they go.
   - `stack/`: `services.js`, `brew.js` (the stack's updates from Homebrew), `apache.js`,
@@ -22,8 +23,9 @@ the apps and servers of each project. See the README.
   `src/`: `main.js`, the one module `index.html` loads, which imports the rest, adds the
   listeners and draws the page; `core/` (state, helpers, routes, the editor and the
   selects, clicks); `pages/` (a file per page, with `settings.js`, the settings panels PHP
-  and MariaDB share); and `database/` (a database's own page, a file per part). The
-  stylesheets are loaded in order, and the cascade depends on it.
+  and MariaDB share, and `preferences.js`, the Settings page); and `database/` (a
+  database's own page, a file per part). The stylesheets are loaded in order, and the
+  cascade depends on it.
 - `swiftbar.10s.js` is the SwiftBar menu plugin, which SwiftBar runs through a link in
   `~/Documents/SwiftBar/`. It is the entry; its parts are in `swiftbar/`, which node finds
   through the link.

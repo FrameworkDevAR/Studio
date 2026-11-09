@@ -60,6 +60,7 @@ import { renderDbList, renderUsers } from "./pages/databases.js";
 import { loadLog, showLogBottom } from "./pages/logs.js";
 import { installNpm, renderNode, searchNpm } from "./pages/node.js";
 import { renderExtensions, searchPecl } from "./pages/php.js";
+import { saveSetting } from "./pages/preferences.js";
 import { choosePick, finishPick, renderPickList, submitPick } from "./pages/settings.js";
 
 
@@ -129,6 +130,10 @@ function listenToFilters() {
     document.getElementById("overview-filter").addEventListener("input", renderTablesTab);
     document.getElementById("column-filter").addEventListener("input", () => renderRows());
     document.getElementById("module-search").addEventListener("input", renderModules);
+
+    // A setting saves as soon as it is picked.
+    document.querySelector("section[data-view=\"settings\"]").addEventListener("change",
+        (event) => saveSetting(/** @type {HTMLSelectElement} */ (event.target)));
 
     // The log is read again once the typing stops a moment.
     let searchTimer = null;

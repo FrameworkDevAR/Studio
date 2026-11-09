@@ -8,6 +8,7 @@ import { renderLogMeta } from "./logs.js";
 import { renderNode } from "./node.js";
 import { renderPhp } from "./php.js";
 import { renderServices } from "./services.js";
+import { renderSettings } from "./preferences.js";
 import { allApps, renderSites } from "./sites.js";
 import { newerOf, renderUpdates } from "./updates.js";
 
@@ -28,6 +29,7 @@ function render() {
     renderDatabases();
     renderLogMeta();
     renderUpdates();
+    renderSettings();
 }
 
 /**

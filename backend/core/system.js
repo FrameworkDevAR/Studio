@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { pathsOf, toolsOf } from "./paths.js";
+import { PHPMYADMIN, pathsOf } from "./paths.js";
 
 
 
@@ -19,14 +19,11 @@ const CONFIG = process.env.STUDIO_CONFIG || path.join(ROOT, "config", "config.js
 // The paths of the stack: the config's, or Homebrew's own. Read once, so a
 // change to them applies when Studio restarts.
 const PATHS      = pathsOf(readJson(CONFIG));
-// The editor for the config files and where phpMyAdmin answers, read the same way.
-const TOOLS      = toolsOf(readJson(CONFIG));
 const BREW       = PATHS.brew;
 const HTTPD      = PATHS.httpd;
 const APACHE_CTL = PATHS.apachectl;
 const HTTPD_CONF = PATHS.httpdConf;
 const VHOSTS     = PATHS.vhosts;
-const PHPMYADMIN = TOOLS.phpMyAdmin;
 const MYSQL_DATA = PATHS.mysqlData;
 const MYSQL_CNF  = PATHS.mysqlCnf;
 const DISK       = "/System/Volumes/Data";
@@ -175,7 +172,6 @@ export {
     HOME,
     CONFIG,
     PATHS,
-    TOOLS,
     BREW,
     HTTPD,
     APACHE_CTL,

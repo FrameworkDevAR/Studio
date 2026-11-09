@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
+import { PHPMYADMIN, expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
 import { splitCommand } from "../backend/core/command.js";
 
 
@@ -30,8 +30,6 @@ const APACHE_LOG = PATHS.apacheLog;
 const PHP_MINOR  = versionOf("php").split(".").slice(0, 2).join(".");
 const PHP_INI    = PATHS.phpIni.replace("{php}", PHP_MINOR);
 
-// Served on every vhost by an Alias in VHOSTS.
-const PHPMYADMIN = toolsOf(CONFIG).phpMyAdmin;
 // What opens the pages and the config files: the config's, or the Mac's default.
 const BROWSER    = toolsOf(CONFIG).browser;
 const EDITOR     = toolsOf(CONFIG).editor;

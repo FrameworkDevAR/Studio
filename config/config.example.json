@@ -13,9 +13,8 @@
         "certs"     : "~/.certs"
     },
 
-    "browser"    : "Google Chrome",
-    "editor"     : "Visual Studio Code",
-    "phpMyAdmin" : "http://localhost/phpmyadmin",
+    "browser" : "Google Chrome",
+    "editor"  : "Visual Studio Code",
 
     "versions" : {
         "httpd"      : "~2.4",
