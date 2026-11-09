@@ -221,6 +221,7 @@
             </header>
 
             <div id="tiles" class="tiles"></div>
+            <div id="updates" class="updates" hidden></div>
 
             <div class="grid-2">
                 <div class="panel">
@@ -273,7 +274,7 @@
         <section data-view="services">
             <header class="page-head">
                 <div>
-                    <h1>Services</h1>
+                    <h1>Services <button id="update-redis" class="update-chip" hidden></button></h1>
                     <p class="muted">They start only when asked, never at login.</p>
                 </div>
                 <div class="actions">
@@ -339,7 +340,8 @@
         <section data-view="php">
             <header class="page-head">
                 <div>
-                    <h1>PHP <span id="php-version" class="muted"></span></h1>
+                    <h1>PHP <span id="php-version" class="muted"></span><button id="update-php"
+                        class="update-chip" hidden></button></h1>
                     <p class="muted" id="php-text"></p>
                 </div>
                 <div class="actions">
@@ -397,7 +399,8 @@
         <section data-view="node">
             <header class="page-head">
                 <div>
-                    <h1>Node.js <span id="node-version" class="muted"></span></h1>
+                    <h1>Node.js <span id="node-version" class="muted"></span><button
+                        id="update-node" class="update-chip" hidden></button></h1>
                     <p id="node-text" class="muted"></p>
                 </div>
                 <div class="actions">
@@ -421,7 +424,8 @@
         <section data-view="apache">
             <header class="page-head">
                 <div>
-                    <h1>Apache <span id="apache-version" class="muted"></span></h1>
+                    <h1>Apache <span id="apache-version" class="muted"></span><button
+                        id="update-httpd" class="update-chip" hidden></button></h1>
                     <p class="muted" id="apache-text"></p>
                 </div>
                 <div class="actions">
@@ -620,7 +624,8 @@
         <section data-view="databases">
             <header class="page-head">
                 <div>
-                    <h1>Databases <span id="db-version" class="muted"></span></h1>
+                    <h1>Databases <span id="db-version" class="muted"></span><button
+                        id="update-mariadb" class="update-chip" hidden></button></h1>
                     <p class="muted" id="db-text"></p>
                 </div>
                 <div class="actions">

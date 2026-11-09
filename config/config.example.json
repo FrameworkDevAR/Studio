@@ -17,6 +17,17 @@
     "editor"     : "Visual Studio Code",
     "phpMyAdmin" : "http://localhost/phpmyadmin",
 
+    "versions" : {
+        "httpd"      : "~2.4",
+        "php"        : "~8.5",
+        "mariadb"    : "~12.1",
+        "redis"      : "~8.2",
+        "node"       : "^25",
+        "mkcert"     : "~1.4",
+        "phpmyadmin" : "~5.2",
+        "swiftbar"   : "*"
+    },
+
     "projects" : [
         {
             "name"  : "Framework",

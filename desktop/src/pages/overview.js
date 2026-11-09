@@ -9,6 +9,7 @@ import { renderNode } from "./node.js";
 import { renderPhp } from "./php.js";
 import { renderServices } from "./services.js";
 import { allApps, renderSites } from "./sites.js";
+import { newerOf, renderUpdates } from "./updates.js";
 
 
 
@@ -26,6 +27,7 @@ function render() {
     renderModules();
     renderDatabases();
     renderLogMeta();
+    renderUpdates();
 }
 
 /**
@@ -150,7 +152,7 @@ function renderOverview() {
             "services",
             service.name,
             esc(service.version),
-            service.running ? "Running" : "Stopped",
+            withNewer(service.running ? "Running" : "Stopped", formula),
             !service.running,
             tone,
             SERVICE_ICONS[formula],
@@ -164,7 +166,7 @@ function renderOverview() {
             "php",
             "PHP",
             esc(php.version || "—"),
-            `${php.extensions.length} extensions`,
+            withNewer(`${php.extensions.length} extensions`, "php"),
             false,
             "blue",
         ),
@@ -172,7 +174,7 @@ function renderOverview() {
             "node",
             "Node.js",
             esc(node.version || "—"),
-            node.npm ? `npm ${esc(node.npm)}` : "Not installed",
+            withNewer(node.npm ? `npm ${esc(node.npm)}` : "Not installed", "node"),
             Boolean(node.broken),
             "green",
         ),
@@ -199,6 +201,18 @@ function renderOverview() {
     /** @type {HTMLAnchorElement} */ (document.getElementById("shortcut-pma")).href =
         state.phpmyadmin.url;
     document.getElementById("php-ini-name").textContent = state.files.phpIni.split("/").pop();
+}
+
+/**
+ * A tile's line under its version, with the newer version under it when one is out, on a line
+ * of its own, as the tile's own line can have a version too, as npm's.
+ * @param {string} sub HTML
+ * @param {string} name the package of the stack the tile shows
+ * @returns {string}
+ */
+function withNewer(sub, name) {
+    const newer = newerOf(name);
+    return newer ? `${sub}<span class="tile-newer">${esc(newer)} is out</span>` : sub;
 }
 
 /** The icons of the service tiles, which share the Services page. */

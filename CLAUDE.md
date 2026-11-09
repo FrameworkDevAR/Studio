@@ -7,10 +7,12 @@ the apps and servers of each project. See the README.
   by what it covers, a file per part:
   - `core/`: `system.js` with the paths and helpers the others share, `paths.js` with the
     stack's paths and their defaults (for the plugin too), `command.js`, which splits a
-    server's command line (for the plugin too), `config.js`, and `jobs.js`, which runs the
-    npm and pecl installs the page follows as they go.
-  - `stack/`: `services.js`, `apache.js`, PHP's `php.js` (settings and overrides), `ini.js`
-    (asking PHP, the ini files) and `pecl.js` (extensions), `node.js` and `logs.js`.
+    server's command line (for the plugin too), `config.js`, `versions.js` (the config's
+    version ranges), and `jobs.js`, which runs the npm and pecl installs the page follows
+    as they go.
+  - `stack/`: `services.js`, `brew.js` (the stack's updates from Homebrew), `apache.js`,
+    PHP's `php.js` (settings and overrides), `ini.js` (asking PHP, the ini files) and
+    `pecl.js` (extensions), `node.js` and `logs.js`.
   - `apps/`: the projects' apps and their icons.
   - `database/`: `databases.js` (databases and users), `mariadb.js` (MariaDB's options), and
     a database's own page: `client.js` (the mariadb client every query goes through),

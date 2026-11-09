@@ -7,6 +7,7 @@ import { DEFAULTS, TOOLS as TOOL_DEFAULTS, pathsOf, toolsOf } from "./paths.js";
 import {
     ROOT, CONFIG, PATHS, TOOLS, HTTPD_CONF, VHOSTS, MYSQL_CNF, run, readFile
 } from "./system.js";
+import { isRange } from "./versions.js";
 import { phpIniFile } from "../stack/php.js";
 
 
@@ -191,6 +192,13 @@ function configProblem(config) {
         .find((key) => config[key] !== undefined && typeof config[key] !== "string");
     if (tool) {
         return `${tool} must be a text`;
+    }
+
+    // The versions each part of the stack may update to, by its name in Homebrew.
+    if (config.versions !== undefined && (!isObject(config.versions)
+        || !Object.values(config.versions).every(isRange))
+    ) {
+        return "versions must be an object of ranges, as \"~8.5\" or \"^25\", by package";
     }
 
     const unknown = Object.keys(config.paths || {}).find((key) => !(key in DEFAULTS));

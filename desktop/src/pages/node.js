@@ -4,6 +4,7 @@ import { api, refresh } from "../core/api.js";
 import { ask, esc, icon, markColumnEnds, packageRow, setLabel, toast } from "../core/helpers.js";
 import { state, updating } from "../core/state.js";
 import { renderPhp } from "./php.js";
+import { renderUpdates } from "./updates.js";
 
 
 
@@ -428,15 +429,19 @@ async function uninstallPackage(name) {
 }
 
 /**
- * What can be updated in the update dialog: npm's global packages, or the
- * extensions pecl installed. Each says what it calls one, the action that
- * updates some, what of it is installed, and which page to redraw. The busy
- * keys of the extensions are apart, since a package can share a name.
+ * What can be updated in the update dialog: npm's global packages, the extensions pecl
+ * installed, or the stack's own packages from Homebrew. Each says what it calls one, the action
+ * that updates some, what of it is installed, which page to redraw, the tool that does it, and
+ * what it does besides. The busy keys of the extensions and of Homebrew's are apart, since a
+ * package can share a name.
  */
 const UPDATE_KINDS = {
     npm : {
         noun   : "package",
         action : "npm-update",
+        tool   : "npm",
+        also   : "",
+        warn   : "",
         key    : (name) => name,
         list   : () => state.node.globals,
         render : () => renderNode(),
@@ -444,10 +449,33 @@ const UPDATE_KINDS = {
     pecl : {
         noun   : "extension",
         action : "pecl-update",
+        tool   : "pecl",
+        also   : ", building each from its source",
+        warn   : "",
         key    : (name) => `pecl:${name}`,
         list   : () => state.php.extensions.filter((ext) => ext.pecl)
             .map((ext) => ({ ...ext, name : ext.name.toLowerCase() })),
         render : () => renderPhp(),
+    },
+    brew : {
+        noun   : "package",
+        action : "brew-update",
+        tool   : "brew",
+        also   : ", then restarts the running services they change",
+        warn   : " Running services restart on their new version, Apache for PHP's too.",
+        key    : (name) => `brew:${name}`,
+        list   : () => state.updates.packages,
+        render : () => renderUpdates(),
+    },
+    move : {
+        noun   : "package",
+        action : "brew-move",
+        tool   : "brew",
+        also   : ", then restarts the running services it changes",
+        warn   : "",
+        key    : (name) => `brew:${name}`,
+        list   : () => state.updates.held,
+        render : () => renderUpdates(),
     },
 };
 
@@ -464,18 +492,19 @@ function countOf(count, noun) {
 /**
  * Asks before updating outdated packages, in a dialog listing each with the
  * version it goes to, and which of them are major versions, to pick from.
- * @param {"npm" | "pecl"=} kind
+ * @param {"npm" | "pecl" | "brew"=} kind
+ * @param {string[]=} picked the ones ticked from the start, as one whose update was clicked
  * @returns {Promise<void>}
  */
-async function confirmUpdateAll(kind = "npm") {
-    const { noun } = UPDATE_KINDS[kind];
+async function confirmUpdateAll(kind = "npm", picked = []) {
+    const { noun, warn } = UPDATE_KINDS[kind];
     const outdated = UPDATE_KINDS[kind].list().filter((pkg) => pkg.latest);
     const majors   = outdated.filter((pkg) => isMajor(pkg.version, pkg.latest)).length;
     const waiting  = ask({
         title : `Update ${noun}s`,
         text  : `${countOf(outdated.length, noun)} ${outdated.length === 1
             ? "has a newer version" : "have newer versions"}${majors
-            ? `, ${majors} of them major` : ""}. Pick the ones to update.`,
+            ? `, ${majors} of them major` : ""}. Pick the ones to update.${warn}`,
         body  : `
             <label class="pkg pick all">
                 <input type="checkbox" data-pick-all>
@@ -483,8 +512,10 @@ async function confirmUpdateAll(kind = "npm") {
             </label>
             ${outdated.map((pkg) => `
                 <label class="pkg pick">
-                    <input type="checkbox" value="${esc(pkg.name)}">
-                    <span class="pkg-name"><span class="pkg-text">${esc(pkg.name)}</span>${isMajor(
+                    <input type="checkbox" value="${esc(pkg.name)}"${picked.includes(pkg.name)
+                        ? " checked" : ""}>
+                    <span class="pkg-name"><span class="pkg-text">${esc(pkg.label
+                        || pkg.name)}</span>${isMajor(
                         pkg.version, pkg.latest) ? `<span class="tag red">major</span>` : ""}</span>
                     <span class="pkg-version">${esc(pkg.version.replace(/\+.*/, ""))}<span
                         class="pkg-latest">→ ${esc(pkg.latest)}</span></span>
@@ -530,6 +561,36 @@ async function confirmUpdateAll(kind = "npm") {
 }
 
 /**
+ * Asks before updating a package of the stack the config's range holds, as PHP to a new minor
+ * version, which changes its range in the config to take it; the dialog then follows it.
+ * @param {string} name
+ * @returns {Promise<void>}
+ */
+async function confirmMove(name) {
+    const pkg = state.updates.held.find((one) => one.name === name);
+    if (!pkg) {
+        return;
+    }
+
+    // PHP's settings move to the new version's folder, but its extensions are built for the old.
+    const php  = name === "php" ? " PHP's settings move over, and its pecl extensions need"
+        + " building again on the PHP page." : "";
+    const sure = await ask({
+        title  : `Update ${pkg.label} to ${pkg.latest}`,
+        text   : `The config keeps ${pkg.label} at ${pkg.range}. This sets it to ${pkg.next}, then
+            updates ${pkg.label} from ${pkg.version} and restarts the running services it
+            changes.${php}`,
+        ok     : "Update",
+        closeX : true,
+        stay   : true,
+    });
+
+    if (sure) {
+        updatePackages([ name ], "move");
+    }
+}
+
+/**
  * Whether going from one version to another is a major change: the first
  * number changes, or the second while the first is 0, as semver counts it.
  * @param {string} from
@@ -547,7 +608,7 @@ function isMajor(from, to) {
  * what went wrong. Closing the dialog leaves the update going, and the busy
  * Update button opens it again.
  * @param {string[]} names
- * @param {"npm" | "pecl"=} kind
+ * @param {"npm" | "pecl" | "brew" | "move"=} kind
  * @returns {Promise<void>}
  */
 async function updatePackages(names, kind = "npm") {
@@ -560,6 +621,7 @@ async function updatePackages(names, kind = "npm") {
         state : "waiting",
         items : names.map((name) => ({
             name,
+            label : byName[name]?.label || name,
             from  : byName[name]?.version || "",
             to    : byName[name]?.latest || "",
             state : "waiting",
@@ -592,8 +654,8 @@ async function updatePackages(names, kind = "npm") {
 let updateJob = null;
 
 /**
- * Whether an update of npm's packages, or of pecl's extensions, is running.
- * @param {"npm" | "pecl"} kind
+ * Whether an update of npm's packages, pecl's extensions or the stack's own is running.
+ * @param {"npm" | "pecl" | "brew" | "move"} kind
  * @returns {boolean}
  */
 function isUpdating(kind) {
@@ -672,7 +734,7 @@ function renderUpdateProgress() {
     let title;
     if (running) {
         title = `Updating ${items.length === 1
-            ? items[0].name : countOf(items.length, updateJob.noun)}`;
+            ? items[0].label : countOf(items.length, updateJob.noun)}`;
     } else if (failed) {
         title = "Update finished with errors";
     } else {
@@ -684,7 +746,7 @@ function renderUpdateProgress() {
     document.getElementById("ask-text").textContent =
         `Updates ${items.length === 1 ? `this ${updateJob.noun}` : `these ${countOf(
             items.length, updateJob.noun)}`} to the newest version, one at a time${
-            updateJob.kind === "pecl" ? ", building each from its source" : ""}.`;
+            UPDATE_KINDS[updateJob.kind].also}.`;
 
     // The rows and the bar change in place once drawn: drawing them again
     // every moment would restart the loader's turn and the bar's slide.
@@ -697,7 +759,7 @@ function renderUpdateProgress() {
         body.innerHTML = items.map((item) => `
             <div class="pkg step" data-name="${esc(item.name)}">
                 <span class="step-mark"></span>
-                <span class="pkg-name"><span class="pkg-text">${esc(item.name)}</span></span>
+                <span class="pkg-name"><span class="pkg-text">${esc(item.label)}</span></span>
                 <span class="pkg-version">${esc(item.from.replace(/\+.*/, ""))}${item.to
                     ? `<span class="pkg-latest">→ ${esc(item.to)}</span>` : ""}</span>
             </div>
@@ -744,8 +806,8 @@ function renderUpdateProgress() {
     } else {
         let failures = "";
         if (failed) {
-            failures = `, ${failed} failed · hover one for ${updateJob.kind === "pecl"
-                ? "pecl" : "npm"}'s error`;
+            failures = `, ${failed} failed · hover one for ${
+                UPDATE_KINDS[updateJob.kind].tool}'s error`;
         }
         progress = `${done} updated${failures}`;
     }
@@ -770,6 +832,7 @@ export {
     uninstallPackage,
     countOf,
     confirmUpdateAll,
+    confirmMove,
     updatePackages,
     isUpdating,
     followJob,

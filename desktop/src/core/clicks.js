@@ -47,6 +47,7 @@ import { renderModules, toggleInclude, toggleModule } from "../pages/apache.js";
 import { dropDatabase, openDatabaseDialog, pickUserMode } from "../pages/databases.js";
 import { clearLog, copyLogEntry, loadLog, scrollLogToBottom } from "../pages/logs.js";
 import {
+    confirmMove,
     confirmUpdateAll,
     installNpm,
     isUpdating,
@@ -130,6 +131,18 @@ function onClick(event) {
             showUpdateProgress();
         } else {
             confirmUpdateAll(kind);
+        }
+    } else if (target.dataset.brewUpdateAll !== undefined || target.dataset.brewUpdate
+        || target.dataset.brewMove) {
+        // A page's chip opens it with its own package picked, a held one asks to move its
+        // range, and while one runs, they open its progress.
+        if (isUpdating("brew") || isUpdating("move")) {
+            showUpdateProgress();
+        } else if (target.dataset.brewMove) {
+            confirmMove(target.dataset.brewMove);
+        } else {
+            const picked = target.dataset.brewUpdate ? [ target.dataset.brewUpdate ] : [];
+            confirmUpdateAll("brew", picked);
         }
     } else if (target.dataset.peclUpdate) {
         updatePackages([ target.dataset.peclUpdate ], "pecl");

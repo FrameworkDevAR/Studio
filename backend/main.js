@@ -8,6 +8,7 @@ import * as system from "./core/system.js";
 import * as config from "./core/config.js";
 import * as jobs from "./core/jobs.js";
 import * as services from "./stack/services.js";
+import * as brew from "./stack/brew.js";
 import * as apache from "./stack/apache.js";
 import * as php from "./stack/php.js";
 import * as pecl from "./stack/pecl.js";
@@ -278,6 +279,8 @@ async function readState() {
         apache     : { version : system.versionOf("httpd") },
         vhosts     : apache.readVhosts(),
         phpmyadmin : { url : system.PHPMYADMIN, version : system.versionOf("phpmyadmin") },
+        // The stack's packages with a newer version in Homebrew, checked once an hour.
+        updates    : brew.readUpdates(),
         files      : {
             httpdConf : system.HTTPD_CONF,
             vhosts    : system.VHOSTS,
@@ -316,6 +319,10 @@ async function runAction(body) {
     case "pecl-update":     return pecl.updateExtensions(body.name);
     case "pecl-rebuild":    return pecl.reinstallExtension(body.name);
     case "pecl-remove":     return pecl.uninstallExtension(body.name);
+
+    // The stack's own packages, from Homebrew.
+    case "brew-update":     return brew.updateStack(body.name);
+    case "brew-move":       return brew.moveStack(body.name);
 
     // Node's global packages.
     case "npm-update":      return node.updatePackages(body.name);
