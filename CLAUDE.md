@@ -34,7 +34,8 @@ the apps and servers of each project. See the README.
   arrows. It asks before each part that changes the Mac, and skips what is already there.
 - `config/` holds the config and its example.
 - `checks/` holds the checks: `code.js` for the rules below and the types, `api.sh` for the
-  api's answers.
+  api's answers, and `versions.sh`, which makes sure `setup.sh` and `versions.js` read the
+  config's ranges of versions the same way.
 
 ## Commits
 
@@ -133,6 +134,8 @@ the apps and servers of each project. See the README.
 - A change to the backend runs `checks/api.sh` before and after, with Studio restarted in
   between, and the two outputs are compared: it acts on a throwaway `studio_probe`
   database only, and drops it.
+- A change to how ranges of versions are read, in `setup.sh` or `versions.js`, must leave
+  `checks/versions.sh` saying "All good". Change both, as the setup runs before node can.
 - Check changes in a headless Chrome by measuring (the page's `state`, element sizes)
   rather than by screenshots where a number will do.
 - Ask before anything that starts many apps at once, clears a log, or otherwise
