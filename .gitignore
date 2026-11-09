@@ -14,7 +14,7 @@ npm-debug.log*
 
 # Local files: this machine's config, see config/config.example.json
 config/config.json
-config/config.json.bak
+config/config.json.bak*
 *.log
 .env
 .env.*
