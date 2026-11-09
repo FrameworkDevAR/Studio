@@ -444,6 +444,11 @@ a.pkg-text:hover .pkg-scope { color: inherit; }
     background: var(--accent-bg);
     border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
+.tag.green {
+    color: var(--green);
+    background: var(--green-bg);
+    border-color: color-mix(in srgb, var(--green) 40%, transparent);
+}
 .tag.amber {
     color: var(--amber);
     background: var(--amber-bg);

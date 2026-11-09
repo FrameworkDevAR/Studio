@@ -168,6 +168,11 @@ function onClick(event) {
         openEditor(target.dataset.editApache);
     } else if (target.dataset.editInclude) {
         openApacheConfig(target.dataset.editInclude);
+    } else if (target.dataset.brewCheck !== undefined) {
+        act({ action : "brew-check" }, target);
+    } else if (target.dataset.settingsTab) {
+        const tab = target.dataset.settingsTab;
+        navigate(tab === "general" ? "/settings" : `/settings/${tab}`);
     } else if (target.dataset.apacheTab) {
         navigate(target.dataset.apacheTab === "configs" ? "/apache/configs" : "/apache");
     } else if (target.dataset.editPhp !== undefined) {

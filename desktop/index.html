@@ -212,22 +212,47 @@
             <header class="page-head">
                 <div>
                     <h1>Settings</h1>
-                    <p class="muted">What Studio opens things with, and how far the stack
-                        updates. Each change is saved at once.</p>
+                    <p class="muted" id="settings-text"></p>
                 </div>
                 <div class="actions">
+                    <div class="segmented page-tabs" id="settings-tabs">
+                        <button data-settings-tab="general"><svg class="i"><use
+                            href="#i-sliders"/></svg>General</button>
+                        <button data-settings-tab="updates"><svg class="i"><use
+                            href="#i-layers"/></svg>Updates <em
+                            id="tab-updates-count"></em></button>
+                        <button data-settings-tab="paths"><svg class="i"><use
+                            href="#i-folder"/></svg>Paths</button>
+                    </div>
                     <button class="ghost" data-edit-config
                         title="The whole config, with the projects and the paths"><svg
                         class="i"><use href="#i-pencil"/></svg>Edit config</button>
                 </div>
             </header>
-            <div class="panel">
-                <div class="panel-head"><h2>Apps</h2></div>
-                <div id="settings-apps"></div>
+            <div id="settings-general-pane">
+                <div class="panel">
+                    <div class="panel-head"><h2>Apps</h2></div>
+                    <div id="settings-apps"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h2>Versions</h2></div>
+                    <div id="settings-versions"></div>
+                </div>
             </div>
-            <div class="panel">
-                <div class="panel-head"><h2>Versions</h2></div>
-                <div id="settings-versions"></div>
+            <div id="settings-updates-pane">
+                <div id="settings-summary"></div>
+                <div class="panel" id="settings-outdated-panel">
+                    <div class="panel-head"><h2>Available</h2></div>
+                    <div id="settings-outdated"></div>
+                </div>
+                <div class="panel">
+                    <div class="panel-head"><h2>Last updates</h2></div>
+                    <div id="settings-history"></div>
+                </div>
+            </div>
+            <div class="panel" id="settings-paths-pane">
+                <div class="panel-head"><h2>Paths</h2></div>
+                <div id="settings-paths"></div>
             </div>
         </section>
 

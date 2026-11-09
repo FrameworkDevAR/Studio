@@ -1,16 +1,17 @@
 // The Settings page: the browser and the editor Studio opens things with, picked from the apps
 // installed, and the range of versions each package of the stack may update to. Both are kept
-// in the config, which the plugin reads on every run, so a change applies at once.
+// in the config, which the plugin reads on every run, so a change applies at once. The page also
+// shows the last updates of the stack, and the paths the setup wrote, which it does not change.
 
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { readConfig, writeConfig } from "./config.js";
-import { CONFIG, readJson } from "./system.js";
+import { CONFIG, PATHS, readJson, versionOf } from "./system.js";
 import { toolsOf } from "./paths.js";
 import { isRange } from "./versions.js";
-import { readVersions } from "../stack/brew.js";
+import { readHistory, readVersions } from "../stack/brew.js";
 
 
 
@@ -22,6 +23,21 @@ const APPS = {
     editor  : [ "Visual Studio Code", "Cursor", "Zed", "Sublime Text", "Nova", "BBEdit" ],
 };
 
+/** The stack's paths the page shows, by their key in the config. */
+const PATH_LABELS = {
+    homebrew  : "Homebrew",
+    httpdConf : "Apache's config",
+    vhosts    : "Virtual hosts",
+    apacheLog : "Apache's error log",
+    accessLog : "Apache's access log",
+    phpIni    : "PHP's settings",
+    mysqlData : "MariaDB's data",
+    mysqlCnf  : "MariaDB's settings",
+    redisLog  : "Redis's log",
+    hosts     : "Hosts file",
+    certs     : "Certificates",
+};
+
 
 
 /**
@@ -29,6 +45,8 @@ const APPS = {
  * @typedef {{
  *     browser: string, editor: string, browsers: string[], editors: string[],
  *     versions: { name: string, label: string, version: string, range: string }[],
+ *     history: ReturnType<typeof readHistory>,
+ *     paths: { label: string, path: string, found: boolean }[],
  * }} Settings
  */
 
@@ -50,7 +68,23 @@ function readSettings() {
         browsers : appsOf("browser", tools.browser),
         editors  : appsOf("editor", tools.editor),
         versions : readVersions(),
+        history  : readHistory(),
+        paths    : readPaths(),
     };
+}
+
+/**
+ * The stack's paths Studio uses, as the setup wrote them or Homebrew's own, each with whether
+ * it is there. PHP's settings are named for the version installed, as 8.5.
+ * @returns {{ label: string, path: string, found: boolean }[]}
+ */
+function readPaths() {
+    const minor = versionOf("php").split(".").slice(0, 2).join(".");
+
+    return Object.entries(PATH_LABELS).map(([ key, label ]) => {
+        const file = PATHS[key].replace("{php}", minor);
+        return { label, path : file, found : fs.existsSync(file) };
+    });
 }
 
 /**

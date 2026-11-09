@@ -8,6 +8,16 @@ import { renderPhpText } from "../pages/php.js";
 
 
 
+/** What the Settings page says under its title, by tab. */
+const SETTINGS_TEXTS = {
+    general : "What Studio opens things with, and how far the stack updates. Each change is"
+        + " saved at once.",
+    updates : "What is out for the stack, and what was updated last, by Studio or ./setup.sh.",
+    paths   : "Where the stack is, as the setup found it. Only the setup changes them.",
+};
+
+
+
 /**
  * The view in the path, or the overview when it names none.
  * @returns {string}
@@ -51,6 +61,16 @@ function phpTab() {
 function dbTab() {
     const tab = location.pathname.split("/")[2];
     return tab === "users" || tab === "options" ? tab : "databases";
+}
+
+/**
+ * The tab of the Settings page, from /settings/updates or /settings/paths; the general one
+ * otherwise.
+ * @returns {"updates" | "paths" | "general"}
+ */
+function settingsTab() {
+    const tab = location.pathname.split("/")[2];
+    return tab === "updates" || tab === "paths" ? tab : "general";
 }
 
 /**
@@ -109,6 +129,28 @@ function route() {
     if (view === "database") {
         showBrowse();
     }
+    if (view === "settings") {
+        showSettingsTab();
+    }
+}
+
+/**
+ * Shows the tab of the Settings page in the path, with the text that goes with it.
+ * @returns {void}
+ */
+function showSettingsTab() {
+    const tab = settingsTab();
+
+    for (const button of /** @type {NodeListOf<HTMLElement>} */ (
+        document.querySelectorAll("#settings-tabs button")
+    )) {
+        button.classList.toggle("active", button.dataset.settingsTab === tab);
+    }
+
+    document.getElementById("settings-general-pane").hidden = tab !== "general";
+    document.getElementById("settings-updates-pane").hidden = tab !== "updates";
+    document.getElementById("settings-paths-pane").hidden   = tab !== "paths";
+    document.getElementById("settings-text").textContent    = SETTINGS_TEXTS[tab];
 }
 
 /**

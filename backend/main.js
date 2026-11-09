@@ -326,6 +326,7 @@ async function runAction(body) {
     // The stack's own packages, from Homebrew.
     case "brew-update":     return brew.updateStack(body.name);
     case "brew-move":       return brew.moveStack(body.name);
+    case "brew-check":      return brew.checkNow();
 
     // Node's global packages.
     case "npm-update":      return node.updatePackages(body.name);

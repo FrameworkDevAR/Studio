@@ -81,12 +81,32 @@ let outdated = { at : 0, busy : false, round : 0, packages : {} };
 
 /**
  * The stack's updates for the page, starting a check when the last is an hour old: those the
- * config's ranges take, and those they hold.
- * @returns {{ checked: number, packages: BrewUpdate[], held: HeldUpdate[] }}
+ * config's ranges take, those they hold, and whether a check is running.
+ * @returns {{ checked: number, checking: boolean, packages: BrewUpdate[], held: HeldUpdate[] }}
  */
 function readUpdates() {
     checkUpdates();
-    return { checked : outdated.at, packages : offered(), held : heldBack() };
+
+    return {
+        checked  : outdated.at,
+        checking : outdated.busy,
+        packages : offered(),
+        held     : heldBack(),
+    };
+}
+
+/**
+ * Checks for updates now, from the page's Check now: Homebrew learns of the new versions
+ * first, which the hourly check leaves to brew's own updates, then brew is asked again.
+ * @returns {{ message: string }}
+ */
+function checkNow() {
+    if (!outdated.busy) {
+        outdated.at = 0;
+        checkUpdates(true);
+    }
+
+    return { message : "Checking for updates" };
 }
 
 /**
@@ -137,9 +157,10 @@ function rangesOf() {
 /**
  * Asks brew which of the stack's packages have a newer version, in the background. One that
  * cannot reach Homebrew keeps the last answer, and tries again in an hour.
+ * @param {boolean=} fresh whether Homebrew is updated first, so it knows the newest versions
  * @returns {void}
  */
-function checkUpdates() {
+function checkUpdates(fresh = false) {
     const names = Object.keys(STACK).filter(isInstalled);
     if (!names.length || outdated.busy || Date.now() - outdated.at < HOUR) {
         return;
@@ -148,7 +169,9 @@ function checkUpdates() {
     outdated.busy = true;
     const round   = outdated.round;
 
-    run(BREW, [ "outdated", "--json=v2", ...names ], 120_000).then((result) => {
+    const first = fresh ? run(BREW, [ "update", "--quiet" ], 300_000) : Promise.resolve();
+
+    first.then(() => run(BREW, [ "outdated", "--json=v2", ...names ], 120_000)).then((result) => {
         if (round === outdated.round) {
             const found = parseOutdated(result.stdout);
             if (found) {
@@ -454,6 +477,7 @@ function brewError(lines) {
 // The public API
 export {
     readUpdates,
+    checkNow,
     updateStack,
     moveStack,
     readVersions,
