@@ -4,13 +4,12 @@
 import path from "node:path";
 
 import {
-    APACHE_LOG, VHOSTS, GREEN, RED, PHP_INI, GREY, SERVERS_NAME, PROJECTS, WORKTREES_NAME, SELF,
+    APACHE_LOG, VHOSTS, GREEN, RED, PHP_INI, GREY, SERVERS_NAME, PROJECTS, SELF,
     PHPMYADMIN, EDITOR
 } from "./config.js";
 import { readFile } from "./helpers.js";
 import {
-    projectRoots, appRootOf, appDirsOf, appInfo, byProjectThenApp, titleOf, schemeOf, hostOf,
-    desktopApps
+    appRootOf, appDirsOf, appInfo, byProjectThenApp, titleOf, schemeOf, hostOf
 } from "./apps.js";
 import { urlOf } from "./state.js";
 
@@ -36,9 +35,9 @@ import { urlOf } from "./state.js";
  * @param {MenuState} state
  * @returns {void}
  */
-function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, desktopsBusy }) {
+function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy }) {
     let icon = "🔴";
-    if (stackBusy || desktopsBusy || extras.some((server) => server.starting)) {
+    if (stackBusy || extras.some((server) => server.starting)) {
         icon = "🟡";
     } else if (apacheWorkers && mysqlUp) {
         icon = "🟢";
@@ -172,8 +171,7 @@ function renderRunningServers(servers, { stopping }) {
 
 /**
  * A section per project: its running apps, then the idle ones under Start….
- * Rows name only the app, except in a project with worktrees, where they say
- * which worktree too: "Shop Alpha - desktop".
+ * Rows name only the app.
  * @param {MenuState} state
  * @returns {void}
  */
@@ -196,77 +194,58 @@ function renderProjects(state) {
         const extras      = serversOf(project, state);
         const extrasIdle  = extras.filter((server) => !server.pid && !server.starting);
 
-        const worktrees = projectRoots()
-            .filter((root) => root.project === project)
-            .map(({ root }) => {
-                const running = servers.filter((server) => appRootOf(server.dir) === root);
-                const busy    = new Set(running.map((server) => server.dir));
-                const idle    = appDirsOf(root)
-                    .filter((dir) => !busy.has(dir)
-                        && readFile(path.join(dir, "package.json")).includes(`"start"`))
-                    .map(appInfo)
-                    .sort(byProjectThenApp);
-                return { title : titleOf(path.basename(root)), running, idle };
-            })
-            .filter(({ running, idle }) => running.length || idle.length);
-        if (!worktrees.length && !extras.length) {
+        const root    = project.dir;
+        const running = servers.filter((server) => appRootOf(server.dir) === root);
+        const busy    = new Set(running.map((server) => server.dir));
+        const idle    = appDirsOf(root)
+            .filter((dir) => !busy.has(dir)
+                && readFile(path.join(dir, "package.json")).includes(`"start"`))
+            .map(appInfo)
+            .sort(byProjectThenApp);
+        if (!running.length && !idle.length && !extras.length) {
             continue;
         }
 
         separator();
-        const title   = project.name || titleOf(path.basename(project.dir));
-        const running = worktrees.reduce((count, worktree) => count + worktree.running.length, 0)
-            + extras.filter((server) => server.pid).length;
-        item(running ? `${title} — ${running} running` : title, { size : 13 });
+        const title = project.name || titleOf(path.basename(root));
+        const count = running.length + extras.filter((server) => server.pid).length;
+        item(count ? `${title} — ${count} running` : title, { size : 13 });
 
         for (const site of project.sites) {
             item(`🌐 ${site.name}`, onClick("open-url", site.url, { refresh : false }));
         }
 
-        for (const worktree of worktrees.filter((one) => one.running.length)) {
-            for (const server of worktree.running) {
-                const port = portByPid[server.pid];
-                runningServer({
-                    name : project.worktrees ? server.name : server.app,
-                    pid  : server.pid,
-                    // A Node app that is not Vite, like a socket server, has no page
-                    url  : port && server.isVite !== false
-                        ? `${schemeOf(server.dir)}://${hostOf(server.dir)}:${port}/`
-                        : null,
-                    dir  : server.dir,
-                    stopping : stopping.has(server.pid),
-                });
-            }
+        for (const server of running) {
+            const port = portByPid[server.pid];
+            runningServer({
+                name : server.app,
+                pid  : server.pid,
+                // A Node app that is not Vite, like a socket server, has no page
+                url  : port && server.isVite !== false
+                    ? `${schemeOf(server.dir)}://${hostOf(server.dir)}:${port}/`
+                    : null,
+                dir  : server.dir,
+                stopping : stopping.has(server.pid),
+            });
         }
 
         renderRunningServers(extras, state);
 
-        const idle = worktrees.filter((one) => one.idle.length);
         if (!idle.length && !extrasIdle.length) {
             continue;
         }
 
         item("Start…", { color : GREY });
-        if (project.worktrees) {
-            renderEveryWorktree(idle);
-        } else if (idle.length) {
+        if (idle.length) {
             startAllItem(
-                idle[0].idle.length,
-                onClick("start-apps", `"${idle[0].idle.map((app) => app.dir).join(":")}"`),
+                idle.length,
+                onClick("start-apps", `"${idle.map((app) => app.dir).join(":")}"`),
             );
         }
 
-        idle.forEach((worktree, index) => {
-            if (index) {
-                separator(1);
-            }
-            for (const app of worktree.idle) {
-                subItem(
-                    project.worktrees ? app.name : app.app,
-                    onClick("start-app", `"${app.dir}"`),
-                );
-            }
-        });
+        for (const app of idle) {
+            subItem(app.app, onClick("start-app", `"${app.dir}"`));
+        }
 
         if (extrasIdle.length) {
             if (idle.length) {
@@ -277,32 +256,6 @@ function renderProjects(state) {
             }
         }
     }
-}
-
-/**
- * A submenu atop a worktrees project's Start…, starting one app in every
- * worktree where it is stopped: "desktop (3)". Only apps stopped in two or
- * more worktrees, since for one the entry below does the same.
- * @param {{ idle: import("./apps.js").AppInfo[] }[]} worktrees
- * @returns {void}
- */
-function renderEveryWorktree(worktrees) {
-    const dirsByApp = new Map();
-    for (const app of worktrees.flatMap((worktree) => worktree.idle)) {
-        dirsByApp.set(app.app, [ ...(dirsByApp.get(app.app) || []), app.dir ]);
-    }
-
-    const shared = [ ...dirsByApp ].filter(([ , dirs ]) => dirs.length > 1)
-        .sort(([ a ], [ b ]) => a.localeCompare(b));
-    if (!shared.length) {
-        return;
-    }
-
-    subItem("🚀 In every worktree");
-    for (const [ app, dirs ] of shared) {
-        item(`${app} (${dirs.length})`, onClick("start-apps", `"${dirs.join(":")}"`), 2);
-    }
-    separator(1);
 }
 
 /**
@@ -320,30 +273,17 @@ function startAllItem(count, action) {
 }
 
 /**
- * Starting every worktree's desktop app, and stopping every app, when there is any.
+ * Stopping every app, when any is running.
  * @param {MenuState} state
  * @returns {void}
  */
-function renderAppsFooter({ servers, desktopsBusy }) {
-    const running = new Set(servers.map((server) => server.dir));
-    const missing = desktopApps().filter((dir) => !running.has(dir));
-    if (!desktopsBusy && !missing.length && !servers.length) {
+function renderAppsFooter({ servers }) {
+    if (!servers.length) {
         return;
     }
 
     separator();
-    if (desktopsBusy) {
-        item(`🟡 ${desktopsBusy}`, { color : GREY });
-    } else if (missing.length) {
-        item(
-            `🖥️ ${WORKTREES_NAME} Desktop - Start ${missing.length}`,
-            onClick("start-desktops"),
-        );
-    }
-
-    if (servers.length) {
-        item(`Stop all apps (${servers.length})`, onClick("stop-vite"));
-    }
+    item(`Stop all apps (${servers.length})`, onClick("stop-vite"));
 }
 
 /**

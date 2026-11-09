@@ -59,11 +59,8 @@
             ]
         },
         {
-            "name"      : "Shop",
-            "dir"       : "~/Projects/Shop",
-            "worktrees" : true,
-            "mainApp"   : "desktop",
-            "nestedApp" : "web"
+            "name" : "Shop",
+            "dir"  : "~/Projects/Shop"
         }
     ]
 }

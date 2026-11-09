@@ -1,22 +1,23 @@
 // The apps of each project, found in its folders, with their names and addresses.
 
-import fs from "node:fs";
 import path from "node:path";
 
-import { PROJECTS, NO_PROJECT } from "./config.js";
+import { PROJECTS } from "./config.js";
 import { subDirsOf, capitalize, filesIn, readFile } from "./helpers.js";
+
+
+
+/** The app listed first in each project. */
+const MAIN_APP   = "desktop";
+
+/** The folder an app keeps another app in, as shop/tv/web, which is listed as tv. */
+const NESTED_APP = "web";
 
 
 
 /**
  * A project of the config, with its defaults filled in.
  * @typedef {(typeof PROJECTS)[number]} Project
- */
-
-/**
- * The settings a folder goes by: its project's, or those of no project, which has no dir and
- * no servers.
- * @typedef {Project | typeof NO_PROJECT} ProjectSettings
  */
 
 /**
@@ -29,15 +30,13 @@ import { subDirsOf, capitalize, filesIn, readFile } from "./helpers.js";
 // -------------------------------------------------------------------- apps ---
 
 /**
- * The folders that hold apps, in the config's order, each with its project:
- * a project's own folder, or each subfolder of one with worktrees.
+ * The folders that hold apps, in the config's order, each with its project.
  * @returns {{ root: string, project: Project }[]}
  */
 function projectRoots() {
     return PROJECTS
         .filter((project) => project.dir)
-        .flatMap((project) => (project.worktrees ? subDirsOf(project.dir) : [ project.dir ])
-            .map((root) => ({ root, project })));
+        .map((project) => ({ root : project.dir, project }));
 }
 
 /**
@@ -49,36 +48,25 @@ function appRoots() {
 }
 
 /**
- * The settings of the project a folder is in: the closest root holding it.
+ * The project a folder is in: the closest root holding it, or none.
  * @param {string} dir
- * @returns {ProjectSettings}
+ * @returns {Project | undefined}
  */
-function settingsOf(dir) {
+function projectOf(dir) {
     const found = projectRoots()
         .filter(({ root }) => dir === root || dir.startsWith(`${root}/`))
         .sort((a, b) => b.root.length - a.root.length)[0];
-    return found ? found.project : NO_PROJECT;
+    return found?.project;
 }
 
 /**
- * Where a project goes: the config's order, and its worktrees by folder name.
+ * Where a project goes: the config's order, by its folder's name.
  * @param {string} project its folder's name
  * @returns {number}
  */
 function projectRank(project) {
     const index = projectRoots().findIndex(({ root }) => path.basename(root) === project);
     return index === -1 ? Infinity : index;
-}
-
-/**
- * The main app of every worktree, whether running or not.
- * @returns {string[]}
- */
-function desktopApps() {
-    return projectRoots()
-        .filter(({ project }) => project.worktrees)
-        .map(({ root, project }) => path.join(root, project.mainApp))
-        .filter((dir) => fs.existsSync(path.join(dir, "package.json")));
 }
 
 /**
@@ -113,8 +101,7 @@ function appRootOf(dir) {
  * @returns {string[]}
  */
 function appDirsOf(root) {
-    const nested = settingsOf(root).nestedApp;
-    return subDirsOf(root).flatMap((dir) => [ dir, path.join(dir, nested) ]);
+    return subDirsOf(root).flatMap((dir) => [ dir, path.join(dir, NESTED_APP) ]);
 }
 
 /**
@@ -124,11 +111,11 @@ function appDirsOf(root) {
  */
 function appHomeOf(dir) {
     const clean = dir.replace(/\/$/, "");
-    return path.basename(clean) === settingsOf(clean).nestedApp ? path.dirname(clean) : clean;
+    return path.basename(clean) === NESTED_APP ? path.dirname(clean) : clean;
 }
 
 /**
- * Orders apps by project, in the config's order, then the main app first and the rest
+ * Orders apps by project, in the config's order, then the desktop app first and the rest
  * alphabetically.
  * @param {AppInfo} a
  * @param {AppInfo} b
@@ -140,9 +127,8 @@ function byProjectThenApp(a, b) {
             || a.project.localeCompare(b.project);
     }
 
-    const main = settingsOf(a.dir).mainApp;
-    if (a.app !== b.app && (a.app === main || b.app === main)) {
-        return a.app === main ? -1 : 1;
+    if (a.app !== b.app && (a.app === MAIN_APP || b.app === MAIN_APP)) {
+        return a.app === MAIN_APP ? -1 : 1;
     }
     return a.app.localeCompare(b.app);
 }
@@ -163,8 +149,7 @@ function nameOf(dir) {
  * @returns {string}
  */
 function projectTitleOf(root) {
-    const settings = settingsOf(root);
-    return settings.name && !settings.worktrees ? settings.name : titleOf(path.basename(root));
+    return projectOf(root)?.name || titleOf(path.basename(root));
 }
 
 /**
@@ -222,7 +207,6 @@ export {
     titleOf,
     schemeOf,
     hostOf,
-    desktopApps,
     appRoots,
     appHomeOf,
 };

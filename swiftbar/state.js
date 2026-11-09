@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-    sh, HTTPD, versionOf, STACK_FLAG, DESKTOPS_FLAG, EXTRA_SERVERS, STOPPING_FLAG
+    sh, HTTPD, versionOf, STACK_FLAG, EXTRA_SERVERS, STOPPING_FLAG
 } from "./config.js";
 import { isRunning, waitForUrl, sleep, filesIn } from "./helpers.js";
 import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
@@ -34,7 +34,7 @@ import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
  *     versions: {
  *         httpd: string, mariadb: string, php: string, phpmyadmin: string, redis: string,
  *     },
- *     servers: AppServer[], extras: ExtraServer[], stackBusy: string, desktopsBusy: string,
+ *     servers: AppServer[], extras: ExtraServer[], stackBusy: string,
  *     stopping: Set<string>, portByPid: Object<string, string>,
  * }} MenuState
  */
@@ -64,7 +64,6 @@ function readState() {
         servers       : readAppServers(portByPid),
         extras        : readExtraServers(portByPid),
         stackBusy     : readFlag(STACK_FLAG, 120_000),
-        desktopsBusy  : readFlag(DESKTOPS_FLAG, 60_000),
         stopping      : readStoppingPids(),
         portByPid,
     };

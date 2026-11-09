@@ -39,9 +39,6 @@ const EDITOR     = toolsOf(CONFIG).editor;
 const PROJECTS = (CONFIG.projects || []).map((project) => ({
     name      : project.name || "",
     dir       : project.dir ? expandHome(project.dir) : "",
-    worktrees : Boolean(project.worktrees),
-    mainApp   : project.mainApp || "desktop",
-    nestedApp : project.nestedApp || "web",
     // Left out of the menu with "menu": false; Studio still lists it, from the json.
     menu      : project.menu !== false,
     // A site with a command is a server the menu starts; one without, Apache's, only linked.
@@ -51,14 +48,6 @@ const PROJECTS = (CONFIG.projects || []).map((project) => ({
         url  : `${site.https ? "https" : "http"}://${site.host}/`,
     })),
 }));
-
-// The settings of a folder that belongs to no project.
-const NO_PROJECT = { name : "", worktrees : false, mainApp : "desktop", nestedApp : "web" };
-
-// The projects with worktrees, named in the entry starting their desktop apps.
-const WORKTREES_NAME = PROJECTS.filter((project) => project.worktrees && project.name)
-    .map((project) => project.name)
-    .join(" + ") || "Worktree";
 
 // The fallback title of a project with servers and no name.
 const SERVERS_NAME = PROJECTS.find((project) => project.servers.length)?.name || "Servers";
@@ -89,7 +78,6 @@ const STUDIO = { dir : path.join(import.meta.dirname, ".."), port : 9900 };
 // Flags that let the menu show "Starting…" while an action runs: the stack's
 // holds its label, since it covers both start and stop all.
 const STACK_FLAG    = "/tmp/dev-stack.busy";
-const DESKTOPS_FLAG = "/tmp/dev-desktops.busy";
 
 // One per pid being shut down.
 const STOPPING_FLAG = "/tmp/dev-stopping.";
@@ -168,7 +156,6 @@ export {
     GREY,
     SERVERS_NAME,
     PROJECTS,
-    WORKTREES_NAME,
     SELF,
     PHPMYADMIN,
     EDITOR,
@@ -176,13 +163,11 @@ export {
     HTTPD,
     versionOf,
     STACK_FLAG,
-    DESKTOPS_FLAG,
     EXTRA_SERVERS,
     STOPPING_FLAG,
     BREW,
     HOME,
     STUDIO,
     BROWSER,
-    NO_PROJECT,
     PATH,
 };

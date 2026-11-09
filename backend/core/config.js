@@ -237,7 +237,7 @@ function configProblem(config) {
             }
         }
 
-        for (const key of [ "name", "host", "mainApp", "nestedApp" ]) {
+        for (const key of [ "name", "host" ]) {
             if (project[key] !== undefined && typeof project[key] !== "string") {
                 return `the ${key} of ${name} must be a text`;
             }

@@ -500,14 +500,12 @@ function blockState(count, up, dots) {
 /**
  * What a project with no apps and no sites says, in place of its cards: where its apps
  * are looked for, and a way to add a site.
- * @param {{ index: number, dir: string, home: string, worktrees: boolean }} project
+ * @param {{ index: number, dir: string, home: string }} project
  * @returns {string}
  */
 function emptyText(project) {
     let where = "No apps, and no sites yet.";
-    if (project.dir && project.worktrees) {
-        where = `No worktrees with apps in ${esc(shortPath(project.home))} yet.`;
-    } else if (project.dir) {
+    if (project.dir) {
         where = `No apps in ${esc(shortPath(project.home))} yet: each is a folder with a
             package.json.`;
     }
@@ -522,17 +520,15 @@ function emptyText(project) {
 }
 
 /**
- * The place in the config of the project an app's folder is in: the project's own
- * folder, or a worktree in it. -1 when no project has it.
+ * The place in the config of the project an app's folder is in. -1 when no project has it.
  * @param {string} root the project folder the plugin reports with the app
  * @returns {number}
  */
 function projectIndexOf(root) {
-    const clean  = (dir) => dir.replace(/\/+$/, "");
-    const parent = clean(root).replace(/\/[^/]*$/, "");
+    const clean = (dir) => dir.replace(/\/+$/, "");
 
-    return state.projects.findIndex((project) => project.home && (clean(project.home)
-        === clean(root) || (project.worktrees && clean(project.home) === parent)));
+    return state.projects.findIndex((project) => project.home
+        && clean(project.home) === clean(root));
 }
 
 /**

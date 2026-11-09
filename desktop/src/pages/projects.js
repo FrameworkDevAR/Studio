@@ -20,8 +20,8 @@ import { state } from "../core/state.js";
  * A project of the config, as the server sends it: its place in the config, its folder as
  * typed and in full, its servers and sites, and its host.
  * @typedef {{
- *     index: number, name: string, dir: string, home: string, worktrees: boolean,
- *     sites: ProjectServer[], host: string, https: boolean, menu: boolean,
+ *     index: number, name: string, dir: string, home: string, sites: ProjectServer[],
+ *     host: string, https: boolean, menu: boolean,
  * }} PageProject
  */
 

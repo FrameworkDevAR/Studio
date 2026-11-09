@@ -6,15 +6,15 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-    sh, BREW, STACK_FLAG, STOPPING_FLAG, SELF, HOME, DESKTOPS_FLAG, WORKTREES_NAME, EXTRA_SERVERS,
+    sh, BREW, STACK_FLAG, STOPPING_FLAG, SELF, HOME, EXTRA_SERVERS,
     STUDIO, BROWSER
 } from "./config.js";
 import { refreshMenu, startDetached, sleep, waitForUrl, readFile } from "./helpers.js";
 import {
-    desktopApps, appRoots, appDirsOf, appInfo, byProjectThenApp, schemeOf, hostOf, appHomeOf
+    appRoots, appDirsOf, appInfo, byProjectThenApp, schemeOf, hostOf, appHomeOf
 } from "./apps.js";
 import {
-    readViteServers, startingFlagOf, readExtraServers, readListeningPorts, waitForServer,
+    startingFlagOf, readExtraServers, readListeningPorts, waitForServer,
     readAppServers, readStoppingPids, urlOf
 } from "./state.js";
 
@@ -100,37 +100,6 @@ function runAction(action, argument) {
         for (const dir of argument.split(":").filter(Boolean)) {
             startDetached("npm", [ "run", "start" ], dir);
         }
-        break;
-
-    // Every worktree's desktop app, waited for by a detached copy.
-    case "start-desktops": {
-        const running = new Set(readViteServers().map((server) => server.dir));
-        const missing = desktopApps().filter((dir) => !running.has(dir));
-
-        for (const dir of missing) {
-            startDetached("npm", [ "run", "start" ], dir);
-        }
-
-        fs.writeFileSync(
-            DESKTOPS_FLAG,
-            `${WORKTREES_NAME} Desktop - Starting ${missing.length}…`,
-        );
-        startDetached(SELF, [ "await-desktops" ], HOME);
-        break;
-    }
-
-    // Detached: clears the flag once they are all up, or gives up.
-    case "await-desktops":
-        for (let attempt = 0; attempt < 60; attempt++) {
-            const running = new Set(readViteServers().map((server) => server.dir));
-            if (desktopApps().every((dir) => running.has(dir))) {
-                break;
-            }
-            sleep(500);
-        }
-
-        fs.rmSync(DESKTOPS_FLAG, { force : true });
-        refreshMenu();
         break;
 
     // Flags it as starting and leaves the wait to a detached copy, so the menu
