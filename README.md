@@ -16,8 +16,9 @@ It asks before each step, and skips what is already there, so it can be run agai
 to update:
 
 - **Homebrew**: Apache, PHP, MariaDB, Redis, Node.js, mkcert, SwiftBar and phpMyAdmin.
-  It offers their updates and restarts the services they change. When PHP moves to a
-  new minor version, it moves Studio's PHP settings and rebuilds the pecl extensions.
+  It offers their updates, as far as the config allows, and restarts the services they
+  change. When PHP moves to a new minor version, it moves Studio's PHP settings and
+  rebuilds the pecl extensions.
 - **Apache**: what the vhosts need in `httpd.conf`, checked with `configtest` and
   undone if it fails; mkcert's authority; the hosts file, made yours so Studio can
   write it; phpMyAdmin, signing in by itself for this Mac only; and the log rotation.
@@ -25,6 +26,13 @@ to update:
   SwiftBar's folder.
 
 It starts none of the stack: Studio's Services page does.
+
+To update the stack only:
+
+```
+./setup.sh update        # what the config's versions allow
+./setup.sh upgrade php   # past its range, as PHP 8.5 to 8.6, moving the range to ~8.6
+```
 
 ## Running it
 
@@ -67,6 +75,14 @@ Then what opens what, each optional:
   Mac's default text editor.
 - `phpMyAdmin`: where phpMyAdmin answers, `http://localhost/phpmyadmin` unless set.
 
+`versions` holds the versions each part of the stack may update to, by its name in
+Homebrew (`httpd`, `php`, `mariadb`, `redis`, `node`, `mkcert`, `phpmyadmin`,
+`swiftbar`), as npm writes them: `"~8.5"` takes 8.5's patches, `"^25"` takes 25's minor
+versions too, `"*"` takes any. One left out takes its patches. The setup writes them
+from what is installed. Studio and the setup offer only the updates in them, and a
+pinned package none. One they hold, as a new minor version of PHP, is listed too:
+Studio's **Move to ~8.6** and `./setup.sh upgrade php` move its range and update it.
+
 `projects` are the projects, in the order the menu and Studio list them. Each is an
 object with its own settings:
 
@@ -103,7 +119,8 @@ Folders may start with `~`.
 
 - **Homebrew** for Apache (`httpd`), PHP, MariaDB and Redis, started with
   `brew services run`, so none of them comes up at login, and for Node.js (`node`),
-  whose npm lists the global packages.
+  whose npm lists the global packages. Studio asks it once an hour for their updates,
+  which the Overview lists, to update from there.
 - **Simple Icons** for the logos on the Services page, which are CC0.
 - **The SwiftBar plugin** for the apps: Studio asks it with `swiftbar.10s.js json`, so
   both list the same apps, found the same way, by their processes.

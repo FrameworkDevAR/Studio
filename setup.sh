@@ -1,6 +1,10 @@
 #!/bin/bash
 # Sets up this Mac for Studio, asking before each part that changes it:
-#   ./setup.sh    installs what is missing, readies Apache, makes the config and links the menu
+#   ./setup.sh               installs what is missing, readies Apache, makes the config and
+#                            links the menu, and offers the updates
+#   ./setup.sh update        updates what the config's "versions" allow, and nothing else
+#   ./setup.sh upgrade php   updates PHP past its range, as to a new minor version, moving the
+#                            range in the config to take it
 # It installs Homebrew's Apache, PHP, MariaDB, Redis, Node.js and mkcert, turns on what the
 # vhosts need in Apache's config, which is kept and checked first, and links the SwiftBar
 # plugin. It can be run again, and skips what is already there.
@@ -156,6 +160,77 @@ choose() {
     answered "$question" "${options[$selected]%%|*}"
 }
 
+# Asks to pick any of the options, all picked at first: the arrows move, space picks one or
+# leaves it, a picks all or none, and Enter goes on. Leaves the indexes picked in PICKED. An
+# option can have a hint after a |, which is shown dimmed next to it
+pick() {
+    local question=$1 at=0 key i label hint mark count any
+    shift
+    local options=("$@") on=() labels=() ticked=${PICK_ON:-$#}
+    count=$#
+    for ((i = 0; i < count; i++)); do
+        on[$i]=$((i < ticked ? 1 : 0))
+    done
+
+    tput civis 2>/dev/null
+    printf '%s◆%s  %s  %s↑↓ move · space picks · a all · enter goes on%s\n' "$CYAN" "$R" \
+        "$question" "$DIM" "$R"
+    while true; do
+        for ((i = 0; i < count; i++)); do
+            label=${options[$i]%%|*}
+            hint=""
+            [[ "${options[$i]}" == *"|"* ]] && hint=${options[$i]#*|}
+            # Braced, as bash 3 reads a character like ◻ after a name as part of it
+            mark="${DIM}◻${R}"
+            [ "${on[$i]}" -eq 1 ] && mark="${GREEN}◼${R}"
+            if [ "$i" -eq "$at" ]; then
+                printf '\e[2K%s│%s  %s %s%s\n' "$CYAN" "$R" "$mark" "$label" \
+                    "${hint:+  $DIM$hint$R}"
+            else
+                printf '\e[2K%s│%s  %s %s%s%s%s\n' "$CYAN" "$R" "$mark" "$DIM" "$label" \
+                    "${hint:+  $hint}" "$R"
+            fi
+        done
+        printf '\e[2K%s└%s\n' "$CYAN" "$R"
+        IFS= read -rsn1 key </dev/tty
+        if [ "$key" = $'\e' ]; then
+            read -rsn2 key </dev/tty
+        fi
+        case "$key" in
+            "[A"|k) at=$(((at - 1 + count) % count)) ;;
+            "[B"|j) at=$(((at + 1) % count)) ;;
+            " ") on[$at]=$((1 - on[$at])) ;;
+            a)
+                # All, unless all are picked already, which leaves none
+                any=0
+                for ((i = 0; i < count; i++)); do
+                    [ "${on[$i]}" -eq 0 ] && any=1
+                done
+                for ((i = 0; i < count; i++)); do
+                    on[$i]=$any
+                done
+                ;;
+            "") break ;;
+        esac
+        printf '\e[%dA' $((count + 1))
+    done
+    printf '\e[%dA\e[J' $((count + 2))
+    tput cnorm 2>/dev/null
+
+    PICKED=()
+    for ((i = 0; i < count; i++)); do
+        if [ "${on[$i]}" -eq 1 ]; then
+            PICKED+=("$i")
+            labels+=("${options[$i]%%|*}")
+        fi
+    done
+    if [ ${#labels[@]} -gt 0 ]; then
+        answered "$question" "$(joined "${labels[@]}")"
+    else
+        answered "$question" "none"
+    fi
+}
+
 # Asks for the password of this Mac once, for the steps that need sudo, which then run with it
 sudo_once() {
     sudo -n true 2>/dev/null && return 0
@@ -234,6 +309,12 @@ run() {
     done
     printf '%s\n' "$BAR"
     outro "$RED${STOPPED%%,*}$R,${STOPPED#*,}"
+    exit 1
+}
+
+# Ends the setup at something it was asked that cannot be done, saying what
+stop() {
+    outro "${RED}$1${R}"
     exit 1
 }
 
@@ -332,54 +413,106 @@ label_of() {
     esac
 }
 
-# Offers the newer versions of what is installed, listed with the versions they go from and
-# to, then a restart of the running services they change, so they run the new ones
+# Offers the newer versions of what is installed, each with the versions it goes from and to,
+# to pick which to update, then a restart of the running services they change, so they run
+# the new ones. Those the config's "versions" hold come last, unpicked: picking one moves its
+# range to take it. UPDATE is how it picks instead: "all" takes every one the ranges allow,
+# and a list of names takes those, moving the ranges of the held ones
 update_brew() {
-    local kind name old new i lines=() kinds=() names=() line
+    local kind name old new range i line options=() kinds=() names=() news=() nexts=()
+    local picked=() moved=() held=0 pass
     run "Checking for updates" check_updates
     if [ ! -s "$TMP/outdated" ]; then
         printf '%s\n' "$BAR"
+        if [ -n "${UPDATE:-}" ] && [ "$UPDATE" != all ]; then
+            stop "Nothing to update: $UPDATE is up to date"
+        fi
         return 0
     fi
 
-    # A new minor version of PHP, as 8.5 to 8.6, cannot load the extensions pecl built for the
-    # last, and reads its settings from a folder of its own, so both are moved over after it
+    # Those in their range first, then the held ones, each with the range that would take it
     PHP_FROM=""
     PHP_TO=""
     PHP_EXTENSIONS=()
-    while read -r kind name old new; do
-        old=${old##*,}
-        line="$(label_of "$name")  $old → $new"
-        if [ "$name" = php ] && [ "$(minor_of "$old")" != "$(minor_of "$new")" ]; then
-            PHP_FROM=$(minor_of "$old")
-            PHP_TO=$(minor_of "$new")
-            read_extensions
-            line+="  ·  its settings move to $PHP_TO"
-            if [ ${#PHP_EXTENSIONS[@]} -gt 0 ]; then
-                line+=", and $(joined "${PHP_EXTENSIONS[@]}") are built again"
+    for pass in allowed held; do
+        while read -r kind name old new; do
+            old=${old##*,}
+            range=$(range_of "$name" "$old")
+            if in_range "$new" "$range"; then
+                [ $pass = allowed ] || continue
+                nexts+=("")
+                line="$(label_of "$name")|$old → $new"
+            else
+                [ $pass = held ] || continue
+                nexts+=("$(moved_to "$range" "$new")")
+                line="$(label_of "$name")|$old → $new  ·  held by $range"
+                line+=", sets it to $(moved_to "$range" "$new")"
+                held=$((held + 1))
             fi
-        fi
-        lines+=("$line")
-        kinds+=("$kind")
-        names+=("$name")
-    done <"$TMP/outdated"
-
+            php_hint "$name" "$old" "$new"
+            options+=("$line$HINT")
+            kinds+=("$kind")
+            names+=("$name")
+            news+=("$new")
+        done <"$TMP/outdated"
+    done
     printf '%s\n' "$BAR"
-    if [ ${#names[@]} -eq 1 ]; then
-        note "An update is out" "${lines[@]}"
-    else
-        note "${#names[@]} updates are out" "${lines[@]}"
-    fi
-    choose "Update them?" 0 "Yes|with brew upgrade" "No|keeps them as they are"
-    [ "$CHOICE" -eq 0 ] || return 0
 
-    for i in "${!names[@]}"; do
+    # Who picks: the checklist, the ranges, or the names given
+    PICKED=()
+    case ${UPDATE:-} in
+        "")
+            if [ ${#names[@]} -eq 1 ]; then
+                PICK_ON=$((1 - held)) pick "An update is out, update it?" "${options[@]}"
+            else
+                PICK_ON=$((${#names[@]} - held)) pick \
+                    "${#names[@]} updates are out, which should it update?" "${options[@]}"
+            fi
+            ;;
+        all)
+            for i in "${!names[@]}"; do
+                if [ -z "${nexts[$i]}" ]; then
+                    PICKED+=("$i")
+                else
+                    passed "$(label_of "${names[$i]}") ${news[$i]} is out" \
+                        "held by its range, ./setup.sh upgrade ${names[$i]} moves it"
+                fi
+            done
+            ;;
+        *)
+            for name in $UPDATE; do
+                for i in "${!names[@]}"; do
+                    [ "${names[$i]}" = "$name" ] && PICKED+=("$i") && continue 2
+                done
+                stop "Nothing to update: $name is up to date, or not installed"
+            done
+            ;;
+    esac
+    [ ${#PICKED[@]} -gt 0 ] || return 0
+
+    # The held ones picked take their new ranges first, so the config says what is installed
+    for i in "${PICKED[@]}"; do
+        [ -n "${nexts[$i]}" ] && moved+=("${names[$i]} ${nexts[$i]}")
+    done
+    if [ ${#moved[@]} -gt 0 ]; then
+        RANGES=("${moved[@]}")
+        if [ -f config/config.json ]; then
+            run "Moving the ranges in the config" write_ranges
+        fi
+    fi
+
+    # PHP's settings and extensions only move with PHP
+    PHP_TO_PICKED=""
+    for i in "${PICKED[@]}"; do
+        picked+=("${names[$i]}")
+        [ "${names[$i]}" = php ] && PHP_TO_PICKED=$PHP_TO
         if [ "${kinds[$i]}" = cask ]; then
             run "Updating $(label_of "${names[$i]}")" brew_upgrade --cask "${names[$i]}"
         else
             run "Updating $(label_of "${names[$i]}")" brew_upgrade "${names[$i]}"
         fi
     done
+    PHP_TO=$PHP_TO_PICKED
 
     if [ -n "$PHP_TO" ]; then
         run "Moving PHP's settings to $PHP_TO" move_settings
@@ -389,7 +522,22 @@ update_brew() {
     fi
     printf '%s\n' "$BAR"
 
-    restart_services "${names[@]}"
+    restart_services "${picked[@]}"
+}
+
+# What else an update of PHP to a new minor version does, as 8.5 to 8.6, in HINT for its
+# option: the new one cannot load the extensions pecl built for the last, and reads its
+# settings from a folder of its own, so both are moved over after it. Nothing for any other
+php_hint() {
+    HINT=""
+    [ "$1" = php ] && [ "$(minor_of "$2")" != "$(minor_of "$3")" ] || return 0
+    PHP_FROM=$(minor_of "$2")
+    PHP_TO=$(minor_of "$3")
+    read_extensions
+    HINT="  ·  its settings move to $PHP_TO"
+    if [ ${#PHP_EXTENSIONS[@]} -gt 0 ]; then
+        HINT+=", and $(joined "${PHP_EXTENSIONS[@]}") are built again"
+    fi
 }
 
 # The extensions pecl installed, by name, read before PHP is updated: the new PHP's pecl
@@ -848,7 +996,7 @@ apps_of() {
 # Writes the config, with the paths only when Homebrew is not where Studio looks by default,
 # and no projects yet: they are added from Studio's Projects
 write_config() {
-    local file=config/config.json key
+    local file=config/config.json key i
     {
         echo "{"
         if [ "$PREFIX" != /opt/homebrew ]; then
@@ -869,10 +1017,59 @@ write_config() {
         [ -n "$BROWSER" ] && printf '    "browser" : "%s",\n' "$BROWSER"
         [ -n "$EDITOR_APP" ] && printf '    "editor"  : "%s",\n' "$EDITOR_APP"
         [ -n "$BROWSER$EDITOR_APP" ] && echo
+        if [ ${#RANGES[@]} -gt 0 ]; then
+            echo '    "versions" : {'
+            for i in "${!RANGES[@]}"; do
+                key="\"${RANGES[$i]%% *}\""
+                printf '        %-12s : "%s"%s\n' "$key" "${RANGES[$i]#* }" \
+                    "$([ "$i" -lt $((${#RANGES[@]} - 1)) ] && printf ,)"
+            done
+            echo '    },'
+            echo
+        fi
         echo '    "projects" : []'
         echo "}"
     } >"$file"
     detail "$file"
+}
+
+# The range of versions each installed part of the stack may update to, in RANGES as its name
+# and range: its patches, as ~8.5 for PHP 8.5.12, unless the config gives one already
+read_ranges() {
+    local name version
+    RANGES=()
+    for name in "${FORMULAS[@]}" phpmyadmin swiftbar; do
+        if [ "$name" = swiftbar ]; then
+            version=$("$BREW" list --cask --versions swiftbar 2>/dev/null | awk '{print $2}')
+        elif [ -d "$PREFIX/opt/$name" ]; then
+            version=$(version_of "$name")
+        else
+            version=""
+        fi
+        [ -n "$version" ] && RANGES+=("$name $(range_of "$name" "$version")")
+    done
+    true
+}
+
+# Writes the ranges in RANGES into the config's versions, through Studio's own code, which
+# keeps the file laid out as the example is, with the versions before the projects, and the
+# last one as config.json.bak
+write_ranges() {
+    local i json=""
+    for i in "${!RANGES[@]}"; do
+        json+="${json:+,}\"${RANGES[$i]%% *}\":\"${RANGES[$i]#* }\""
+    done
+    [ -x "$PREFIX/bin/node" ] || skip "needs Node.js"
+
+    STUDIO_VERSIONS="{$json}" "$PREFIX/bin/node" --input-type=module -e '
+        import { readConfig, writeConfig } from "./backend/core/config.js";
+        const { projects, ...rest } = readConfig();
+        const versions = { ...rest.versions, ...JSON.parse(process.env.STUDIO_VERSIONS) };
+        await writeConfig(projects === undefined
+            ? { ...rest, versions }
+            : { ...rest, versions, projects });
+    '
+    detail "config/config.json"
 }
 
 # Links node where SwiftBar's short PATH finds it, as the plugin starts with env node
@@ -904,8 +1101,13 @@ setup_studio() {
     local target
     section "Studio"
 
-    if [ -f config/config.json ]; then
+    read_ranges
+    if [ -f config/config.json ] && grep -q '"versions"' config/config.json; then
         already "The config" "config/config.json"
+    elif [ -f config/config.json ] && [ ! -x "$PREFIX/bin/node" ]; then
+        passed "The versions in the config" "needs Node.js"
+    elif [ -f config/config.json ]; then
+        run "Adding the versions to the config" write_ranges
     else
         printf '%s\n' "$BAR"
         apps_of "Google Chrome" "Brave Browser" "Arc" "Microsoft Edge" "Vivaldi" "Firefox" \
@@ -973,6 +1175,62 @@ minor_of() {
     printf '%s' "$1" | cut -d. -f1,2
 }
 
+# The range of versions the config gives a package, as npm writes them, or its patches when it
+# gives none, as ~8.5 for 8.5.12. plutil reads JSON as well
+range_of() {
+    local range
+    range=$(plutil -extract "versions.$1" raw -o - config/config.json 2>/dev/null || true)
+    printf '%s' "${range:-~$(minor_of "$2")}"
+}
+
+# Whether a version is in a range, as Studio reads one: "^25.2" is 25.2.0 and up below 26,
+# "~8.5" is 8.5.0 and up below 8.6, ">=1.4" is 1.4.0 and up, "8.5" or "8.5.x" any 8.5, and
+# "*" any. Homebrew's own rebuild, as 8.5.12_1, and a cask's build, as 2.1.1,20, are left out
+in_range() {
+    local range=${2// /} op="" base given fixed i have=() want=()
+    case $range in
+        '*' | latest) return 0 ;;
+        '^'*) op='^' ;;
+        '~'*) op='~' ;;
+        '>='*) op='>=' ;;
+    esac
+    base=${range#"$op"}
+    base=${base#v}
+    while [[ "$base" == *.x || "$base" == *.\* ]]; do base=${base%.*}; done
+    [[ "$base" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || return 1
+
+    given=$(printf '%s' "$base" | tr -cd . | wc -c)
+    given=$((given + 1))
+    case $op in
+        '^') fixed=1 ;;
+        '~') fixed=$((given < 2 ? given : 2)) ;;
+        '>=') fixed=0 ;;
+        *) fixed=$given ;;
+    esac
+
+    IFS=. read -r -a have <<<"${1%%[_,]*}"
+    IFS=. read -r -a want <<<"$base"
+    for i in 0 1 2; do
+        have[$i]=${have[$i]:-0}
+        want[$i]=${want[$i]:-0}
+        [ "$i" -lt "$fixed" ] && [ "${have[$i]}" -ne "${want[$i]}" ] && return 1
+    done
+    for i in 0 1 2; do
+        [ "${have[$i]}" -gt "${want[$i]}" ] && return 0
+        [ "${have[$i]}" -lt "${want[$i]}" ] && return 1
+    done
+    return 0
+}
+
+# The range that takes a version a range holds back, written as that one was: ^ keeps its
+# major, so ^25 becomes ^26 for 26.0.0, and any other becomes its patches, ~8.6 for 8.6.0
+moved_to() {
+    case $1 in
+        '^'*) printf '^%s' "${2%%.*}" ;;
+        *) printf '~%s' "$(minor_of "${2%%[_,]*}")" ;;
+    esac
+}
+
 # A text in lower case, which bash 3 has no expansion for
 lower() {
     printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
@@ -988,15 +1246,41 @@ tilde() {
 
 
 
+# Updates the stack only, without the rest of the setup: what the config's ranges allow, or
+# the packages named, whose ranges move to take their new versions
+update_stack() {
+    local command=$1
+    shift
+    if [ "$command" = upgrade ] && [ $# -eq 0 ]; then
+        sed -n '2,10p' "$0"
+        exit 1
+    fi
+
+    banner "Updates Studio's stack"
+    intro "Updating the stack"
+    section "Homebrew"
+    find_brew
+    [ -n "$BREW" ] || stop "Homebrew is not installed: ./setup.sh installs it"
+
+    UPDATE=all
+    [ "$command" = upgrade ] && UPDATE="$*"
+    update_brew
+    outro "${GREEN}The stack is up to date$R"
+}
+
 main() {
     case "${1:-}" in
         "") ;;
-        -h|--help)
-            sed -n '2,6p' "$0"
+        update | upgrade)
+            update_stack "$@"
+            exit 0
+            ;;
+        -h | --help)
+            sed -n '2,10p' "$0"
             exit 0
             ;;
         *)
-            sed -n '2,6p' "$0"
+            sed -n '2,10p' "$0"
             exit 1
             ;;
     esac
