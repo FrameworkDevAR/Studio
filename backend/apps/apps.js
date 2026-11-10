@@ -23,6 +23,18 @@ import { SWIFTBAR, run } from "../core/system.js";
  * }} StudioServer
  */
 
+/**
+ * An app or server left stopped as something else holds the port it wants: its name, the
+ * port, and the name of what holds it.
+ * @typedef {{ name: string, port: number, by: string }} Blocked
+ */
+
+/**
+ * A start's answer: what it says, and those it left stopped for their ports, for the page
+ * to ask about stopping what holds them.
+ * @typedef {{ message: string, blocked: Blocked[] }} Started
+ */
+
 
 
 /**
@@ -78,24 +90,25 @@ async function readBranches(apps) {
 }
 
 /**
- * Starts or stops one app with the SwiftBar plugin's own actions, so it goes
- * exactly as from the menu, which also shows it stopping. Only an app the
- * plugin lists can be asked for.
+ * Starts one app with the SwiftBar plugin's own actions, so it goes exactly as from the
+ * menu. Only an app the plugin lists can be asked for. When something else holds its port
+ * it is not started, and the answer says what, for the page to ask; with replace, that is
+ * stopped first.
  * @param {string} dir
- * @returns {Promise<{ message: string }>}
+ * @param {boolean=} replace
+ * @returns {Promise<Started>}
  */
-async function startApp(dir) {
+async function startApp(dir, replace = false) {
     const { apps } = await readApps();
     const app      = apps.find((one) => one.dir === dir);
     if (!app) {
         throw new Error("Unknown app");
     }
 
-    if (!app.running) {
-        await run(SWIFTBAR, [ "start-app", app.dir ]);
+    if (app.running) {
+        return { message : `${app.name} is running`, blocked : [] };
     }
-
-    return { message : `Starting ${app.name}…` };
+    return startOne(app.dir, app.name, replace);
 }
 
 /**
@@ -117,11 +130,14 @@ async function stopApp(dir) {
 /**
  * Every stopped app or server of one block of the Sites page: a project's
  * servers, by its title, and the apps of a project folder, as a block may
- * hold both. Only a group the plugin lists can be asked for.
+ * hold both. Only a group the plugin lists can be asked for. Those whose port
+ * something else holds are left stopped, and the answer lists them; with
+ * replace, what holds them is stopped first.
  * @param {string|string[]} group one, or the several of a block
- * @returns {Promise<{ message: string }>}
+ * @param {boolean=} replace
+ * @returns {Promise<Started>}
  */
-async function startGroup(group) {
+async function startGroup(group, replace = false) {
     const names   = [ group ].flat().map(String);
     const { apps, servers } = await readApps();
     const own     = servers.filter((server) => names.includes(server.project));
@@ -130,45 +146,114 @@ async function startGroup(group) {
         throw new Error("Unknown project");
     }
 
+    // One at a time, as each start reads what listens, and the one before may take a port.
     const stoppedServers = own.filter((server) => !server.running && !server.starting);
-    for (const name of new Set(own.map((server) => server.project))) {
-        await run(SWIFTBAR, [ "start-extras", name ]);
+    const stoppedApps    = mine.filter((app) => !app.running);
+    const blocked        = [];
+    let startedServers   = 0;
+    let startedApps      = 0;
+
+    for (const server of stoppedServers) {
+        const found = await startTarget(server.id, server.name, replace);
+        if (found) {
+            blocked.push(found);
+        } else {
+            startedServers++;
+        }
     }
 
-    const stoppedApps = mine.filter((app) => !app.running);
     for (const app of stoppedApps) {
-        await run(SWIFTBAR, [ "start-app", app.dir ]);
+        const found = await startTarget(app.dir, app.name, replace);
+        if (found) {
+            blocked.push(found);
+        } else {
+            startedApps++;
+        }
     }
 
     const parts = [];
-    if (stoppedApps.length || !own.length) {
-        parts.push(`${stoppedApps.length} app${stoppedApps.length === 1 ? "" : "s"}`);
+    if (startedApps || !own.length) {
+        parts.push(`${startedApps} app${startedApps === 1 ? "" : "s"}`);
     }
     if (own.length) {
-        parts.push(`${stoppedServers.length} server${stoppedServers.length === 1 ? "" : "s"}`);
+        parts.push(`${startedServers} server${startedServers === 1 ? "" : "s"}`);
     }
 
     const title = mine[0]?.name.split(" - ")[0] || own[0].project;
-    return { message : `Starting ${parts.join(" and ")} of ${title}…` };
+    return { message : `Starting ${parts.join(" and ")} of ${title}…`, blocked };
 }
 
 /**
- * A project's server, which the plugin knows by its id.
+ * A project's server, which the plugin knows by its id. Its port is checked as an app's.
  * @param {string} id
- * @returns {Promise<{ message: string }>}
+ * @param {boolean=} replace
+ * @returns {Promise<Started>}
  */
-async function startServer(id) {
+async function startServer(id, replace = false) {
     const { servers } = await readApps();
     const server      = servers.find((one) => one.id === id);
     if (!server) {
         throw new Error("Unknown server");
     }
 
-    if (!server.running && !server.starting) {
-        await run(SWIFTBAR, [ "start-extra", server.id ]);
+    if (server.running || server.starting) {
+        return { message : `${server.name} is running`, blocked : [] };
+    }
+    return startOne(server.id, server.name, replace);
+}
+
+/**
+ * Starts one app or server, and says so, or what holds its port.
+ * @param {string} target
+ * @param {string} name
+ * @param {boolean} replace
+ * @returns {Promise<Started>}
+ */
+async function startOne(target, name, replace) {
+    const blocked = await startTarget(target, name, replace);
+    if (blocked) {
+        return {
+            message : `Port ${blocked.port} is in use by ${blocked.by}`,
+            blocked : [ blocked ],
+        };
     }
 
-    return { message : `Starting ${server.name}…` };
+    return { message : `Starting ${name}…`, blocked : [] };
+}
+
+/**
+ * Starts an app, by its folder, or a server, by its id, through the plugin, unless something
+ * else holds the port it wants: then it gives what. With replace, the plugin stops that
+ * first, and throws when it does not stop.
+ * @param {string} target
+ * @param {string} name
+ * @param {boolean} replace
+ * @returns {Promise<Blocked | null>}
+ */
+async function startTarget(target, name, replace) {
+    const result = await run(SWIFTBAR, [ replace ? "replace" : "start", target ], 30_000);
+    const answer = parseJson(result.stdout);
+    if (answer?.started) {
+        return null;
+    }
+
+    if (replace || !answer?.blocker) {
+        throw new Error(`${answer?.blocker?.name || "What holds its port"} did not stop`);
+    }
+    return { name, port : answer.blocker.port, by : answer.blocker.name };
+}
+
+/**
+ * The plugin's JSON answer, or null when it gave none.
+ * @param {string} text
+ * @returns {*}
+ */
+function parseJson(text) {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
+    }
 }
 
 /**

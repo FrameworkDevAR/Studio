@@ -99,8 +99,9 @@ the apps and servers of each project. See the README.
   else.
 - Both scripts start with `#!/usr/bin/env node`; SwiftBar finds node through a link in
   `/usr/local/bin`. Never put an absolute path to node in them. Starting and stopping go
-  through the plugin's own actions (`start-app`, `stop-proc`, `start-extra`,
-  `start-extras`).
+  through the plugin's own actions: the menu's `start-app`, `start-extra`, `start-extras`
+  and `stop-proc`, and Studio's `start` and `replace`. A start never takes a port from
+  what holds it without asking: the menu asks in a dialog, Studio in its page.
 - Never check sites by requesting them: the requests fill the Apache log with noise
   (folder listings log AH01630, some apps log PHP warnings). Apache sites are listed,
   never checked.

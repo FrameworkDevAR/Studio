@@ -1,6 +1,7 @@
 // The Sites page: the apps and servers in a block per project, and the vhosts.
 
-import { esc, icon, shortPath } from "../core/helpers.js";
+import { api, refresh } from "../core/api.js";
+import { ask, esc, icon, shortPath, toast } from "../core/helpers.js";
 import { starting, state } from "../core/state.js";
 import { projectTitle } from "./projects.js";
 import { renderVhosts } from "./vhosts.js";
@@ -652,8 +653,71 @@ function appCard(card) {
 
 
 
+/**
+ * Starts an app, a server or a block of them, and asks before stopping what holds the
+ * port of any the server left stopped: their Vite servers quit when their port is taken.
+ * Those left stopped lose their starting look.
+ * @param {Object<string, *>} body the start's action
+ * @param {HTMLElement & { disabled?: boolean }} button disabled while it runs
+ * @param {string[]} keys the cards it starts
+ * @returns {Promise<void>}
+ */
+async function startCards(body, button, keys) {
+    button.disabled = true;
+
+    try {
+        const result = await api("/api/action", body);
+        if (!result.blocked.length) {
+            toast(result.message);
+            return;
+        }
+
+        const sure = await ask(askToFree(result.blocked));
+        if (!sure) {
+            keys.forEach((key) => starting.delete(key));
+            return;
+        }
+
+        const again = await api("/api/action", { ...body, replace : true });
+        toast(again.message);
+    } catch (error) {
+        toast(error.message, true);
+    } finally {
+        button.disabled = false;
+        await refresh();
+    }
+}
+
+/**
+ * The question before stopping what holds the ports of apps or servers.
+ * @param {{ name: string, port: number, by: string }[]} blocked
+ * @returns {{ title: string, text: string, ok: string, danger: boolean }}
+ */
+function askToFree(blocked) {
+    if (blocked.length === 1) {
+        const [ one ] = blocked;
+        return {
+            title  : `Port ${one.port} is in use`,
+            text   : `${one.by} is using it. Stop it and start ${one.name}?`,
+            ok     : "Stop and start",
+            danger : true,
+        };
+    }
+
+    const which = blocked.map((one) => `${one.name}, by ${one.by} (${one.port})`);
+    return {
+        title  : "Some ports are in use",
+        text   : `These ports are taken: ${which.join("; ")}. Stop those and start these?`,
+        ok     : "Stop and start",
+        danger : true,
+    };
+}
+
+
+
 // The public API
 export {
     allApps,
     renderSites,
+    startCards,
 };

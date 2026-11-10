@@ -348,10 +348,12 @@ async function runAction(body) {
     case "vhost-remove":    return vhosts.removeVhost(body);
 
     // The apps and their servers, and the projects of the config they come from.
-    case "app-start":       return body.id ? apps.startServer(body.id) : apps.startApp(body.dir);
+    case "app-start":       return body.id
+        ? apps.startServer(body.id, Boolean(body.replace))
+        : apps.startApp(body.dir, Boolean(body.replace));
     case "app-stop":        return body.id ? apps.stopServer(body.id) : apps.stopApp(body.dir);
     case "app-reload":      return apps.reloadServer(body.id, Boolean(body.restart));
-    case "group-start":     return apps.startGroup(body.group);
+    case "group-start":     return apps.startGroup(body.group, Boolean(body.replace));
     case "project-save":    return projects.saveProject(body);
     case "project-remove":  return projects.removeProject(body.index);
     case "pick-folder":     return projects.pickFolder(body.dir);

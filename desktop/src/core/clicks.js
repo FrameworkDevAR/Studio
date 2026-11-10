@@ -65,7 +65,7 @@ import {
     toggleUnset,
 } from "../pages/settings.js";
 import { openProjectDialog, pickFolder } from "../pages/projects.js";
-import { renderSites } from "../pages/sites.js";
+import { renderSites, startCards } from "../pages/sites.js";
 import { joinProject, makeProject, openVhostDialog, removeVhost } from "../pages/vhosts.js";
 import {
     copyPassword,
@@ -295,15 +295,18 @@ function onClick(event) {
     } else if (target.dataset.logBottom !== undefined) {
         scrollLogToBottom();
     } else if (target.dataset.appStart !== undefined || target.dataset.appStop !== undefined) {
-        const which  = target.dataset.appId ? { id : target.dataset.appId }
+        const which = target.dataset.appId ? { id : target.dataset.appId }
             : { dir : target.dataset.appDir };
-        const action = target.dataset.appStart !== undefined ? "app-start" : "app-stop";
-        if (action === "app-start") {
-            starting.set(which.id ? `id:${which.id}` : `dir:${which.dir}`, Date.now());
-            renderSites();
-        }
+        const key   = which.id ? `id:${which.id}` : `dir:${which.dir}`;
 
-        act({ action, ...which }, target);
+        // A start asks first when the port it wants is taken.
+        if (target.dataset.appStart !== undefined) {
+            starting.set(key, Date.now());
+            renderSites();
+            startCards({ action : "app-start", ...which }, target, [ key ]);
+        } else {
+            act({ action : "app-stop", ...which }, target);
+        }
     } else if (target.dataset.appReload !== undefined) {
         act({
             action  : "app-reload",
@@ -327,7 +330,7 @@ function onClick(event) {
         }
 
         renderSites();
-        act({ action : "group-start", group }, target);
+        startCards({ action : "group-start", group }, target, cards);
     } else if (target.dataset.phpTab) {
         navigate(target.dataset.phpTab === "extensions" ? "/php/extensions" : "/php");
     } else if (target.dataset.siteTab) {

@@ -17,6 +17,7 @@ import {
     startingFlagOf, readExtraServers, readListeningPorts, waitForServer,
     readAppServers, readStoppingPids, urlOf
 } from "./state.js";
+import { blockerOf, freePort } from "./ports.js";
 
 
 
@@ -91,42 +92,50 @@ function runAction(action, argument) {
         }
         break;
 
+    // From the menu, which asks first when the port wanted is taken.
     case "start-app":
-        startDetached("npm", [ "run", "start" ], argument);
+        startAsked([ argument ]);
         break;
 
     // Several apps of one project, their folders joined by colons.
     case "start-apps":
-        for (const dir of argument.split(":").filter(Boolean)) {
-            startDetached("npm", [ "run", "start" ], dir);
-        }
+        startAsked(argument.split(":").filter(Boolean));
         break;
 
-    // Flags it as starting and leaves the wait to a detached copy, so the menu
-    // is not blocked. Its page is not opened: that is the Open entry's job.
-    case "start-extra": {
-        const server = EXTRA_SERVERS.find((one) => one.id === argument);
-        if (!server) {
-            break;
+    case "start-extra":
+        startAsked([ argument ]);
+        break;
+
+    // Every stopped server, or those of the project named.
+    case "start-extras":
+        startAsked(readExtraServers(readListeningPorts())
+            .filter((server) => !server.pid && !server.starting
+                && (!argument || server.group === argument))
+            .map((server) => server.id));
+        break;
+
+    // Not menu entries: Studio's starts, which ask in its page instead. start leaves an app
+    // or server whose port is taken, and says by what; replace stops that first. Each
+    // prints its answer as JSON.
+    case "start": {
+        const blocker = blockerOf(argument);
+        if (!blocker) {
+            startTarget(argument);
         }
 
-        startDetached(server.command, server.args, server.dir, server.pathPrefix);
-        fs.writeFileSync(startingFlagOf(server), "starting");
-        startDetached(SELF, [ "await-extra", server.id ], server.dir);
+        console.log(JSON.stringify({ started : !blocker, blocker }));
         break;
     }
 
-    // Every stopped server, or those of the project named.
-    case "start-extras": {
-        const missing = readExtraServers(readListeningPorts())
-            .filter((server) => !server.pid && !server.starting
-                && (!argument || server.group === argument));
-
-        for (const server of missing) {
-            startDetached(server.command, server.args, server.dir, server.pathPrefix);
-            fs.writeFileSync(startingFlagOf(server), "starting");
-            startDetached(SELF, [ "await-extra", server.id ], server.dir);
+    case "replace": {
+        const blocker = blockerOf(argument);
+        const free    = !blocker || freePort(blocker);
+        if (free) {
+            startTarget(argument);
         }
+
+        refreshMenu();
+        console.log(JSON.stringify({ started : free, blocker }));
         break;
     }
 
@@ -213,6 +222,96 @@ function runAction(action, argument) {
     }
     }
 }
+
+// ---------------------------------------------------------------- starting ---
+
+/**
+ * Starts apps and servers from the menu. Those whose port something else holds are asked
+ * about in one dialog: stopping what holds them and starting them, or skipping them.
+ * @param {string[]} targets app folders and server ids
+ * @returns {void}
+ */
+function startAsked(targets) {
+    const blocked = new Map();
+    for (const target of targets) {
+        const blocker = blockerOf(target);
+        if (blocker) {
+            blocked.set(target, blocker);
+        } else {
+            startTarget(target);
+        }
+    }
+
+    if (!blocked.size || !askToFree([ ...blocked ])) {
+        return;
+    }
+
+    for (const [ target, blocker ] of blocked) {
+        if (freePort(blocker)) {
+            startTarget(target);
+        }
+    }
+    refreshMenu();
+}
+
+/**
+ * Starts an app, by its folder, with its npm start, or a server, by its id, with its own
+ * command. A server is flagged as starting, and a detached copy clears the flag once it
+ * answers, so the menu is not blocked; its page is not opened, as that is Open's job.
+ * @param {string} target
+ * @returns {void}
+ */
+function startTarget(target) {
+    const server = EXTRA_SERVERS.find((one) => one.id === target);
+    if (!server) {
+        startDetached("npm", [ "run", "start" ], target);
+        return;
+    }
+
+    startDetached(server.command, server.args, server.dir, server.pathPrefix);
+    fs.writeFileSync(startingFlagOf(server), "starting");
+    startDetached(SELF, [ "await-extra", server.id ], server.dir);
+}
+
+/**
+ * Asks in a dialog whether to stop what holds the ports of the apps and servers about to
+ * start. True to stop them and start these, false to skip these.
+ * @param {[string, import("./ports.js").Blocker][]} blocked each target with its blocker
+ * @returns {boolean}
+ */
+function askToFree(blocked) {
+    const lines = blocked.map(([ target, blocker ]) =>
+        `${targetName(target)}: port ${blocker.port} is in use by ${blocker.name}.`);
+    const title = blocked.length === 1 ? "A port is in use" : "Some ports are in use";
+
+    try {
+        execFileSync("/usr/bin/osascript", [ "-", title, lines.join("\n") ], {
+            stdio : [ "pipe", "ignore", "ignore" ],
+            input : `
+on run argv
+  display dialog (item 2 of argv) with title (item 1 of argv) with icon caution ¬
+    buttons {"Skip", "Stop and start"} default button "Stop and start" cancel button "Skip"
+end run
+`,
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * What an app or a server is called in the menu: a server's name, an app's own.
+ * @param {string} target
+ * @returns {string}
+ */
+function targetName(target) {
+    return EXTRA_SERVERS.find((one) => one.id === target)?.name || appInfo(target).name;
+}
+
+
+
+// ----------------------------------------------------------------- browser ---
 
 /**
  * Opens a page in the browser of the config, or the Mac's default one. A
