@@ -34,6 +34,13 @@ const TOOLS = {
 /** Where phpMyAdmin answers: the setup serves it there, by an Alias on every vhost. */
 const PHPMYADMIN = "http://localhost/phpmyadmin";
 
+/**
+ * Studio's last check for updates, which the menu reads to show how many are out, as asking
+ * brew itself every 10 seconds would be too slow. In /tmp with the menu's flags: a restart
+ * clears it, and Studio checks again when it starts.
+ */
+const OUTDATED = "/tmp/studio-outdated.json";
+
 
 
 /**
@@ -92,6 +99,7 @@ export {
     DEFAULTS,
     TOOLS,
     PHPMYADMIN,
+    OUTDATED,
 
     pathsOf,
     toolsOf,

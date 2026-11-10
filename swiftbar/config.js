@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { PHPMYADMIN, expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
+import { OUTDATED, PHPMYADMIN, expandHome, pathsOf, toolsOf } from "../backend/core/paths.js";
 import { splitCommand } from "../backend/core/command.js";
 
 
@@ -33,6 +33,9 @@ const PHP_INI    = PATHS.phpIni.replace("{php}", PHP_MINOR);
 // What opens the pages and the config files: the config's, or the Mac's default.
 const BROWSER    = toolsOf(CONFIG).browser;
 const EDITOR     = toolsOf(CONFIG).editor;
+
+// The range of versions the config gives each package of the stack, by its name.
+const VERSIONS   = CONFIG.versions || {};
 
 
 /** The projects, in the config's order, with their defaults filled in. */
@@ -158,6 +161,8 @@ export {
     PROJECTS,
     SELF,
     PHPMYADMIN,
+    OUTDATED,
+    VERSIONS,
     EDITOR,
     sh,
     HTTPD,

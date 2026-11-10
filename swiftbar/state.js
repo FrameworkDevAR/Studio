@@ -9,6 +9,7 @@ import {
 } from "./config.js";
 import { isRunning, waitForUrl, sleep, filesIn } from "./helpers.js";
 import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
+import { countUpdates } from "./updates.js";
 
 
 
@@ -35,7 +36,7 @@ import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
  *         httpd: string, mariadb: string, php: string, phpmyadmin: string, redis: string,
  *     },
  *     servers: AppServer[], extras: ExtraServer[], stackBusy: string,
- *     stopping: Set<string>, portByPid: Object<string, string>,
+ *     stopping: Set<string>, portByPid: Object<string, string>, updates: number,
  * }} MenuState
  */
 
@@ -65,6 +66,7 @@ function readState() {
         extras        : readExtraServers(portByPid),
         stackBusy     : readFlag(STACK_FLAG, 120_000),
         stopping      : readStoppingPids(),
+        updates       : countUpdates(),
         portByPid,
     };
 }

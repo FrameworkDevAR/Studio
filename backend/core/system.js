@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { PHPMYADMIN, pathsOf } from "./paths.js";
+import { OUTDATED, PHPMYADMIN, pathsOf } from "./paths.js";
 
 
 
@@ -182,6 +182,7 @@ export {
     HTTPD_CONF,
     VHOSTS,
     PHPMYADMIN,
+    OUTDATED,
     MYSQL_DATA,
     MYSQL_CNF,
     DISK,

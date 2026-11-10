@@ -31,11 +31,12 @@ import { urlOf } from "./state.js";
 
 /**
  * The menu bar itself: the stack's health and how many servers are up.
- * Yellow means something is starting or stopping, or only part is up.
+ * Yellow means something is starting or stopping, or only part is up. Under
+ * it, Studio, and the updates that are out, which open in Studio.
  * @param {MenuState} state
  * @returns {void}
  */
-function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy }) {
+function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, updates }) {
     let icon = "🔴";
     if (stackBusy || extras.some((server) => server.starting)) {
         icon = "🟡";
@@ -49,6 +50,12 @@ function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy }) {
     item(running ? `${icon} ${running}` : icon);
     separator();
     item("🎛️ Studio", onClick("open-studio", undefined, { refresh : false }));
+    if (updates) {
+        item(
+            `⬆️ ${updates === 1 ? "An update is out" : `${updates} updates are out`}`,
+            onClick("open-studio", "settings/updates", { refresh : false }),
+        );
+    }
     separator();
 }
 

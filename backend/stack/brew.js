@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import {
-    BREW, CONFIG, PATHS, UPDATES, readFile, readJson, run, versionOf
+    BREW, CONFIG, OUTDATED, PATHS, UPDATES, readFile, readJson, run, versionOf
 } from "../core/system.js";
 import { runJob, spawnLines } from "../core/jobs.js";
 import { movedTo, patchesOf, satisfies } from "../core/versions.js";
@@ -178,10 +178,25 @@ function checkUpdates(fresh = false) {
                 outdated.packages = found;
             }
             outdated.at = Date.now();
+            saveOutdated();
         }
 
         outdated.busy = false;
     });
+}
+
+/**
+ * Keeps the last check where the menu reads it. The menu works out what to show from it, as
+ * Studio does, with the config's ranges and the versions installed then, so it is only the
+ * check. One that cannot be written leaves the menu without a count.
+ * @returns {void}
+ */
+function saveOutdated() {
+    try {
+        fs.writeFileSync(OUTDATED, JSON.stringify({ packages : Object.values(outdated.packages) }));
+    } catch {
+        // The menu is only a hint; Studio shows the updates either way.
+    }
 }
 
 /**
@@ -260,6 +275,7 @@ async function updateStack(names) {
             outdated.at = 0;
             outdated.round++;
             recordUpdates(worked, before);
+            saveOutdated();
 
             // PHP's extensions are built before Apache starts again, so it loads them.
             let php = "";

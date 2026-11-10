@@ -145,16 +145,19 @@ function runAction(action, argument) {
 
     case "open-url":     openInBrowser(argument); break;
 
-    // Starts Studio if it is not running, then focuses its tab.
+    // Starts Studio if it is not running, then focuses its tab, at one of its pages when
+    // given, as settings/updates.
     case "open-studio": {
-        const url = `http://localhost:${STUDIO.port}/`;
+        const page = /^[a-z/-]*$/.test(argument || "") ? argument || "" : "";
+        const url  = `http://localhost:${STUDIO.port}/${page}`;
 
         if (!Object.values(readListeningPorts()).includes(String(STUDIO.port))) {
             startDetached("node", [ "backend/main.js" ], STUDIO.dir);
             waitForUrl(url);
         }
 
-        openInBrowser(url);
+        // Studio's tab is found on any page, and taken to the one asked for.
+        openInBrowser(url, `http://localhost:${STUDIO.port}/`);
         break;
     }
 
@@ -216,9 +219,10 @@ function runAction(action, argument) {
  * browser built on Chrome (Chrome, Brave, Edge, Vivaldi) shows the tab already
  * on the page instead of opening another; any other just opens it.
  * @param {string} url
+ * @param {string=} match the start of a tab's address that counts as the page's
  * @returns {void}
  */
-function openInBrowser(url) {
+function openInBrowser(url, match = url) {
     if (!BROWSER) {
         execFileSync("/usr/bin/open", [ url ]);
         return;
@@ -230,7 +234,7 @@ function openInBrowser(url) {
     }
 
     try {
-        focusTab(BROWSER, url);
+        focusTab(BROWSER, url, match);
     } catch {
         execFileSync("/usr/bin/open", [ "-a", BROWSER, url ]);
     }
@@ -253,16 +257,20 @@ function hasHeadlessCopy(browser) {
 
 /**
  * Focuses the tab of a Chrome-like browser already on this URL, or opens one if there is none.
+ * A tab whose address starts with the match counts too, and goes to the URL when it differs
+ * from the match, as Studio's tab on another of its pages.
  * @param {string} browser
  * @param {string} url
+ * @param {string} match
  * @returns {void}
  */
-function focusTab(browser, url) {
-    execFileSync("/usr/bin/osascript", [ "-", browser, url ], {
+function focusTab(browser, url, match) {
+    execFileSync("/usr/bin/osascript", [ "-", browser, url, match ], {
         stdio : [ "pipe", "ignore", "ignore" ],
         input : `
 on run argv
   set theURL to item 2 of argv
+  set theMatch to item 3 of argv
   -- Chrome's words for windows and tabs, which every browser built on it shares.
   using terms from application "Google Chrome"
     tell application (item 1 of argv)
@@ -275,7 +283,8 @@ on run argv
       repeat with w in windows
         set i to 1
         repeat with t in tabs of w
-          if (URL of t) starts with theURL then
+          if (URL of t) starts with theMatch then
+            if theURL is not theMatch then set URL of t to theURL
             set active tab index of w to i
             set index of w to 1
             activate
