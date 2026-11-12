@@ -54,20 +54,29 @@ function sleep(ms) {
 }
 
 /**
- * Starts a long-lived process that outlives this script. Output is dropped.
+ * Starts a long-lived process that outlives this script. Its output goes to the log given,
+ * emptied first, or is dropped.
  * @param {string} command
  * @param {string[]} args
  * @param {string} cwd
  * @param {string=} pathPrefix
- * @returns {void}
+ * @param {string=} log
+ * @returns {number} its pid
  */
-function startDetached(command, args, cwd, pathPrefix = "") {
-    spawn(command, args, {
+function startDetached(command, args, cwd, pathPrefix = "", log = "") {
+    const out   = log ? fs.openSync(log, "w") : "ignore";
+    const child = spawn(command, args, {
         cwd,
         detached : true,
-        stdio    : "ignore",
+        stdio    : [ "ignore", out, out ],
         env      : { ...process.env, PATH : pathPrefix ? `${pathPrefix}:${PATH}` : PATH },
-    }).unref();
+    });
+
+    child.unref();
+    if (typeof out === "number") {
+        fs.closeSync(out);
+    }
+    return child.pid;
 }
 
 /**
@@ -102,6 +111,24 @@ function filesIn(dir, prefix) {
 }
 
 /**
+ * The label inside a flag file, or null when it is missing or stale, so an
+ * action that died cannot leave the menu on "Starting…" forever.
+ * @param {string} flagFile
+ * @param {number} withinMs
+ * @returns {string}
+ */
+function readFlag(flagFile, withinMs) {
+    try {
+        if (Date.now() - fs.statSync(flagFile).mtimeMs >= withinMs) {
+            return null;
+        }
+        return fs.readFileSync(flagFile, "utf8").trim();
+    } catch {
+        return null;
+    }
+}
+
+/**
  * A file's text, or "" if it cannot be read.
  * @param {string} file
  * @returns {string}
@@ -128,6 +155,7 @@ function capitalize(word) {
 // The public API
 export {
     readFile,
+    readFlag,
     isRunning,
     waitForUrl,
     sleep,

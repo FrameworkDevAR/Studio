@@ -14,10 +14,10 @@ import {
     appRoots, appDirsOf, appInfo, byProjectThenApp, schemeOf, hostOf, appHomeOf
 } from "./apps.js";
 import {
-    startingFlagOf, readExtraServers, readListeningPorts, waitForServer,
-    readAppServers, readStoppingPids, urlOf
+    readExtraServers, readListeningPorts, readAppServers, readStoppingPids, urlOf
 } from "./state.js";
 import { blockerOf, freePort } from "./ports.js";
+import { markStarting, startedPid, endStart, dismiss, logOf, reasonOf } from "./starts.js";
 
 
 
@@ -139,18 +139,11 @@ function runAction(action, argument) {
         break;
     }
 
-    // Detached: clears the starting flag once the server answers, or gives up.
-    case "await-extra": {
-        const server = EXTRA_SERVERS.find((one) => one.id === argument);
-        if (!server) {
-            break;
-        }
+    // Detached: follows a start until it listens, or until what it started quits.
+    case "await-start":  awaitStart(argument); break;
 
-        waitForServer(server.id);
-        fs.rmSync(startingFlagOf(server), { force : true });
-        refreshMenu();
-        break;
-    }
+    // A failed start, once seen.
+    case "dismiss":      dismiss(argument); break;
 
     case "open-url":     openInBrowser(argument); break;
 
@@ -256,21 +249,83 @@ function startAsked(targets) {
 
 /**
  * Starts an app, by its folder, with its npm start, or a server, by its id, with its own
- * command. A server is flagged as starting, and a detached copy clears the flag once it
- * answers, so the menu is not blocked; its page is not opened, as that is Open's job.
+ * command, its output kept in a log. It is flagged as starting, and a detached copy
+ * follows it, so the menu is not blocked; its page is not opened, as that is Open's job.
  * @param {string} target
  * @returns {void}
  */
 function startTarget(target) {
     const server = EXTRA_SERVERS.find((one) => one.id === target);
-    if (!server) {
-        startDetached("npm", [ "run", "start" ], target);
-        return;
+    const log    = logOf(target);
+    const pid    = server
+        ? startDetached(server.command, server.args, server.dir, server.pathPrefix, log)
+        : startDetached("npm", [ "run", "start" ], target, "", log);
+
+    markStarting(target, pid);
+    startDetached(SELF, [ "await-start", target ], HOME);
+}
+
+/**
+ * Follows a start, up to its flag's limit: done once it listens, failed when what was
+ * started quits first. A failure is kept with why, from its log, for the menu to show,
+ * and said in a notification, as the menu may be closed.
+ * @param {string} target
+ * @returns {void}
+ */
+function awaitStart(target) {
+    let pid = startedPid(target);
+
+    while (pid && !isListening(target)) {
+        if (sh(`ps -p ${pid} -o pid=`) === "") {
+            const reason = reasonOf(target);
+            endStart(target, reason);
+            notify(`${targetName(target)} did not start`, reason);
+            refreshMenu();
+            return;
+        }
+
+        sleep(300);
+        pid = startedPid(target);
     }
 
-    startDetached(server.command, server.args, server.dir, server.pathPrefix);
-    fs.writeFileSync(startingFlagOf(server), "starting");
-    startDetached(SELF, [ "await-extra", server.id ], server.dir);
+    endStart(target);
+    refreshMenu();
+}
+
+/**
+ * Whether an app, by its folder, or a server, by its id, listens on a port. A Vite server
+ * is listed from the moment its process is there, so its port is what tells.
+ * @param {string} target
+ * @returns {boolean}
+ */
+function isListening(target) {
+    const portByPid = readListeningPorts();
+    if (EXTRA_SERVERS.some((one) => one.id === target)) {
+        return Boolean(readExtraServers(portByPid).find((one) => one.id === target)?.pid);
+    }
+    return readAppServers(portByPid)
+        .some((server) => server.dir === target && portByPid[server.pid]);
+}
+
+/**
+ * Shows a notification, as the menu's own.
+ * @param {string} title
+ * @param {string} text
+ * @returns {void}
+ */
+function notify(title, text) {
+    try {
+        execFileSync("/usr/bin/osascript", [ "-", title, text ], {
+            stdio : [ "pipe", "ignore", "ignore" ],
+            input : `
+on run argv
+  display notification (item 2 of argv) with title (item 1 of argv)
+end run
+`,
+        });
+    } catch {
+        // A notification that cannot show leaves the menu to say it.
+    }
 }
 
 /**

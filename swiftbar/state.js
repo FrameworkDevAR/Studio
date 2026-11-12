@@ -7,9 +7,10 @@ import path from "node:path";
 import {
     sh, HTTPD, versionOf, STACK_FLAG, EXTRA_SERVERS, STOPPING_FLAG
 } from "./config.js";
-import { isRunning, waitForUrl, sleep, filesIn } from "./helpers.js";
+import { isRunning, filesIn, readFlag } from "./helpers.js";
 import { appInfo, byProjectThenApp, appRoots, appDirsOf } from "./apps.js";
 import { countUpdates } from "./updates.js";
+import { readStart } from "./starts.js";
 
 
 
@@ -24,7 +25,7 @@ import { countUpdates } from "./updates.js";
  * @typedef {{
  *     id: string, name: string, command: string, args: string[], dir: string, host?: string,
  *     pathPrefix?: string, group: string, hotReload: boolean, pid: string, port: number,
- *     starting: boolean,
+ *     starting: boolean, failed: string | null,
  * }} ExtraServer
  */
 
@@ -37,6 +38,7 @@ import { countUpdates } from "./updates.js";
  *     },
  *     servers: AppServer[], extras: ExtraServer[], stackBusy: string,
  *     stopping: Set<string>, portByPid: Object<string, string>, updates: number,
+ *     starts: Object<string, import("./starts.js").Start>,
  * }} MenuState
  */
 
@@ -67,26 +69,10 @@ function readState() {
         stackBusy     : readFlag(STACK_FLAG, 120_000),
         stopping      : readStoppingPids(),
         updates       : countUpdates(),
+        starts        : Object.fromEntries(appRoots().flatMap(appDirsOf)
+            .map((dir) => [ dir, readStart(dir) ])),
         portByPid,
     };
-}
-
-/**
- * The label inside a flag file, or null when it is missing or stale, so an
- * action that died cannot leave the menu on "Starting…" forever.
- * @param {string} flagFile
- * @param {number} withinMs
- * @returns {string}
- */
-function readFlag(flagFile, withinMs) {
-    try {
-        if (Date.now() - fs.statSync(flagFile).mtimeMs >= withinMs) {
-            return null;
-        }
-        return fs.readFileSync(flagFile, "utf8").trim();
-    } catch {
-        return null;
-    }
 }
 
 /**
@@ -108,7 +94,7 @@ function readExtraServers(portByPid) {
             ...server,
             pid,
             port     : pid ? Number(portByPid[pid]) : null,
-            starting : readFlag(startingFlagOf(server), 30_000) !== null,
+            ...readStart(server.id),
         };
     });
 }
@@ -159,32 +145,6 @@ function realPathOf(dir) {
  */
 function urlOf(server) {
     return server.port ? `http://${server.host || "localhost"}:${server.port}/` : null;
-}
-
-/**
- * Waits for a server just started to listen and answer; its URL, or null.
- * @param {string} id
- * @returns {string}
- */
-function waitForServer(id) {
-    for (let attempt = 0; attempt < 75; attempt++) {
-        const server = readExtraServers(readListeningPorts()).find((one) => one.id === id);
-        if (server && server.port) {
-            return waitForUrl(urlOf(server)) ? urlOf(server) : null;
-        }
-        sleep(200);
-    }
-
-    return null;
-}
-
-/**
- * The flag file that says a server is starting.
- * @param {{ id: string }} server
- * @returns {string}
- */
-function startingFlagOf(server) {
-    return `/tmp/dev-${server.id}.starting`;
 }
 
 /**
@@ -278,10 +238,8 @@ export {
     readState,
     urlOf,
     readViteServers,
-    startingFlagOf,
     readExtraServers,
     readListeningPorts,
-    waitForServer,
     readAppServers,
     readStoppingPids,
 };

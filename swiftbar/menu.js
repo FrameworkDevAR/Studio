@@ -12,6 +12,7 @@ import {
     appRootOf, appDirsOf, appInfo, byProjectThenApp, titleOf, schemeOf, hostOf
 } from "./apps.js";
 import { urlOf } from "./state.js";
+import { logOf } from "./starts.js";
 
 
 
@@ -36,9 +37,10 @@ import { urlOf } from "./state.js";
  * @param {MenuState} state
  * @returns {void}
  */
-function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, updates }) {
-    let icon = "🔴";
-    if (stackBusy || extras.some((server) => server.starting)) {
+function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, updates, starts }) {
+    const all  = [ ...extras, ...Object.values(starts) ];
+    let icon   = "🔴";
+    if (stackBusy || all.some((start) => start.starting)) {
         icon = "🟡";
     } else if (apacheWorkers && mysqlUp) {
         icon = "🟢";
@@ -46,8 +48,10 @@ function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, updat
         icon = "🟡";
     }
 
+    // A start that failed shows in the bar too, as the menu is closed when it happens.
     const running = countRunning(servers, extras);
-    item(running ? `${icon} ${running}` : icon);
+    const failed  = all.some((start) => start.failed) ? " ⚠️" : "";
+    item(`${running ? `${icon} ${running}` : icon}${failed}`);
     separator();
     item("🎛️ Studio", onClick("open-studio", undefined, { refresh : false }));
     if (updates) {
@@ -132,7 +136,7 @@ function renderServers(project, state) {
     item(running.length ? `${title} — ${running.length} running` : title, { size : 13 });
     renderRunningServers(servers, state);
 
-    const idle = servers.filter((server) => !server.pid && !server.starting);
+    const idle = servers.filter((server) => !server.pid && !server.starting && !server.failed);
     if (idle.length) {
         item("Start…", { color : GREY });
         startAllItem(idle.length, onClick("start-extras", `"${title}"`));
@@ -171,7 +175,9 @@ function renderRunningServers(servers, { stopping }) {
                 hotReload : server.hotReload,
             });
         } else if (server.starting) {
-            item(`🟡 ${server.name} — starting…`, { color : GREY });
+            startingItem(server.name);
+        } else if (server.failed) {
+            failedItem(server.name, server.failed, server.id, "start-extra");
         }
     }
 }
@@ -183,7 +189,7 @@ function renderRunningServers(servers, { stopping }) {
  * @returns {void}
  */
 function renderProjects(state) {
-    const { servers, stopping, portByPid } = state;
+    const { servers, stopping, portByPid, starts } = state;
 
     for (const project of PROJECTS) {
         if (!project.menu) {
@@ -199,16 +205,21 @@ function renderProjects(state) {
         }
 
         const extras      = serversOf(project, state);
-        const extrasIdle  = extras.filter((server) => !server.pid && !server.starting);
+        const extrasIdle  = extras.filter((server) => !server.pid && !server.starting
+            && !server.failed);
 
         const root    = project.dir;
         const running = servers.filter((server) => appRootOf(server.dir) === root);
         const busy    = new Set(running.map((server) => server.dir));
-        const idle    = appDirsOf(root)
+        const stopped = appDirsOf(root)
             .filter((dir) => !busy.has(dir)
                 && readFile(path.join(dir, "package.json")).includes(`"start"`))
             .map(appInfo)
             .sort(byProjectThenApp);
+
+        // A start under way, or one that failed, shows in its own row instead of Start….
+        const idle    = stopped.filter((app) => !starts[app.dir]?.starting
+            && !starts[app.dir]?.failed);
         if (!running.length && !idle.length && !extras.length) {
             continue;
         }
@@ -224,6 +235,11 @@ function renderProjects(state) {
 
         for (const server of running) {
             const port = portByPid[server.pid];
+            if (starts[server.dir]?.starting) {
+                startingItem(server.app);
+                continue;
+            }
+
             runningServer({
                 name : server.app,
                 pid  : server.pid,
@@ -234,6 +250,14 @@ function renderProjects(state) {
                 dir  : server.dir,
                 stopping : stopping.has(server.pid),
             });
+        }
+
+        for (const app of stopped) {
+            if (starts[app.dir]?.starting) {
+                startingItem(app.app);
+            } else if (starts[app.dir]?.failed) {
+                failedItem(app.app, starts[app.dir].failed, app.dir, "start-app");
+            }
         }
 
         renderRunningServers(extras, state);
@@ -327,6 +351,33 @@ function service({ label, version, up, detail = "", start, stop }) {
     const suffix = up && detail ? ` — ${detail}` : "";
     item(`${up ? "🟢" : "🔴"} ${label} (${version})${suffix}`, { color : up ? GREEN : RED });
     subItem(up ? `Stop ${label}` : `Start ${label}`, onClick(up ? stop : start));
+}
+
+/**
+ * A row for an app or server on its way up, until it listens.
+ * @param {string} name
+ * @returns {void}
+ */
+function startingItem(name) {
+    item(`🟡 ${name} — starting…`, { color : GREY });
+}
+
+/**
+ * A row for an app or server that quit before it listened: why, from its output, its log,
+ * and starting it again, or forgetting it.
+ * @param {string} name
+ * @param {string} reason
+ * @param {string} target its folder, or its id
+ * @param {string} start the action that starts it
+ * @returns {void}
+ */
+function failedItem(name, reason, target, start) {
+    item(`⚠️ ${name} — did not start`, { color : RED });
+    subItem(reason.replace(/\|/g, "/"), { color : GREY });
+    separator(1);
+    subItem("Show the log", opensLog(logOf(target)));
+    subItem("Try again", onClick(start, `"${target}"`));
+    subItem("Dismiss", onClick("dismiss", `"${target}"`));
 }
 
 /**
