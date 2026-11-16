@@ -45,6 +45,8 @@ the apps and servers of each project. See the README.
   "Claude", never a model name or version.
 - Subjects are imperative and plain, as in the other repos: "Add the…", "Fix the…",
   "Ignore the…".
+- Subjects are short, about 50 characters and never over 72, as GitHub cuts longer ones.
+  One change per subject, no "and…": the rest goes in the body.
 - Split work into several commits by what changed, when it makes sense.
 
 ## Code
