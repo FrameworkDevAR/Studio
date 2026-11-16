@@ -149,7 +149,9 @@ p { margin: 0; }
     box-shadow: 0 4px 14px color-mix(in srgb, #bb9af7 22%, transparent);
 }
 .brand strong {
-    display: block;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
     font-family: var(--serif);
     font-size: 23px;
     font-weight: 400;
@@ -158,6 +160,22 @@ p { margin: 0; }
     color: var(--strong);
 }
 .brand span { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+/* The version, a pill as Framework's docs have it by their name */
+.brand small {
+    padding: 1px 7px;
+    /* The page's sans, as the name beside it is in the serif */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    letter-spacing: 0;
+    color: var(--muted);
+    /* Halfway to the sidebar, so it reads as a soft badge, not a field */
+    background: color-mix(in srgb, var(--field) 45%, var(--sidebar));
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+.brand small:empty { display: none; }
 
 nav { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
 .nav-label {

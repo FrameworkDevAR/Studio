@@ -13,6 +13,10 @@ import { OUTDATED, PHPMYADMIN, pathsOf } from "./paths.js";
 const ROOT = path.join(import.meta.dirname, "..", "..");
 const HOME = os.homedir();
 
+// Studio's version, kept in package.json only, which the page shows by its name.
+const VERSION = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8")).version
+    || "";
+
 // This machine's settings, which the plugin reads: the same file it looks for.
 const CONFIG = process.env.STUDIO_CONFIG || path.join(ROOT, "config", "config.json");
 
@@ -172,6 +176,7 @@ function formatBytes(value) {
 // The public API
 export {
     ROOT,
+    VERSION,
     HOME,
     CONFIG,
     UPDATES,

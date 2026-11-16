@@ -44,6 +44,7 @@ function renderSidebar() {
 
     document.getElementById("brand-status").innerHTML =
         `<i class="dot ${health}"></i> ${labels[health]}`;
+    document.getElementById("brand-version").textContent = state.version ? `v${state.version}` : "";
 
     const running = Object.values(services).filter((service) => service.running).length;
     setBadge(

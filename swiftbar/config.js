@@ -76,7 +76,9 @@ const EXTRA_SERVERS = PROJECTS.flatMap((project) => project.servers.map((server)
 
 // Studio, started on demand. node resolves the link SwiftBar runs this through,
 // so import.meta.dirname is the plugin's folder, inside Studio's.
-const STUDIO = { dir : path.join(import.meta.dirname, ".."), port : 9900 };
+// Its version is kept in package.json only, and the menu shows it by Studio's entry.
+const STUDIO_DIR = path.join(import.meta.dirname, "..");
+const STUDIO     = { dir : STUDIO_DIR, port : 9900, version : readVersion(STUDIO_DIR) };
 
 // Flags that let the menu show "Starting…" while an action runs: the stack's
 // holds its label, since it covers both start and stop all.
@@ -113,6 +115,19 @@ function readConfig() {
         return JSON.parse(fs.readFileSync(file, "utf8"));
     } catch {
         return {};
+    }
+}
+
+/**
+ * Studio's version, from its package.json, or "" when it cannot be read.
+ * @param {string} dir
+ * @returns {string}
+ */
+function readVersion(dir) {
+    try {
+        return JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8")).version || "";
+    } catch {
+        return "";
     }
 }
 

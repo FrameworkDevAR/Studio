@@ -260,6 +260,7 @@ async function readState() {
     ]);
 
     return {
+        version    : system.VERSION,
         services   : serviceList,
         php        : phpState,
         node       : nodeState,

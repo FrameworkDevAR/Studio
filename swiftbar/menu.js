@@ -5,7 +5,7 @@ import path from "node:path";
 
 import {
     APACHE_LOG, VHOSTS, GREEN, RED, PHP_INI, GREY, SERVERS_NAME, PROJECTS, SELF,
-    PHPMYADMIN, EDITOR
+    PHPMYADMIN, EDITOR, STUDIO
 } from "./config.js";
 import { readFile } from "./helpers.js";
 import {
@@ -33,7 +33,7 @@ import { logOf } from "./starts.js";
 /**
  * The menu bar itself: the stack's health and how many servers are up.
  * Yellow means something is starting or stopping, or only part is up. Under
- * it, Studio, and the updates that are out, which open in Studio.
+ * it, Studio with its version, and the updates that are out, which open in Studio.
  * @param {MenuState} state
  * @returns {void}
  */
@@ -53,7 +53,8 @@ function renderTitle({ apacheWorkers, mysqlUp, servers, extras, stackBusy, updat
     const failed  = all.some((start) => start.failed) ? " ⚠️" : "";
     item(`${running ? `${icon} ${running}` : icon}${failed}`);
     separator();
-    item("🎛️ Studio", onClick("open-studio", undefined, { refresh : false }));
+    const version = STUDIO.version ? ` (${STUDIO.version})` : "";
+    item(`🎛️ Studio${version}`, onClick("open-studio", undefined, { refresh : false }));
     if (updates) {
         item(
             `⬆️ ${updates === 1 ? "An update is out" : `${updates} updates are out`}`,

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 //
 // <xbar.title>Studio</xbar.title>
-// <xbar.version>v2.5</xbar.version>
 // <xbar.author>Tomas Malbran</xbar.author>
 // <xbar.desc>Start and stop the local stack and the apps and servers of each project.</xbar.desc>
 //
